@@ -6,7 +6,7 @@
 ## 스택
 
 - **React 18 + Vite 5** — 프론트엔드
-- **Supabase** (Postgres + Realtime + RPC) — 클라우드. dev/prod 프로젝트 분리
+- **Supabase** (Postgres + Realtime + RPC) — 클라우드, 프로젝트 하나(`cufic_wts`)
 - **Vitest** (+ jsdom, @testing-library) — 테스트
 
 ## 실행
@@ -55,8 +55,12 @@ supabase db reset --linked              # 시드까지 재적용 (dev 전용, �
 - `VITE_ADMIN_PASSWORD` — 관리자 화면. 코드에 하드코딩하지 않는다.
 - `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD` — CLI 전용. **진짜 비밀.**
 
-프로젝트 둘: **`cufic-wts-dev`(개발 · 마음껏 부숴도 됨)**, **`cufic-wts`(대회용)**.
-개발은 전부 dev에서 하고, 완성된 마이그레이션을 대회 직전 prod에 적용한다.
+**프로젝트는 하나다** — `cufic_wts` (`zhwidhvoxcoljffvqhol`, 서울). 개발도 대회도 여기서 돈다.
+분리된 개발 DB가 없으므로:
+
+- 검증용 주문은 **테스트 조 코드(`TEST-XX`)로만** 태운다. 실제 조 데이터를 건드리지 않는다.
+- 마이그레이션이 곧 실서비스에 적용된다. **스키마 변경은 되돌릴 여유가 없다고 보고 신중히.**
+- **대회 전 `reset_game` 초기화 리허설 필수.** 안 하면 학생 화면에 테스트 흔적이 보인다.
 
 ## 대상 기기
 
