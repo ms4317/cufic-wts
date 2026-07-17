@@ -2,7 +2,10 @@
 
 지금 어디까지 왔고 뭐가 남았는지. 상태가 바뀌면 갱신한다.
 
-**현재 위치: §1 DB 스키마 직전.** Supabase dev 프로젝트 생성과 키 전달 대기 중.
+**현재 위치: §1·§2 완료 (DB 스키마 + 주문서/힌트 RPC).** 다음은 §3 학생 화면 연동 — UI 명세 대기 중.
+
+> ⚠ **게임 규칙이 바뀌었다.** 즉시 체결 → 주문서 일괄 체결, 뉴스 → 등급제 힌트(조별 차등 지급).
+> 프론트 UI는 아직 옛 모델(즉시 체결·전체 공개 뉴스) 그대로다. DB와 UI가 어긋나 있는 상태.
 
 ---
 
@@ -31,20 +34,26 @@
 
 ---
 
+### 백엔드 (Supabase, 프로젝트 `cufic_wts`)
+
+- **§1 스키마** — `game_state` / `stocks` / `teams` / `positions` / `trades` /
+  `round_snapshots` / `order_sheets` / `hints` / `hint_grants`. 마이그레이션 8개 적용.
+  RLS: 읽기만 선별 허용, 쓰기 정책 없음(= RPC로만)
+- **§2 RPC** — `save_order_sheet` / `advance_round`(일괄 체결) / `reset_game` /
+  `grant_hint` / `get_my_hints` / `get_my_order_sheet` / `login_team` / `team_equity`.
+  실제 호출 검증 62건 통과
+- **`seed.sql`은 `data.js`에서 생성** (`node scripts/gen-seed.mjs`) — 정합성 테스트가
+  검사하는 데이터와 DB의 원천이 하나
+
 ## 진행 중
 
-### §1 DB 스키마 — **대기: Supabase dev 프로젝트 URL·키·토큰**
+### §3 학생 화면 연동 — **UI 명세 대기**
 
-`supabase/migrations/`로 관리, 대시보드 수동 편집 금지.
-`game_state` / `stocks` / `teams` / `positions` / `trades` / `round_snapshots` / `news`.
-`seed.sql`로 현재 `data.js` 더미를 DB에 재현.
-
-### 이후 순서
+게임 규칙이 바뀌어 프론트 UI 개편이 선행돼야 한다. 현재 UI는 즉시 체결·전체 공개 뉴스 모델이다.
 
 | | 내용 | 핵심 체크포인트 |
 |---|---|---|
-| §2 | 주문 RPC (`place_order`·`advance_round`·`reset_game`) | RPC 결과 = 프론트 계산 일치 |
-| §3 | 학생 화면 연동 (actions.js 내부 교체) | 재접속 복원, 오프라인 실패 토스트 |
+| §3 | actions.js 내부를 Supabase 호출로 교체 | 재접속 복원, 오프라인 실패 토스트 |
 | §4 | 관리자 화면 4탭 (진행·조 관리·종목/가격·리더보드) | 조 수·시드 하드코딩 없음 |
 | §5 | Realtime 구독 | 브라우저 2개 + 관리자 시나리오 |
 | §6 | 마감 | 기존 89개 유지, README |
@@ -70,6 +79,10 @@
 
 ## 알려진 위험
 
-1. **검증되지 않은 데이터** — 학생이 지어낸 재무 수치를 사실로 배운다. 가상 종목 이식 전까지 데모 전용
-2. **순위판의 가짜 조** — 서버 전에 수업에 쓰면 존재하지 않는 조와 비교하게 된다
-3. **dev/prod 마이그레이션 동기화** — 대회 직전 prod 적용이 처음이 되지 않도록, 미리 한 번 리허설 필요
+1. **관리자 RPC가 아직 anon에게 열려 있다** — `advance_round`·`reset_game`·`grant_hint`를
+   학생이 콘솔에서 호출할 수 있다. 대회 전 반드시 §4 비밀번호 검증을 붙여야 한다. **가장 급함**
+2. **검증되지 않은 데이터** — 학생이 지어낸 재무 수치를 사실로 배운다. 가상 종목 이식 전까지 데모 전용
+3. **프론트 UI가 옛 모델** — 즉시 체결·전체 공개 뉴스. DB와 어긋나 있다
+4. **개발 DB가 곧 대회 DB** — 대회 전 `reset_game` 초기화 리허설 필수. 테스트 조(`TEST-01`,
+   `TIGER-03`)도 지워야 한다
+5. **힌트 Realtime 불가** — RLS 대신 RPC로 격리해서 실시간 구독이 안 된다. §5에서 폴링 등으로 대응
