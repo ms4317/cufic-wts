@@ -6,6 +6,25 @@
 
 ---
 
+## 2026-07-17 · 관리자 RPC를 admin_secret으로 보호 (긴급)
+
+`advance_round`·`reset_game`·`grant_hint`·`revoke_hint`가 anon에게 열려 있었다.
+학생이 콘솔에서 `reset_game()`만 쳐도 대회가 끝나는 상태였다. §4를 기다리지 않고 먼저 막았다.
+
+- **비밀 보관 위치** — `private` 스키마의 `private.config`.
+  **`public`에 두면 anon이 select로 읽어 무의미하다.** Supabase는 PostgREST에 `public`
+  (+`graphql_public`)만 노출하므로 `private`는 REST로 닿을 경로 자체가 없다.
+  Vault 대신 이 방식을 택한 건 의존성 없이 같은 보장을 얻기 때문.
+- **fail closed** — 비밀이 설정되지 않으면 전부 거부한다. 새 DB는 잠긴 채 시작하고,
+  `private.set_admin_secret()`으로 연다. 열린 채로 시작하는 기본값은 위험하다.
+- **비밀은 마이그레이션에 없다** — git에 남으면 안 되므로 부트스트랩을 문서로 남기고
+  값은 Management API/SQL Editor로 한 번 넣는다.
+- **함정** — 시그니처를 바꿀 때 옛 것을 `drop`하지 않으면 오버로드로 남아 무방비 버전이
+  그대로 살아 있다. `create or replace`만으로는 막히지 않는다. 검증에서 404를 확인했다.
+- **한계** — 비밀은 관리자 브라우저 번들(`VITE_ADMIN_PASSWORD`)에 들어간다. 교육용 수준에서
+  합의된 단순화이며, 학생이 관리자 화면 코드를 뜯어보면 알 수 있다.
+  진짜 분리가 필요하면 Supabase Auth + service role로 가야 한다.
+
 ## 2026-07-17 · 뉴스 → 등급제 힌트, 강사가 조별 차등 지급
 
 `news`(전체 공개)를 `hints`(S/A/B/C/D 등급)로 바꾸고 `hint_grants`로 조별 지급을 기록한다.

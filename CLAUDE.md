@@ -21,12 +21,21 @@ npm run build
 **Supabase 마이그레이션** — 대시보드 수동 편집 금지. 재현 가능해야 한다.
 
 ```bash
-supabase link --project-ref <dev-ref>   # .env의 SUPABASE_ACCESS_TOKEN 사용
-supabase db push                        # supabase/migrations/ 를 remote에 적용
-supabase db reset --linked              # 시드까지 재적용 (dev 전용, 데이터 날아감)
+npx supabase db push          # supabase/migrations/ 를 remote에 적용 (link 완료 상태)
+node scripts/gen-seed.mjs     # src/data.js → supabase/seed.sql 생성
 ```
 
-> 상태: 아직 link 전. §1 스키마 작업 시작하면 이 절차가 실제로 돈다.
+> **`db push --include-seed`는 새 마이그레이션이 없으면 시드를 건너뛴다.**
+> 시드만 다시 넣으려면 Management API로 `supabase/seed.sql`을 직접 실행해야 한다.
+
+**새 DB를 처음 세팅할 때** — 관리자 비밀은 마이그레이션에 없다(git에 남으면 안 되므로).
+migrations 적용 후 SQL Editor에서 한 번 실행하고 `.env`의 `VITE_ADMIN_PASSWORD`와 맞춘다:
+
+```sql
+select private.set_admin_secret('원하는_비밀');
+```
+
+이걸 안 하면 관리자 기능이 전부 `unauthorized`로 잠긴 채 시작한다(의도된 기본값).
 
 ## 게임 규칙 (이걸 모르면 코드가 안 읽힌다)
 
@@ -54,6 +63,13 @@ supabase db reset --linked              # 시드까지 재적용 (dev 전용, �
   `get_my_hints`·`get_my_order_sheet`처럼 코드를 받는 RPC를 쓴다. `teams` 직접 조회는 막혀 있고
   코드 없는 `public_teams` 뷰만 열려 있다 — 참가 코드가 노출되면 격리가 통째로 무너진다.
 - **`teams`를 읽는 함수는 `security definer`여야 한다.** 아니면 RLS에 막혀 조용히 NULL이 된다.
+- **관리자 RPC는 `p_admin_secret`을 받아 `private.verify_admin()`으로 검사한다.**
+  새 관리자 기능을 만들 때 이걸 빼먹으면 학생이 콘솔에서 게임을 날릴 수 있다.
+  - 비밀은 `private.config`에 있다. **`public`에 두면 anon이 select로 읽어 무의미하다** —
+    Supabase는 PostgREST에 `public`만 노출하므로 `private`는 REST 경로 자체가 없다.
+  - **함수 시그니처를 바꿀 땐 옛 것을 `drop`한다.** `create or replace`로 파라미터만 추가하면
+    오버로드가 생겨 무방비 버전이 그대로 살아남는다. 막았다고 착각하기 쉬운 함정.
+  - 비밀 미설정 시 전부 거부(fail closed). 새 DB는 잠긴 채 시작한다.
 - **금액은 원 단위 정수(bigint).** 부동소수점 금지. 평균단가만 numeric.
 - **모든 색상은 CSS 변수.** 하드코딩 금지. 차트 캔들·그리드도 클래스 경유로 변수를 참조한다.
   - 한국 증시 관례: **상승·매수 = `--up`(빨강) / 하락·매도 = `--down`(파랑) / 보합 = `--muted`(중립)**

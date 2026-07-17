@@ -42,6 +42,8 @@
 - **§2 RPC** — `save_order_sheet` / `advance_round`(일괄 체결) / `reset_game` /
   `grant_hint` / `get_my_hints` / `get_my_order_sheet` / `login_team` / `team_equity`.
   실제 호출 검증 62건 통과
+- **관리자 보호** — 관리자 RPC 전체가 `p_admin_secret` 필수. 비밀은 `private` 스키마
+  (REST 경로 없음), 미설정 시 fail closed. 검증 26건 통과
 - **`seed.sql`은 `data.js`에서 생성** (`node scripts/gen-seed.mjs`) — 정합성 테스트가
   검사하는 데이터와 DB의 원천이 하나
 
@@ -79,8 +81,8 @@
 
 ## 알려진 위험
 
-1. **관리자 RPC가 아직 anon에게 열려 있다** — `advance_round`·`reset_game`·`grant_hint`를
-   학생이 콘솔에서 호출할 수 있다. 대회 전 반드시 §4 비밀번호 검증을 붙여야 한다. **가장 급함**
+1. ~~**관리자 RPC가 anon에게 열려 있다**~~ → **2026-07-17 해소.** `p_admin_secret` 필수화,
+   비밀은 `private` 스키마. 검증 26건 통과. 남은 한계: 비밀이 관리자 브라우저 번들에 들어간다
 2. **검증되지 않은 데이터** — 학생이 지어낸 재무 수치를 사실로 배운다. 가상 종목 이식 전까지 데모 전용
 3. **프론트 UI가 옛 모델** — 즉시 체결·전체 공개 뉴스. DB와 어긋나 있다
 4. **개발 DB가 곧 대회 DB** — 대회 전 `reset_game` 초기화 리허설 필수. 테스트 조(`TEST-01`,
