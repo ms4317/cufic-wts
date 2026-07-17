@@ -2,7 +2,6 @@ import { useState } from 'react'
 import Modal from './Modal'
 import { num, signed, pct, dirOf } from '../format'
 import { positionPnl } from '../account'
-import { IS_MOCK } from '../leaderboard'
 
 const TABS = [
   { key: 'holdings', label: '보유종목' },
@@ -192,12 +191,7 @@ export default function MyModal({ open, onClose, account, realized, stocks, hist
 
       {tab === 'ranking' && (
         <>
-          {IS_MOCK && (
-            <p className="mock-note">
-              서버 연결 전이라 <b>내 조를 제외한 나머지는 예시 데이터</b>입니다. 실제 수업에서는 다른 조의
-              진짜 성적이 표시됩니다.
-            </p>
-          )}
+          <p className="mock-note">순위는 강사 선생님이 다음 연도로 넘길 때 갱신돼요.</p>
           <table>
             <thead>
               <tr>

@@ -1,175 +1,225 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import {
-  PRINCIPAL,
-  ROUNDS,
-  initialCash,
-  stocks as catalog,
-  initialHistory,
-  initialNews,
-  initialRound,
-} from './data'
 import { deriveAccount } from './account'
-import { buildLeaderboard } from './leaderboard'
 import { makeActions } from './actions'
+import { buildStocks, loadAll, refetchMine, subscribeSignals, yearOf } from './gameData'
 import { useTheme } from './theme'
-import { loadTeam, login as authLogin, logout as authLogout } from './auth'
+import { loadTeam, login as authLogin, logout as authLogout, restore } from './auth'
+import { errorText } from './supabase'
 
 import Login from './components/Login'
 import RotateNotice from './components/RotateNotice'
 import Header from './components/Header'
 import StockList from './components/StockList'
 import Chart from './components/Chart'
-import OrderPanel from './components/OrderPanel'
-import NewsFeed from './components/NewsFeed'
+import OrderSheet from './components/OrderSheet'
+import HintFeed from './components/HintFeed'
 import Leaderboard from './components/Leaderboard'
 import MyModal from './components/MyModal'
 import FinancialModal from './components/FinancialModal'
-import ConfirmModal from './components/ConfirmModal'
 import RoundModal from './components/RoundModal'
 import Toasts, { useToasts } from './components/Toast'
+import Admin from './admin/Admin'
 
-const STOCK_NAMES = catalog.map((s) => s.name)
+const sheetToDraft = (sheet) =>
+  Object.fromEntries(sheet.map((l) => [l.stock_id, { buy_qty: l.buy_qty, sell_qty: l.sell_qty }]))
 
 export default function App() {
   const [theme, toggleTheme] = useTheme()
-  const [team, setTeam] = useState(loadTeam)
 
-  // 보유 현황만 상태로 든다. 시세는 라운드에서 파생되므로 여기 섞지 않는다.
-  const [positions, setPositions] = useState({}) // { [code]: { holding, avgPrice } }
-  const [cash, setCash] = useState(initialCash)
-  const [history, setHistory] = useState(initialHistory)
-  const [news, setNews] = useState(initialNews)
-  const [round, setRound] = useState(initialRound)
-  const [roundLog, setRoundLog] = useState({}) // { [round]: 그 라운드를 떠날 때의 평가금액 }
+  // /admin 또는 ?admin=1 로 관리자 화면. 라우터를 들이지 않고 최소로 분기한다.
+  const isAdmin =
+    typeof window !== 'undefined' &&
+    (window.location.pathname.startsWith('/admin') ||
+      new URLSearchParams(window.location.search).has('admin'))
 
-  const [selectedCode, setSelectedCode] = useState('005930')
-  const [buyQty, setBuyQty] = useState(0)
-  const [sellQty, setSellQty] = useState(0)
-  const [drawings, setDrawings] = useState({}) // 종목코드별 그림 { [code]: stroke[] }
+  if (isAdmin) return <Admin theme={theme} onToggleTheme={toggleTheme} />
+
+  return <Student theme={theme} onToggleTheme={toggleTheme} />
+}
+
+function Student({ theme, onToggleTheme }) {
+  const [team, setTeam] = useState(null)
+  const [booting, setBooting] = useState(true) // 저장된 코드로 재로그인 시도 중
+  const [loading, setLoading] = useState(false)
+  const [loadError, setLoadError] = useState(null)
+
+  const [game, setGame] = useState(null)
+  const [rawStocks, setRawStocks] = useState([])
+  const [positions, setPositions] = useState([])
+  const [cash, setCash] = useState(0)
+  const [trades, setTrades] = useState([])
+  const [hints, setHints] = useState([])
+  const [sheet, setSheet] = useState([])
+  const [snapshots, setSnapshots] = useState([])
+  const [board, setBoard] = useState([])
+  const [seed, setSeed] = useState(0) // 내 조의 원금. 조마다 다를 수 있다.
+
+  const [draft, setDraft] = useState({}) // 화면상의 주문서 (저장 전)
+  const [saving, setSaving] = useState(false)
+  const [selectedCode, setSelectedCode] = useState(null)
+  const [drawings, setDrawings] = useState({})
 
   const [myOpen, setMyOpen] = useState(false)
   const [finOpen, setFinOpen] = useState(false)
-  const [pending, setPending] = useState(null) // 확인 대기 중인 주문
-  const [roundSummary, setRoundSummary] = useState(null) // 라운드 전환 요약 모달
-  const [focusNewsId, setFocusNewsId] = useState(null) // 토스트로 지목된 뉴스 카드
+  const [roundSummary, setRoundSummary] = useState(null)
+  const [focusHintId, setFocusHintId] = useState(null)
   const [toasts, pushToast, dismissToast] = useToasts()
 
-  // 현재 라운드 시세 + 보유를 합친 종목 목록. 화면은 전부 이걸 쓴다.
-  const stocks = useMemo(
-    () =>
-      catalog.map((s) => {
-        const raw = s.priceByYear[round.year]
-        // 상장폐지·미상장 등으로 그 해 가격이 없거나 0이면 거래정지.
-        // 0으로 나누는 곳이 생기지 않게 막는다.
-        const halted = !raw || raw <= 0
-        const price = halted ? 0 : raw
-        const prevRaw = s.priceByYear[round.year - 1]
-        const prev = !prevRaw || prevRaw <= 0 ? price : prevRaw
-        const delta = price - prev
-        const pos = positions[s.code]
-        return {
-          ...s,
-          price,
-          halted,
-          delta: halted ? 0 : delta,
-          chg: halted || !prev ? 0 : (delta / prev) * 100,
-          holding: pos?.holding ?? 0,
-          avgPrice: pos?.avgPrice ?? 0,
-        }
-      }),
-    [round.year, positions],
-  )
-
+  const stocks = useMemo(() => buildStocks(rawStocks, game, positions), [rawStocks, game, positions])
   const selected = useMemo(
-    () => stocks.find((s) => s.code === selectedCode) ?? stocks[0],
+    () => stocks.find((s) => s.code === selectedCode) ?? stocks[0] ?? null,
     [stocks, selectedCode],
   )
-
-  const acct = deriveAccount(stocks, cash, PRINCIPAL)
-
-  // 판 것에서 실제로 번 돈. 체결 시점에 기록해 둔 값을 합산한다.
+  const acct = useMemo(() => deriveAccount(stocks, cash, seed || 0), [stocks, cash, seed])
   const realizedTotal = useMemo(
-    () => history.reduce((sum, h) => sum + (h.realized ?? 0), 0),
-    [history],
+    () => trades.reduce((s, t) => s + Number(t.realized_pnl ?? 0), 0),
+    [trades],
   )
+  const year = yearOf(game)
+  const locked = !!game?.is_locked
+  const started = (game?.current_round ?? 0) >= 1
 
-  // 조별 순위. 다른 조는 서버가 붙기 전까지 예시 데이터다 (leaderboard.js 참고).
-  const ranking = useMemo(
-    () =>
-      team
-        ? buildLeaderboard({
-            myTeam: team,
-            myEquity: acct.equity,
-            round: round.round,
-            principal: PRINCIPAL,
-          })
-        : [],
-    [team, acct.equity, round.round],
-  )
-  const myRank = ranking.find((t) => t.me)?.rank ?? null
+  const myRank = board.find((b) => b.team_id === team?.id)?.rank ?? null
 
-  // 아직 오지 않은 라운드의 뉴스는 스포일러다 — 현재 라운드까지만 보여준다.
-  const visibleNews = useMemo(
-    () =>
-      news
-        .filter((n) => n.round <= round.round)
-        .sort((a, b) => b.round - a.round || b.time.localeCompare(a.time)),
-    [news, round.round],
-  )
-
-  // 수익률 차트: 원금에서 출발해 지나온 라운드마다 한 점.
+  // 수익률 차트 — 서버 스냅샷 기반
   const rounds = useMemo(() => {
-    const past = ROUNDS.filter((r) => r.round <= round.round).map((r) => ({
-      label: `R${r.round} · ${r.year}`,
-      equity: r.round === round.round ? acct.equity : (roundLog[r.round] ?? PRINCIPAL),
-    }))
-    return [{ label: '시작', equity: PRINCIPAL }, ...past]
-  }, [round.round, roundLog, acct.equity])
+    const pts = [{ label: '시작', equity: seed || 0 }]
+    for (const s of snapshots) {
+      pts.push({ label: `R${s.round} · ${game?.round_year_map?.[String(s.round)] ?? ''}`, equity: Number(s.equity) })
+    }
+    if (started) pts.push({ label: `지금 · R${game.current_round}`, equity: acct.equity })
+    return pts
+  }, [snapshots, seed, acct.equity, game, started])
 
-  // 종목을 바꾸면 주문 수량을 비운다.
-  // 남겨두면 삼성전자 500주를 입력해 둔 채 카카오로 옮겨 무심코 BUY를 누르는 오주문이 난다.
-  useEffect(() => {
-    setBuyQty(0)
-    setSellQty(0)
-  }, [selectedCode])
+  // ── 데이터 로드
+  const teamRef = useRef(null)
+  teamRef.current = team
+  // 신호 콜백이 최신 힌트 목록을 봐야 한다 (클로저에 갇히면 안 됨)
+  const hintsRef = useRef([])
+  hintsRef.current = hints
 
-  // 라운드가 바뀌면 요약 모달을 띄운다. 조용히 숫자만 바뀌면 학생이 알아채지 못한다.
-  const seenRound = useRef(round.round)
-  useEffect(() => {
-    if (seenRound.current === round.round) return
-    seenRound.current = round.round
-    setRoundSummary(round)
-  }, [round])
-
-  // actions가 낡은 값을 읽지 않도록 ref로 현재값을 노출한다
-  const stateRef = useRef()
-  stateRef.current = { positions, cash, round, equity: acct.equity }
-
-  const actions = useMemo(
-    () =>
-      makeActions({
-        getState: () => stateRef.current,
-        set: {
-          positions: setPositions,
-          cash: setCash,
-          history: setHistory,
-          news: setNews,
-          round: setRound,
-          roundLog: setRoundLog,
-        },
-        notify: pushToast,
-        focusNews: setFocusNewsId,
-      }),
-    [pushToast],
-  )
-  // 운영자 패널이 붙기 전까지 개발 중 수동 테스트용 통로
-  if (import.meta.env.DEV) window.wtsAdmin = actions
-
-  const handleLogin = useCallback((code) => {
-    const result = authLogin(code)
-    if (result.ok) setTeam(result.team)
-    return result
+  const load = useCallback(async (t) => {
+    setLoading(true)
+    setLoadError(null)
+    const r = await loadAll(t.code, t.id)
+    setLoading(false)
+    if (!r.ok) {
+      setLoadError(r.error)
+      return false
+    }
+    setGame(r.game)
+    setRawStocks(r.rawStocks)
+    setPositions(r.positions)
+    setTrades(r.trades)
+    setHints(r.hints)
+    setSheet(r.sheet)
+    setDraft(sheetToDraft(r.sheet))
+    setSnapshots(r.snapshots)
+    setBoard(r.leaderboard)
+    setSeed(r.seed)
+    setCash(r.cash)
+    setSelectedCode((c) => c ?? r.rawStocks[0]?.id ?? null)
+    return true
   }, [])
+
+  // 새로 읽은 값을 그대로 돌려준다 — 호출부가 setState 직후에 ref를 읽으면
+  // 아직 렌더 전이라 옛 값을 본다.
+  const refetch = useCallback(async () => {
+    const t = teamRef.current
+    if (!t) return { ok: false, error: 'no_team' }
+    const r = await refetchMine(t.code, t.id)
+    if (!r.ok) {
+      pushToast(errorText(r.error), 'down')
+      return r
+    }
+    setPositions(r.positions)
+    setTrades(r.trades)
+    setHints(r.hints)
+    setSheet(r.sheet)
+    setDraft(sheetToDraft(r.sheet))
+    setSnapshots(r.snapshots)
+    setBoard(r.leaderboard)
+    setGame(r.game)
+    setCash(r.cash)
+    return r
+  }, [pushToast])
+
+  // ── 재접속 복원: 저장된 코드로 자동 재로그인
+  useEffect(() => {
+    let alive = true
+    ;(async () => {
+      if (!loadTeam()) {
+        setBooting(false)
+        return
+      }
+      const r = await restore()
+      if (!alive) return
+      if (r.ok) {
+        setTeam(r.team)
+        await load(r.team)
+      }
+      setBooting(false)
+    })()
+    return () => {
+      alive = false
+    }
+  }, [load])
+
+  // ── 실시간 신호
+  const seenRound = useRef(null)
+  useEffect(() => {
+    if (!team) return
+    const off = subscribeSignals(async (sig) => {
+      // 다른 조의 주문서 제출은 나와 무관하다 — 관리자만 본다
+      if (sig.kind === 'sheet_saved') return
+
+      const before = hintsRef.current.length
+      const fresh = await refetch()
+      if (!fresh?.ok) return
+
+      if (sig.kind === 'hints_changed') {
+        // 나에게 실제로 새 힌트가 왔을 때만 알린다.
+        // 다른 조에 지급돼도 신호는 오지만 내 목록은 그대로다.
+        if (fresh.hints.length > before) {
+          const newest = fresh.hints[0]?.id ?? null
+          pushToast('새로운 힌트가 도착했어요', 'gold', () => setFocusHintId(newest))
+        }
+      } else if (sig.kind === 'game_reset') {
+        pushToast('대회가 초기화되었어요', 'gold')
+      } else if (sig.kind === 'game_ended') {
+        pushToast('대회가 종료되었어요', 'gold')
+      }
+      // round_advanced는 game이 갱신되면 아래 effect가 요약 모달을 띄운다
+    })
+    return off
+    // hints는 ref로 읽으므로 의존성에 넣지 않는다 (넣으면 구독이 계속 재생성된다)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [team, refetch, pushToast])
+
+  // 라운드가 바뀌면 요약 모달
+  useEffect(() => {
+    const r = game?.current_round
+    if (r == null) return
+    if (seenRound.current === null) {
+      seenRound.current = r
+      return
+    }
+    if (seenRound.current !== r && r >= 1) {
+      seenRound.current = r
+      setRoundSummary({ round: r, year: yearOf(game, r) })
+    }
+  }, [game])
+
+  const handleLogin = useCallback(
+    async (code) => {
+      const r = await authLogin(code)
+      if (!r.ok) return r
+      setTeam(r.team)
+      await load(r.team)
+      return r
+    },
+    [load],
+  )
 
   const handleLogout = useCallback(() => {
     authLogout()
@@ -177,43 +227,65 @@ export default function App() {
     setMyOpen(false)
   }, [])
 
+  const actions = useMemo(
+    () => makeActions({ getTeamCode: () => teamRef.current?.code, refetch, notify: pushToast }),
+    [refetch, pushToast],
+  )
+
+  const saveSheet = useCallback(async () => {
+    setSaving(true)
+    const lines = Object.entries(draft)
+      .filter(([, l]) => (l.buy_qty ?? 0) > 0 || (l.sell_qty ?? 0) > 0)
+      .map(([stock_id, l]) => ({ stock_id, buy_qty: l.buy_qty ?? 0, sell_qty: l.sell_qty ?? 0 }))
+    await actions.saveOrderSheet(lines)
+    setSaving(false)
+  }, [draft, actions])
+
   const setStrokes = useCallback(
     (next) => setDrawings((d) => ({ ...d, [selectedCode]: next })),
     [selectedCode],
   )
 
-  const selectByName = useCallback((name) => {
-    const s = catalog.find((x) => x.name === name)
-    if (s) setSelectedCode(s.code)
-  }, [])
-
-  // BUY/SELL → 확인 모달 요청
-  const requestOrder = useCallback(
-    (side, qty) => {
-      if (selected.halted) return
-      setPending({ code: selected.code, name: selected.name, side, qty, price: selected.price })
-    },
-    [selected],
-  )
-
-  // 확인 → 체결 (실패 응답은 서버가 붙으면 그대로 살아난다)
-  const confirmOrder = useCallback(async () => {
-    if (!pending) return
-    const result = await actions.executeOrder(pending)
-    setPending(null)
-    if (result.ok) {
-      setBuyQty(0)
-      setSellQty(0)
-    } else {
-      pushToast(result.error, 'down')
-    }
-  }, [pending, actions, pushToast])
+  if (booting) {
+    return (
+      <>
+        <RotateNotice />
+        <div className="boot">
+          <div className="spinner" />
+          <p>불러오는 중…</p>
+        </div>
+      </>
+    )
+  }
 
   if (!team) {
     return (
       <>
         <RotateNotice />
-        <Login onSubmit={handleLogin} theme={theme} onToggleTheme={toggleTheme} />
+        <Login onSubmit={handleLogin} theme={theme} onToggleTheme={onToggleTheme} />
+      </>
+    )
+  }
+
+  if (loading || !game || !selected) {
+    return (
+      <>
+        <RotateNotice />
+        <div className="boot">
+          {loadError ? (
+            <>
+              <p className="boot-err">{errorText(loadError)}</p>
+              <button className="act-btn buy" onClick={() => load(team)} style={{ maxWidth: 200 }}>
+                다시 시도
+              </button>
+            </>
+          ) : (
+            <>
+              <div className="spinner" />
+              <p>대회 정보를 불러오는 중…</p>
+            </>
+          )}
+        </div>
       </>
     )
   }
@@ -223,45 +295,52 @@ export default function App() {
       <RotateNotice />
       <Header
         account={acct}
-        team={team}
-        round={round}
+        team={team.name || team.code}
+        round={{ round: game.current_round, year }}
         rank={myRank}
-        teamCount={ranking.length}
+        teamCount={board.length}
         theme={theme}
-        onToggleTheme={toggleTheme}
+        onToggleTheme={onToggleTheme}
         onLogout={handleLogout}
       />
+
+      {!started && (
+        <div className="notstarted">아직 대회가 시작되지 않았어요. 강사 선생님을 기다려 주세요.</div>
+      )}
 
       <div className="app">
         <StockList
           stocks={stocks}
-          selectedCode={selectedCode}
+          selectedCode={selected.code}
           onSelect={setSelectedCode}
           onOpenMy={() => setMyOpen(true)}
         />
         <Chart
           stock={selected}
           onOpenFinancial={() => setFinOpen(true)}
-          strokes={drawings[selectedCode] ?? []}
+          strokes={drawings[selected.code] ?? []}
           onStrokesChange={setStrokes}
         />
-        <OrderPanel
+        <OrderSheet
           stock={selected}
+          stocks={stocks}
           cash={cash}
-          buyQty={buyQty}
-          setBuyQty={setBuyQty}
-          sellQty={sellQty}
-          setSellQty={setSellQty}
-          onRequestOrder={requestOrder}
+          sheet={sheet}
+          draft={draft}
+          onDraftChange={setDraft}
+          onSave={saveSheet}
+          saving={saving}
+          locked={locked || !started}
+          year={year}
         />
-        <NewsFeed
-          news={visibleNews}
-          knownStocks={STOCK_NAMES}
-          onSelectStock={selectByName}
-          focusId={focusNewsId}
-          onFocusHandled={() => setFocusNewsId(null)}
+        <HintFeed
+          hints={hints}
+          stocks={stocks}
+          onSelectStock={setSelectedCode}
+          focusId={focusHintId}
+          onFocusHandled={() => setFocusHintId(null)}
         />
-        <Leaderboard rows={ranking} />
+        <Leaderboard rows={board.map((b) => ({ ...b, me: b.team_id === team.id, pnlPct: Number(b.pnl_pct) }))} />
       </div>
 
       <MyModal
@@ -270,27 +349,40 @@ export default function App() {
         account={acct}
         realized={realizedTotal}
         stocks={stocks}
-        history={history}
+        history={trades.map((t) => ({
+          time: new Date(t.created_at).toLocaleTimeString('ko-KR', { hour12: false }),
+          name: stocks.find((s) => s.code === t.stock_id)?.name ?? t.stock_id,
+          side: t.side,
+          price: Number(t.price),
+          qty: t.quantity,
+          amount: Number(t.price) * t.quantity,
+          realized: Number(t.realized_pnl ?? 0),
+        }))}
         rounds={rounds}
-        ranking={ranking}
+        ranking={board.map((b) => ({
+          rank: Number(b.rank),
+          name: b.name,
+          equity: Number(b.equity),
+          pnl: Number(b.pnl),
+          pnlPct: Number(b.pnl_pct),
+          me: b.team_id === team.id,
+        }))}
       />
       <FinancialModal
         open={finOpen}
         onClose={() => setFinOpen(false)}
         stock={selected}
-        round={round}
-      />
-      <ConfirmModal
-        order={pending}
-        cash={cash}
-        onCancel={() => setPending(null)}
-        onConfirm={confirmOrder}
+        round={{ round: game.current_round, year }}
       />
       <RoundModal
         round={roundSummary}
         account={acct}
         stocks={stocks}
-        prevEquity={roundSummary ? roundLog[roundSummary.round - 1] : null}
+        prevEquity={
+          roundSummary
+            ? Number(snapshots.find((s) => s.round === roundSummary.round - 1)?.equity ?? seed)
+            : null
+        }
         onClose={() => setRoundSummary(null)}
       />
 
