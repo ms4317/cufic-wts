@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Skill(run)",
+      "Skill(run:*)",
+      "PowerShell($c = Get-Command chromium-cli -ErrorAction SilentlyContinue; if \\($c\\) { $c.Source } else { \"chromium-cli NOT FOUND\" }; $p = Get-Command npx -ErrorAction SilentlyContinue; if \\($p\\) { \"npx: \" + $p.Source })"
+    ]
+  }
+}
