@@ -13,10 +13,10 @@ import StockList from './components/StockList'
 import Chart from './components/Chart'
 import OrderSheet from './components/OrderSheet'
 import HintFeed from './components/HintFeed'
-import Leaderboard from './components/Leaderboard'
 import MyModal from './components/MyModal'
 import FinancialModal from './components/FinancialModal'
 import RoundModal from './components/RoundModal'
+import RankingModal from './components/RankingModal'
 import Toasts, { useToasts } from './components/Toast'
 import Admin from './admin/Admin'
 
@@ -61,6 +61,7 @@ function Student({ theme, onToggleTheme }) {
 
   const [myOpen, setMyOpen] = useState(false)
   const [finOpen, setFinOpen] = useState(false)
+  const [rankOpen, setRankOpen] = useState(false)
   const [roundSummary, setRoundSummary] = useState(null)
   const [focusHintId, setFocusHintId] = useState(null)
   const [toasts, pushToast, dismissToast] = useToasts()
@@ -71,6 +72,20 @@ function Student({ theme, onToggleTheme }) {
     [stocks, selectedCode],
   )
   const acct = useMemo(() => deriveAccount(stocks, cash, seed || 0), [stocks, cash, seed])
+
+  // 순위 행 (헤더 배지 · 순위 모달이 공유)
+  const rankRows = useMemo(
+    () =>
+      board.map((b) => ({
+        rank: Number(b.rank),
+        name: b.name,
+        equity: Number(b.equity),
+        pnl: Number(b.pnl),
+        pnlPct: Number(b.pnl_pct),
+        me: b.team_id === team?.id,
+      })),
+    [board, team],
+  )
   const realizedTotal = useMemo(
     () => trades.reduce((s, t) => s + Number(t.realized_pnl ?? 0), 0),
     [trades],
@@ -299,6 +314,7 @@ function Student({ theme, onToggleTheme }) {
         round={{ round: game.current_round, year }}
         rank={myRank}
         teamCount={board.length}
+        onOpenRanking={() => setRankOpen(true)}
         theme={theme}
         onToggleTheme={onToggleTheme}
         onLogout={handleLogout}
@@ -329,6 +345,7 @@ function Student({ theme, onToggleTheme }) {
           draft={draft}
           onDraftChange={setDraft}
           onSave={saveSheet}
+          onSelectStock={setSelectedCode}
           saving={saving}
           locked={locked || !started}
           year={year}
@@ -340,7 +357,6 @@ function Student({ theme, onToggleTheme }) {
           focusId={focusHintId}
           onFocusHandled={() => setFocusHintId(null)}
         />
-        <Leaderboard rows={board.map((b) => ({ ...b, me: b.team_id === team.id, pnlPct: Number(b.pnl_pct) }))} />
       </div>
 
       <MyModal
@@ -359,15 +375,9 @@ function Student({ theme, onToggleTheme }) {
           realized: Number(t.realized_pnl ?? 0),
         }))}
         rounds={rounds}
-        ranking={board.map((b) => ({
-          rank: Number(b.rank),
-          name: b.name,
-          equity: Number(b.equity),
-          pnl: Number(b.pnl),
-          pnlPct: Number(b.pnl_pct),
-          me: b.team_id === team.id,
-        }))}
+        ranking={rankRows}
       />
+      <RankingModal open={rankOpen} onClose={() => setRankOpen(false)} rows={rankRows} />
       <FinancialModal
         open={finOpen}
         onClose={() => setFinOpen(false)}

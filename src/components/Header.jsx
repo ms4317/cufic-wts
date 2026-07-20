@@ -1,7 +1,7 @@
 import { num, signed, pct, dirOf } from '../format'
 import ThemeToggle from './ThemeToggle'
 
-export default function Header({ account, team, round, rank, teamCount, theme, onToggleTheme, onLogout }) {
+export default function Header({ account, team, round, rank, teamCount, onOpenRanking, theme, onToggleTheme, onLogout }) {
   const dir = dirOf(account.pnl)
 
   return (
@@ -23,11 +23,11 @@ export default function Header({ account, team, round, rank, teamCount, theme, o
         ROUND {round.round} · {round.year}년
       </span>
 
-      {/* 조별 순위 — 항상 보여야 경쟁 동기가 산다 */}
+      {/* 조별 순위 — 누르면 전체 순위 팝업 */}
       {rank != null && (
-        <span className="badge rank">
+        <button className="badge rank" onClick={onOpenRanking} title="전체 순위 보기">
           {rank}위 <span className="of">/ {teamCount}조</span>
-        </span>
+        </button>
       )}
 
       <div className="acct">

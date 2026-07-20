@@ -20,6 +20,7 @@ export default function OrderSheet({
   draft,
   onDraftChange,
   onSave,
+  onSelectStock,
   saving,
   locked,
   stocks,
@@ -29,6 +30,16 @@ export default function OrderSheet({
   const buyQty = line.buy_qty ?? 0
   const sellQty = line.sell_qty ?? 0
   const pos = positionPnl(stock)
+
+  // 지금 보유 중인 종목 — 주문서를 짜려면 무엇을 얼마에 갖고 있는지 봐야 한다.
+  const held = useMemo(
+    () =>
+      stocks
+        .filter((s) => s.holding > 0)
+        .map((s) => ({ s, p: positionPnl(s) })),
+    [stocks],
+  )
+  const holdingsValue = useMemo(() => held.reduce((sum, { s }) => sum + s.holding * s.price, 0), [held])
 
   // 주문서 전체의 자금 계산.
   // ⚠ 잠정 규칙: 같은 주문서의 매도 대금을 매수 자금으로 인정한다 (서버 order_funds_ok와 동일).
@@ -155,27 +166,48 @@ export default function OrderSheet({
             </div>
           </div>
 
-          {/* 주문서 요약 — 전 종목 합계 */}
-          <div className="ordsec sheet-sum">
+          {/* 보유종목 — 지금 무엇을 얼마에 갖고 있는지 */}
+          <div className="ordsec holdings">
             <div className="cap">
-              <span className="t">주문서 요약</span>
-              <span className="avail">{totals.lines}개 종목</span>
-            </div>
-            <div className="posbox">
-              <div className="r">
-                <span className="k">총 매수</span>
-                <span className="v num up">− {num(totals.buyCost)}</span>
-              </div>
-              <div className="r">
-                <span className="k">총 매도</span>
-                <span className="v num down">+ {num(totals.sellProceeds)}</span>
-              </div>
-              <div className="r" style={{ borderTop: '1px solid var(--line)', paddingTop: 8 }}>
-                <span className="k">체결 후 예수금</span>
-                <span className={'v num ' + (overBudget ? 'down' : '')}>₩ {num(totals.after)}</span>
-              </div>
+              <span className="t">보유종목</span>
+              <span className="avail">
+                {held.length > 0 ? `평가 ₩ ${num(holdingsValue)}` : `${held.length}개`}
+              </span>
             </div>
 
+            {held.length === 0 ? (
+              <p className="holdings-empty">
+                아직 가진 종목이 없어요. 주문서에 매수를 담고 강사 선생님이 연도를 넘기면 보유하게 돼요.
+              </p>
+            ) : (
+              <div className="hold-list">
+                {held.map(({ s, p }) => (
+                  <button
+                    key={s.code}
+                    className={'hold-row' + (s.code === stock.code ? ' on' : '')}
+                    onClick={() => onSelectStock?.(s.code)}
+                    title={`${s.name} 주문하기`}
+                  >
+                    <div className="hold-top">
+                      <span className="hnm">{s.name}</span>
+                      <span className="hval num">₩ {num(s.holding * s.price)}</span>
+                    </div>
+                    <div className="hold-bot">
+                      <span className="hq num">
+                        {num(s.holding)}주 · 평단 {num(s.avgPrice)}
+                      </span>
+                      <span className={'hpl num ' + dirOf(p.pnl)}>
+                        {signed(p.pnl)} ({pct(p.pnlPct)})
+                      </span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* 저장 */}
+          <div className="ordsec sheet-save">
             {overBudget && <p className="sheet-warn">예수금을 넘었어요. 수량을 줄여 주세요.</p>}
 
             <button
@@ -183,7 +215,11 @@ export default function OrderSheet({
               disabled={!dirty || overBudget || saving || locked}
               onClick={onSave}
             >
-              {saving ? '저장 중…' : dirty ? '주문서 저장' : '저장됨'}
+              {saving
+                ? '저장 중…'
+                : dirty
+                  ? `주문서 저장${totals.lines ? ` (${totals.lines}종목)` : ''}`
+                  : '저장됨'}
             </button>
             <p className="sheet-hint">
               강사 선생님이 다음 연도로 넘기면 이 주문서가 <b>{year}년 가격</b>으로 한꺼번에

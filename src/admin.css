@@ -89,10 +89,75 @@
   max-width: 420px;
 }
 
-/* ── 주문서 요약 */
-.sheet-sum .cap .t {
+/* ── 보유종목 (주문서 패널) */
+.holdings .cap .t {
   color: var(--text);
 }
+.holdings-empty {
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--dim);
+  padding: 4px 2px;
+}
+.hold-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.hold-row {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 100%;
+  padding: 9px 11px;
+  border-radius: var(--r-sm);
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  color: inherit;
+}
+.hold-row:hover {
+  border-color: color-mix(in srgb, var(--gold) 45%, var(--line));
+}
+.hold-row.on {
+  border-color: var(--gold);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--gold) 40%, transparent);
+}
+.hold-top,
+.hold-bot {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+.hold-row .hnm {
+  font-size: 12.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.hold-row .hval {
+  font-size: 12.5px;
+  font-weight: 700;
+  flex: 0 0 auto;
+}
+.hold-row .hq {
+  font-size: 10.5px;
+  color: var(--dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.hold-row .hpl {
+  font-size: 10.5px;
+  font-weight: 700;
+  flex: 0 0 auto;
+}
+
+/* ── 주문서 저장 영역 */
 .sheet-warn {
   font-size: 11.5px;
   color: var(--up);
