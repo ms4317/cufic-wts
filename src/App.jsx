@@ -375,7 +375,6 @@ function Student({ theme, onToggleTheme }) {
           realized: Number(t.realized_pnl ?? 0),
         }))}
         rounds={rounds}
-        ranking={rankRows}
       />
       <RankingModal open={rankOpen} onClose={() => setRankOpen(false)} rows={rankRows} />
       <FinancialModal

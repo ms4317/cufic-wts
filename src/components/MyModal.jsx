@@ -7,7 +7,6 @@ const TABS = [
   { key: 'holdings', label: '보유종목' },
   { key: 'history', label: '체결내역' },
   { key: 'returns', label: '수익률' },
-  { key: 'ranking', label: '순위' },
 ]
 
 /** 라운드별 자산 추이 라인 차트. points: [{label, equity}] */
@@ -62,7 +61,7 @@ function EquityChart({ points }) {
   )
 }
 
-export default function MyModal({ open, onClose, account, realized, stocks, history, rounds, ranking }) {
+export default function MyModal({ open, onClose, account, realized, stocks, history, rounds }) {
   const [tab, setTab] = useState('holdings')
   const held = stocks.filter((s) => s.holding > 0)
   const dir = dirOf(account.pnl)
@@ -188,40 +187,6 @@ export default function MyModal({ open, onClose, account, realized, stocks, hist
       )}
 
       {tab === 'returns' && <EquityChart points={rounds} />}
-
-      {tab === 'ranking' && (
-        <>
-          <p className="mock-note">순위는 강사 선생님이 다음 연도로 넘길 때 갱신돼요.</p>
-          <table>
-            <thead>
-              <tr>
-                <th>순위</th>
-                <th>조</th>
-                <th>평가금액</th>
-                <th>수익률</th>
-              </tr>
-            </thead>
-            <tbody>
-              {ranking.map((t) => (
-                <tr key={t.name} className={t.me ? 'me-row' : ''}>
-                  <td className="num">{t.rank}</td>
-                  <td>
-                    {t.name}
-                    {t.me && <span className="me-tag">내 조</span>}
-                  </td>
-                  <td className="num">{num(t.equity)}</td>
-                  <td className={'num ' + dirOf(t.pnlPct)}>
-                    {pct(t.pnlPct)}
-                    <div className="sub" style={{ color: 'inherit' }}>
-                      {signed(t.pnl)}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </>
-      )}
     </Modal>
   )
 }
