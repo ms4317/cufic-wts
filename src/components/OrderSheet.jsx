@@ -74,22 +74,22 @@ export default function OrderSheet({
 
   return (
     <aside className="col order">
-      <div className="order-scroll">
-        <div>
-          {locked && (
-            <div className="halted-note">
-              <b>정산 중</b>
-              <span>지금은 주문서를 고칠 수 없어요.</span>
-            </div>
-          )}
-          {stock.halted && (
-            <div className="halted-note">
-              <b>거래정지</b>
-              <span>이 종목은 지금 사고팔 수 없어요.</span>
-            </div>
-          )}
+      {/* 매수·매도는 위에 고정 — 화면 높이와 무관하게 버튼이 항상 보인다 */}
+      <div className="order-top">
+        {locked && (
+          <div className="halted-note">
+            <b>정산 중</b>
+            <span>지금은 주문서를 고칠 수 없어요.</span>
+          </div>
+        )}
+        {stock.halted && (
+          <div className="halted-note">
+            <b>거래정지</b>
+            <span>이 종목은 지금 사고팔 수 없어요.</span>
+          </div>
+        )}
 
-          {/* 매수 */}
+        {/* 매수 */}
           <div className="ordsec">
             <div className="cap">
               <span className="t up">매수</span>
@@ -111,7 +111,7 @@ export default function OrderSheet({
               disabled={stock.halted || locked || saving || buyQty <= 0 || overBudget}
               onClick={onSave}
             >
-              {saving ? '저장 중…' : '매수 담기'}
+              {saving ? '저장 중…' : '매수'}
             </button>
           </div>
 
@@ -154,10 +154,14 @@ export default function OrderSheet({
               disabled={stock.halted || locked || saving || sellQty <= 0}
               onClick={onSave}
             >
-              {saving ? '저장 중…' : '매도 담기'}
+              {saving ? '저장 중…' : '매도'}
             </button>
           </div>
+      </div>
 
+      {/* 보유종목·안내는 아래에서 스크롤 (넘쳐도 매수·매도는 안 밀린다) */}
+      <div className="order-scroll">
+        <div>
           {/* 보유종목 — 지금 무엇을 얼마에 갖고 있는지 */}
           <div className="ordsec holdings">
             <div className="cap">

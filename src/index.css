@@ -248,9 +248,9 @@ button.badge.rank:hover {
 .app {
   display: grid;
   grid-template-columns: 252px 1fr 292px;
-  /* 하단 행을 키우면 그만큼 주문 패널이 눌려 스크롤이 생긴다 — 172px가 뉴스 카드
-     한 장이 온전히 보이는 최소치이자, 세로 700px에서 주문 패널이 안 잘리는 상한이다. */
-  grid-template-rows: 1fr 172px;
+  /* 하단(힌트 피드) 행을 키우면 그만큼 위쪽 주문 패널이 눌린다.
+     148px가 힌트 카드 한 장이 온전히 보이는 최소치다. */
+  grid-template-rows: 1fr 148px;
   flex: 1;
   min-height: 0; /* 없으면 grid 자식이 flex 아이템을 밀어 넘친다 */
   gap: 1px;
@@ -490,9 +490,15 @@ button.badge.rank:hover {
 /* ===== 오른쪽: 주문 ===== */
 .order {
   background: var(--panel);
-  position: relative; /* 하단 페이드 기준 */
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
-/* 스크롤은 안쪽에서만. 페이드가 내용을 따라 올라가면 안 되므로 분리한다. */
+/* 매수·매도 고정 영역 — 여기는 스크롤하지 않아 버튼이 항상 보인다 */
+.order-top {
+  flex: 0 0 auto;
+}
+/* 보유종목·안내만 스크롤 */
 .order-scroll {
   flex: 1;
   min-height: 0;

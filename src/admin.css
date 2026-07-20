@@ -103,6 +103,18 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
+  /* 보유가 많아도 매수·매도 버튼을 밀어내지 않게 자체 스크롤 */
+  max-height: 168px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) transparent;
+}
+.hold-list::-webkit-scrollbar {
+  width: 5px;
+}
+.hold-list::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border-radius: 999px;
 }
 .hold-row {
   display: flex;
@@ -165,13 +177,20 @@
   margin: 8px 0;
 }
 .sheet-hint {
-  font-size: 11px;
-  line-height: 1.6;
+  font-size: 10.5px;
+  line-height: 1.5;
   color: var(--dim);
-  margin-top: 10px;
+  margin-top: 2px;
 }
 .sheet-hint b {
   color: var(--muted);
+}
+/* 안내 영역은 얇아도 된다 — 위 여백을 줄여 매수·매도가 안 잘리게 */
+.ordsec.sheet-save {
+  padding: 10px 16px 12px;
+}
+.ordsec.holdings {
+  padding-bottom: 12px;
 }
 
 /* ═══════════ 관리자 ═══════════ */
