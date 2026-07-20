@@ -33,11 +33,10 @@ export default function OrderSheet({
   const held = useMemo(
     () =>
       stocks
-        .filter((s) => s.holding > 0)
-        .map((s) => ({ s, p: positionPnl(s) })),
+        .filter((s) => s.holding > 0),
     [stocks],
   )
-  const holdingsValue = useMemo(() => held.reduce((sum, { s }) => sum + s.holding * s.price, 0), [held])
+  const holdingsValue = useMemo(() => held.reduce((sum, s) => sum + s.holding * s.price, 0), [held])
 
   // 주문서 전체의 체결 후 예수금. 음수면 예산 초과.
   // ⚠ 잠정 규칙: 같은 주문서의 매도 대금을 매수 자금으로 인정한다 (서버 order_funds_ok와 동일).
@@ -177,25 +176,22 @@ export default function OrderSheet({
               </p>
             ) : (
               <div className="hold-list">
-                {held.map(({ s, p }) => (
+                {/* 종목명 | 보유주식 수 | 금액 */}
+                <div className="hold-head">
+                  <span>종목명</span>
+                  <span>보유</span>
+                  <span>금액</span>
+                </div>
+                {held.map((s) => (
                   <button
                     key={s.code}
                     className={'hold-row' + (s.code === stock.code ? ' on' : '')}
                     onClick={() => onSelectStock?.(s.code)}
                     title={`${s.name} 주문하기`}
                   >
-                    <div className="hold-top">
-                      <span className="hnm">{s.name}</span>
-                      <span className="hval num">₩ {num(s.holding * s.price)}</span>
-                    </div>
-                    <div className="hold-bot">
-                      <span className="hq num">
-                        {num(s.holding)}주 · 평단 {num(s.avgPrice)}
-                      </span>
-                      <span className={'hpl num ' + dirOf(p.pnl)}>
-                        {signed(p.pnl)} ({pct(p.pnlPct)})
-                      </span>
-                    </div>
+                    <span className="hnm">{s.name}</span>
+                    <span className="hq num">{num(s.holding)}주</span>
+                    <span className="hval num">₩ {num(s.holding * s.price)}</span>
                   </button>
                 ))}
               </div>

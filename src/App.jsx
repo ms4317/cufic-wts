@@ -12,7 +12,7 @@ import Header from './components/Header'
 import StockList from './components/StockList'
 import Chart from './components/Chart'
 import OrderSheet from './components/OrderSheet'
-import HintFeed from './components/HintFeed'
+import HintModal from './components/HintModal'
 import MyModal from './components/MyModal'
 import FinancialModal from './components/FinancialModal'
 import RoundModal from './components/RoundModal'
@@ -62,8 +62,8 @@ function Student({ theme, onToggleTheme }) {
   const [myOpen, setMyOpen] = useState(false)
   const [finOpen, setFinOpen] = useState(false)
   const [rankOpen, setRankOpen] = useState(false)
+  const [hintsOpen, setHintsOpen] = useState(false)
   const [roundSummary, setRoundSummary] = useState(null)
-  const [focusHintId, setFocusHintId] = useState(null)
   const [toasts, pushToast, dismissToast] = useToasts()
 
   const stocks = useMemo(() => buildStocks(rawStocks, game, positions), [rawStocks, game, positions])
@@ -196,8 +196,8 @@ function Student({ theme, onToggleTheme }) {
         // 나에게 실제로 새 힌트가 왔을 때만 알린다.
         // 다른 조에 지급돼도 신호는 오지만 내 목록은 그대로다.
         if (fresh.hints.length > before) {
-          const newest = fresh.hints[0]?.id ?? null
-          pushToast('새로운 힌트가 도착했어요', 'gold', () => setFocusHintId(newest))
+          // 누르면 힌트 팝업이 열린다
+          pushToast('새로운 힌트가 도착했어요', 'gold', () => setHintsOpen(true))
         }
       } else if (sig.kind === 'game_reset') {
         pushToast('대회가 초기화되었어요', 'gold')
@@ -314,7 +314,9 @@ function Student({ theme, onToggleTheme }) {
         round={{ round: game.current_round, year }}
         rank={myRank}
         teamCount={board.length}
+        hintCount={hints.length}
         onOpenRanking={() => setRankOpen(true)}
+        onOpenHints={() => setHintsOpen(true)}
         theme={theme}
         onToggleTheme={onToggleTheme}
         onLogout={handleLogout}
@@ -349,13 +351,6 @@ function Student({ theme, onToggleTheme }) {
           locked={locked || !started}
           year={year}
         />
-        <HintFeed
-          hints={hints}
-          stocks={stocks}
-          onSelectStock={setSelectedCode}
-          focusId={focusHintId}
-          onFocusHandled={() => setFocusHintId(null)}
-        />
       </div>
 
       <MyModal
@@ -376,6 +371,13 @@ function Student({ theme, onToggleTheme }) {
         rounds={rounds}
       />
       <RankingModal open={rankOpen} onClose={() => setRankOpen(false)} rows={rankRows} />
+      <HintModal
+        open={hintsOpen}
+        onClose={() => setHintsOpen(false)}
+        hints={hints}
+        stocks={stocks}
+        onSelectStock={setSelectedCode}
+      />
       <FinancialModal
         open={finOpen}
         onClose={() => setFinOpen(false)}

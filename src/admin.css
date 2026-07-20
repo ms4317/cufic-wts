@@ -89,6 +89,46 @@
   max-width: 420px;
 }
 
+/* 힌트 팝업 카드 */
+.hint-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.hint-card {
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.hint-card .meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11.5px;
+  color: var(--dim);
+}
+.hint-card .rnd {
+  font-family: var(--mono);
+}
+.hint-card .head {
+  font-size: 14.5px;
+  font-weight: 700;
+  line-height: 1.5;
+  letter-spacing: -0.2px;
+}
+.hint-card .rel {
+  font-size: 12px;
+  color: var(--muted);
+}
+.hint-card .rel b {
+  color: var(--text);
+  font-weight: 600;
+}
+
 /* ── 보유종목 (주문서 패널) */
 .holdings .cap .t {
   color: var(--text);
@@ -116,12 +156,29 @@
   background: var(--line);
   border-radius: 999px;
 }
+/* 종목명 | 보유 | 금액 3열 — 헤더와 행이 같은 그리드로 정렬된다 */
+.hold-head,
 .hold-row {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 10px;
+  align-items: baseline;
   width: 100%;
-  padding: 9px 11px;
+  padding: 8px 11px;
+}
+.hold-head {
+  font-size: 10.5px;
+  color: var(--dim);
+  padding-bottom: 4px;
+}
+.hold-head span:nth-child(2),
+.hold-head span:nth-child(3),
+.hold-row .hq,
+.hold-row .hval {
+  text-align: right;
+  min-width: 64px;
+}
+.hold-row {
   border-radius: var(--r-sm);
   background: var(--panel-2);
   border: 1px solid var(--line);
@@ -137,13 +194,6 @@
   border-color: var(--gold);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--gold) 40%, transparent);
 }
-.hold-top,
-.hold-bot {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 8px;
-}
 .hold-row .hnm {
   font-size: 12.5px;
   font-weight: 700;
@@ -151,22 +201,13 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+.hold-row .hq {
+  font-size: 12px;
+  color: var(--muted);
+}
 .hold-row .hval {
   font-size: 12.5px;
   font-weight: 700;
-  flex: 0 0 auto;
-}
-.hold-row .hq {
-  font-size: 10.5px;
-  color: var(--dim);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.hold-row .hpl {
-  font-size: 10.5px;
-  font-weight: 700;
-  flex: 0 0 auto;
 }
 
 /* ── 주문서 저장 영역 */

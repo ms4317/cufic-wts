@@ -1,7 +1,19 @@
 import { num, signed, pct, dirOf } from '../format'
 import ThemeToggle from './ThemeToggle'
 
-export default function Header({ account, team, round, rank, teamCount, onOpenRanking, theme, onToggleTheme, onLogout }) {
+export default function Header({
+  account,
+  team,
+  round,
+  rank,
+  teamCount,
+  hintCount = 0,
+  onOpenRanking,
+  onOpenHints,
+  theme,
+  onToggleTheme,
+  onLogout,
+}) {
   const dir = dirOf(account.pnl)
 
   return (
@@ -29,6 +41,11 @@ export default function Header({ account, team, round, rank, teamCount, onOpenRa
           {rank}위 <span className="of">/ {teamCount}조</span>
         </button>
       )}
+
+      {/* 내 힌트 — 누르면 힌트 팝업 */}
+      <button className="badge hint-badge" onClick={onOpenHints} title="내 힌트 보기">
+        내 힌트 {hintCount > 0 && <span className="hcount">{hintCount}</span>}
+      </button>
 
       <div className="acct">
         <div className="item">

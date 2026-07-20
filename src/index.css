@@ -166,6 +166,25 @@ button.badge.rank:hover {
   border-color: var(--gold);
   color: var(--gold);
 }
+/* 내 힌트 버튼 */
+.badge.hint-badge {
+  background: var(--gold-soft);
+  color: var(--gold);
+  border-color: color-mix(in srgb, var(--gold) 32%, transparent);
+  cursor: pointer;
+}
+.badge.hint-badge:hover {
+  border-color: var(--gold);
+}
+.hint-badge .hcount {
+  font-family: var(--mono);
+  background: var(--gold);
+  color: var(--gold-soft);
+  border-radius: 999px;
+  padding: 0 6px;
+  font-size: 11px;
+  margin-left: 2px;
+}
 .badge.rank .of {
   color: var(--dim);
   font-weight: 600;
@@ -248,9 +267,9 @@ button.badge.rank:hover {
 .app {
   display: grid;
   grid-template-columns: 252px 1fr 292px;
-  /* 하단(힌트 피드) 행을 키우면 그만큼 위쪽 주문 패널이 눌린다.
-     148px가 힌트 카드 한 장이 온전히 보이는 최소치다. */
-  grid-template-rows: 1fr 148px;
+  /* 힌트·순위를 헤더 버튼 팝업으로 옮겨 하단 행을 없앴다.
+     한 줄이라 차트·주문 패널이 세로 전체를 쓴다 → 매도 버튼이 잘리지 않는다. */
+  grid-template-rows: 1fr;
   flex: 1;
   min-height: 0; /* 없으면 grid 자식이 flex 아이템을 밀어 넘친다 */
   gap: 1px;
@@ -267,7 +286,6 @@ button.badge.rank:hover {
 
 /* ===== 왼쪽: 종목 리스트 ===== */
 .stocklist {
-  grid-row: 1 / span 2;
   background: var(--panel);
 }
 .listhead {
