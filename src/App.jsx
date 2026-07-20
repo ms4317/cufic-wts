@@ -341,7 +341,6 @@ function Student({ theme, onToggleTheme }) {
           stock={selected}
           stocks={stocks}
           cash={cash}
-          sheet={sheet}
           draft={draft}
           onDraftChange={setDraft}
           onSave={saveSheet}

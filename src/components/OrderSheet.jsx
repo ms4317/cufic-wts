@@ -9,14 +9,12 @@ import QtyStepper, { QtyRatios } from './QtyStepper'
  * 즉시 체결이 아니다. 종목별 매수량/매도량을 적어두면 강사가 라운드를 넘길 때
  * 그 라운드 가격으로 일괄 체결된다. 라운드 중에는 언제든 고칠 수 있다.
  *
- * @param {{stock_id, buy_qty, sell_qty}[]} sheet  현재 주문서 (서버에서 온 것)
  * @param {(next) => void} onDraftChange  화면상의 임시 수정
- * @param {() => void} onSave  서버에 저장
+ * @param {() => void} onSave  현재 주문서를 서버에 저장
  */
 export default function OrderSheet({
   stock,
   cash,
-  sheet,
   draft,
   onDraftChange,
   onSave,
@@ -41,23 +39,16 @@ export default function OrderSheet({
   )
   const holdingsValue = useMemo(() => held.reduce((sum, { s }) => sum + s.holding * s.price, 0), [held])
 
-  // 주문서 전체의 자금 계산.
+  // 주문서 전체의 체결 후 예수금. 음수면 예산 초과.
   // ⚠ 잠정 규칙: 같은 주문서의 매도 대금을 매수 자금으로 인정한다 (서버 order_funds_ok와 동일).
-  const totals = useMemo(() => {
-    let buyCost = 0
-    let sellProceeds = 0
-    let lines = 0
+  const afterCash = useMemo(() => {
+    let net = 0
     for (const [code, l] of Object.entries(draft)) {
       const s = stocks.find((x) => x.code === code)
       if (!s || s.halted) continue
-      const b = l.buy_qty ?? 0
-      const sl = l.sell_qty ?? 0
-      if (b === 0 && sl === 0) continue
-      lines++
-      buyCost += b * s.price
-      sellProceeds += sl * s.price
+      net += (l.buy_qty ?? 0) * s.price - (l.sell_qty ?? 0) * s.price
     }
-    return { buyCost, sellProceeds, lines, after: cash - buyCost + sellProceeds }
+    return cash - net
   }, [draft, stocks, cash])
 
   // 이 종목에 쓸 수 있는 돈 = 예수금 − 다른 종목에 이미 배정한 순매수 금액
@@ -79,20 +70,7 @@ export default function OrderSheet({
   const setLine = (patch) =>
     onDraftChange({ ...draft, [stock.code]: { ...line, ...patch } })
 
-  const dirty = useMemo(() => {
-    const cur = Object.fromEntries(
-      sheet.map((l) => [l.stock_id, { buy_qty: l.buy_qty, sell_qty: l.sell_qty }]),
-    )
-    const clean = (o) =>
-      Object.fromEntries(
-        Object.entries(o)
-          .filter(([, l]) => (l.buy_qty ?? 0) > 0 || (l.sell_qty ?? 0) > 0)
-          .map(([k, l]) => [k, { buy_qty: l.buy_qty ?? 0, sell_qty: l.sell_qty ?? 0 }]),
-      )
-    return JSON.stringify(clean(cur)) !== JSON.stringify(clean(draft))
-  }, [sheet, draft])
-
-  const overBudget = totals.after < 0
+  const overBudget = afterCash < 0
 
   return (
     <aside className="col order">
@@ -128,6 +106,13 @@ export default function OrderSheet({
               <span>예상 매수금액</span>
               <span className="num">₩ {num(buyQty * stock.price)}</span>
             </div>
+            <button
+              className="act-btn buy"
+              disabled={stock.halted || locked || saving || buyQty <= 0 || overBudget}
+              onClick={onSave}
+            >
+              {saving ? '저장 중…' : '매수 담기'}
+            </button>
           </div>
 
           {/* 매도 */}
@@ -164,6 +149,13 @@ export default function OrderSheet({
               <span>예상 매도금액</span>
               <span className="num">₩ {num(sellQty * stock.price)}</span>
             </div>
+            <button
+              className="act-btn sell"
+              disabled={stock.halted || locked || saving || sellQty <= 0}
+              onClick={onSave}
+            >
+              {saving ? '저장 중…' : '매도 담기'}
+            </button>
           </div>
 
           {/* 보유종목 — 지금 무엇을 얼마에 갖고 있는지 */}
@@ -206,23 +198,11 @@ export default function OrderSheet({
             )}
           </div>
 
-          {/* 저장 */}
+          {/* 안내 */}
           <div className="ordsec sheet-save">
             {overBudget && <p className="sheet-warn">예수금을 넘었어요. 수량을 줄여 주세요.</p>}
-
-            <button
-              className="act-btn buy"
-              disabled={!dirty || overBudget || saving || locked}
-              onClick={onSave}
-            >
-              {saving
-                ? '저장 중…'
-                : dirty
-                  ? `주문서 저장${totals.lines ? ` (${totals.lines}종목)` : ''}`
-                  : '저장됨'}
-            </button>
             <p className="sheet-hint">
-              강사 선생님이 다음 연도로 넘기면 이 주문서가 <b>{year}년 가격</b>으로 한꺼번에
+              담은 주문은 강사 선생님이 다음 연도로 넘길 때 <b>{year}년 가격</b>으로 한꺼번에
               체결돼요. 그 전까지는 몇 번이든 고칠 수 있어요.
             </p>
           </div>
