@@ -189,6 +189,21 @@ button.badge.rank:hover {
   color: var(--dim);
   font-weight: 600;
 }
+/* 거래 타이머 배지 */
+.badge.timer {
+  font-family: var(--mono);
+  letter-spacing: 0.3px;
+}
+.badge.timer.live {
+  background: var(--up-soft);
+  color: var(--up);
+  border-color: color-mix(in srgb, var(--up) 32%, transparent);
+}
+.badge.timer.idle {
+  background: var(--panel-2);
+  color: var(--dim);
+  border-color: var(--line);
+}
 .pulse {
   width: 6px;
   height: 6px;

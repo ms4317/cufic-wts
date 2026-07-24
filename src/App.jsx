@@ -20,9 +20,6 @@ import RankingModal from './components/RankingModal'
 import Toasts, { useToasts } from './components/Toast'
 import Admin from './admin/Admin'
 
-const sheetToDraft = (sheet) =>
-  Object.fromEntries(sheet.map((l) => [l.stock_id, { buy_qty: l.buy_qty, sell_qty: l.sell_qty }]))
-
 export default function App() {
   const [theme, toggleTheme] = useTheme()
 
@@ -49,13 +46,12 @@ function Student({ theme, onToggleTheme }) {
   const [cash, setCash] = useState(0)
   const [trades, setTrades] = useState([])
   const [hints, setHints] = useState([])
-  const [sheet, setSheet] = useState([])
   const [snapshots, setSnapshots] = useState([])
   const [board, setBoard] = useState([])
   const [seed, setSeed] = useState(0) // 내 조의 원금. 조마다 다를 수 있다.
 
-  const [draft, setDraft] = useState({}) // 화면상의 주문서 (저장 전)
-  const [saving, setSaving] = useState(false)
+  const [placing, setPlacing] = useState(false) // 즉시 체결 요청 중
+  const [nowTs, setNowTs] = useState(() => Date.now()) // 카운트다운용 1초 틱
   const [selectedCode, setSelectedCode] = useState(null)
   const [drawings, setDrawings] = useState({})
 
@@ -94,6 +90,12 @@ function Student({ theme, onToggleTheme }) {
   const locked = !!game?.is_locked
   const started = (game?.current_round ?? 0) >= 1
 
+  // 라운드 타이머. 서버 round_ends_at이 유일한 기준이다(place_order도 서버 시각으로 검사).
+  // 클라이언트 시계가 어긋나도 표시만 틀릴 뿐, 마감 이후 거래는 서버가 거부한다.
+  const endsAt = game?.round_ends_at ? new Date(game.round_ends_at).getTime() : null
+  const remainingMs = endsAt ? Math.max(0, endsAt - nowTs) : 0
+  const tradingOpen = started && !locked && remainingMs > 0
+
   const myRank = board.find((b) => b.team_id === team?.id)?.rank ?? null
 
   // 수익률 차트 — 서버 스냅샷 기반
@@ -127,8 +129,6 @@ function Student({ theme, onToggleTheme }) {
     setPositions(r.positions)
     setTrades(r.trades)
     setHints(r.hints)
-    setSheet(r.sheet)
-    setDraft(sheetToDraft(r.sheet))
     setSnapshots(r.snapshots)
     setBoard(r.leaderboard)
     setSeed(r.seed)
@@ -150,14 +150,18 @@ function Student({ theme, onToggleTheme }) {
     setPositions(r.positions)
     setTrades(r.trades)
     setHints(r.hints)
-    setSheet(r.sheet)
-    setDraft(sheetToDraft(r.sheet))
     setSnapshots(r.snapshots)
     setBoard(r.leaderboard)
     setGame(r.game)
     setCash(r.cash)
     return r
   }, [pushToast])
+
+  // 카운트다운 1초 틱 — 타이머가 도는 동안만 의미가 있지만, 항상 돌려도 가볍다.
+  useEffect(() => {
+    const id = setInterval(() => setNowTs(Date.now()), 1000)
+    return () => clearInterval(id)
+  }, [])
 
   // ── 재접속 복원: 저장된 코드로 자동 재로그인
   useEffect(() => {
@@ -199,6 +203,8 @@ function Student({ theme, onToggleTheme }) {
           // 누르면 힌트 팝업이 열린다
           pushToast('새로운 힌트가 도착했어요', 'gold', () => setHintsOpen(true))
         }
+      } else if (sig.kind === 'timer_started') {
+        pushToast('거래 시간이 시작됐어요', 'up')
       } else if (sig.kind === 'game_reset') {
         pushToast('대회가 초기화되었어요', 'gold')
       } else if (sig.kind === 'game_ended') {
@@ -247,14 +253,15 @@ function Student({ theme, onToggleTheme }) {
     [refetch, pushToast],
   )
 
-  const saveSheet = useCallback(async () => {
-    setSaving(true)
-    const lines = Object.entries(draft)
-      .filter(([, l]) => (l.buy_qty ?? 0) > 0 || (l.sell_qty ?? 0) > 0)
-      .map(([stock_id, l]) => ({ stock_id, buy_qty: l.buy_qty ?? 0, sell_qty: l.sell_qty ?? 0 }))
-    await actions.saveOrderSheet(lines)
-    setSaving(false)
-  }, [draft, actions])
+  const placeOrder = useCallback(
+    async (side, qty) => {
+      if (!selectedCode || qty <= 0) return
+      setPlacing(true)
+      await actions.placeOrder(selectedCode, side, qty)
+      setPlacing(false)
+    },
+    [actions, selectedCode],
+  )
 
   const setStrokes = useCallback(
     (next) => setDrawings((d) => ({ ...d, [selectedCode]: next })),
@@ -315,6 +322,9 @@ function Student({ theme, onToggleTheme }) {
         rank={myRank}
         teamCount={board.length}
         hintCount={hints.length}
+        tradingOpen={tradingOpen}
+        remainingMs={remainingMs}
+        started={started}
         onOpenRanking={() => setRankOpen(true)}
         onOpenHints={() => setHintsOpen(true)}
         theme={theme}
@@ -340,16 +350,15 @@ function Student({ theme, onToggleTheme }) {
           onStrokesChange={setStrokes}
         />
         <OrderSheet
+          key={selected.code}
           stock={selected}
           stocks={stocks}
           cash={cash}
-          draft={draft}
-          onDraftChange={setDraft}
-          onSave={saveSheet}
+          onOrder={placeOrder}
           onSelectStock={setSelectedCode}
-          saving={saving}
-          locked={locked || !started}
-          year={year}
+          placing={placing}
+          tradingOpen={tradingOpen}
+          started={started}
         />
       </div>
 

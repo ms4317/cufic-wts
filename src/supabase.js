@@ -60,7 +60,8 @@ export async function select(table, query = '*', filter) {
 export const ERROR_TEXT = {
   network: '연결이 불안정해요. 다시 시도해 주세요',
   unknown_code: '등록되지 않은 코드예요. 강사 선생님께 확인해 주세요',
-  round_locked: '지금은 정산 중이에요. 잠시 후 다시 시도해 주세요',
+  round_locked: '지금은 잠시 잠겨 있어요. 곧 다시 시도해 주세요',
+  round_closed: '지금은 거래 시간이 아니에요',
   game_not_started: '아직 대회가 시작되지 않았어요',
   team_not_found: '조를 찾을 수 없어요',
   insufficient_cash: '주문가능 금액을 넘었어요',
@@ -68,6 +69,7 @@ export const ERROR_TEXT = {
   suspended: '거래가 정지된 종목이에요',
   stock_not_found: '없는 종목이에요',
   invalid_quantity: '수량을 확인해 주세요',
+  invalid_side: '주문 방향이 올바르지 않아요',
   invalid_lines: '주문서 형식이 올바르지 않아요',
   already_last_round: '마지막 라운드입니다',
   unauthorized: '관리자 비밀번호가 맞지 않습니다',

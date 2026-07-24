@@ -14,21 +14,29 @@ import { rpc, errorText } from './supabase'
  */
 export function makeActions({ getTeamCode, refetch, notify }) {
   /**
-   * 주문서 저장. 시트 전체를 통째로 교체한다.
-   * @param {{stock_id:string, buy_qty:number, sell_qty:number}[]} lines
+   * 즉시 체결. 서버가 최종 판정하고, 확정되면 다시 읽어 반영한다(낙관적 업데이트 없음).
+   * 타이머가 열려 있을 때만 통과한다(서버 검사). 닫혀 있으면 round_closed로 거부.
+   * @param {string} stockId
+   * @param {'buy'|'sell'} side
+   * @param {number} qty
    */
-  async function saveOrderSheet(lines) {
-    const r = await rpc('save_order_sheet', { p_team_code: getTeamCode(), p_lines: lines })
+  async function placeOrder(stockId, side, qty) {
+    const r = await rpc('place_order', {
+      p_team_code: getTeamCode(),
+      p_stock_id: stockId,
+      p_side: side,
+      p_quantity: qty,
+    })
     if (!r.ok) {
       notify?.(errorText(r.error), 'down')
       return r
     }
     await refetch()
-    notify?.('주문서를 저장했어요', 'up')
+    notify?.(side === 'buy' ? '매수 체결됐어요' : '매도 체결됐어요', side === 'buy' ? 'up' : 'down')
     return r
   }
 
-  return { saveOrderSheet }
+  return { placeOrder }
 }
 
 /**
@@ -41,6 +49,7 @@ export function makeAdminActions(getSecret) {
   return {
     login: (secret) => rpc('admin_login', { p_admin_secret: secret }),
     advanceRound: () => call('advance_round'),
+    startTimer: () => call('start_round_timer'),
     endGame: () => call('admin_end_game'),
     resetGame: () => call('reset_game'),
 

@@ -76,7 +76,7 @@ export default function AdminTeams({ actions, game, teams, refresh, notify }) {
                   <th>예수금</th>
                   <th>평가금액</th>
                   <th>수익률</th>
-                  <th>주문서</th>
+                  <th>거래</th>
                   <th>힌트</th>
                   <th></th>
                 </tr>
@@ -122,10 +122,10 @@ export default function AdminTeams({ actions, game, teams, refresh, notify }) {
                         </div>
                       </td>
                       <td>
-                        {Number(t.sheet_lines) > 0 ? (
-                          <span className="chip ok">제출 {t.sheet_lines}종목</span>
+                        {Number(t.trades_this_round) > 0 ? (
+                          <span className="chip ok">{Number(t.trades_this_round)}건</span>
                         ) : (
-                          <span className="chip warn">미제출</span>
+                          <span className="chip">—</span>
                         )}
                       </td>
                       <td className="num">{t.hint_count}</td>

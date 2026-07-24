@@ -1,15 +1,30 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Modal from '../components/Modal'
 import { errorText } from '../supabase'
+
+const mmss = (ms) => {
+  const s = Math.max(0, Math.round(ms / 1000))
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
+}
 
 /**
  * 진행 탭. 라운드를 넘기는 순간이 대회의 유일한 되돌릴 수 없는 지점이므로
  * 확인 모달을 반드시 거치게 한다. 리셋은 텍스트 입력까지 요구한다 — 당일 오조작 방지.
+ *
+ * 게임 루프: [연도 넘기기]로 새 가격·순위를 공개하고 → 순위를 확인한 뒤 →
+ * [타이머 시작]으로 거래를 연다. 10분이 지나면 거래는 자동으로 닫히고, 관리자가 다시 연도를 넘긴다.
  */
 export default function AdminProgress({ actions, game, teams, refresh, notify }) {
   const [confirm, setConfirm] = useState(null) // 'advance' | 'end' | 'reset'
   const [resetText, setResetText] = useState('')
   const [busy, setBusy] = useState(false)
+  const [nowTs, setNowTs] = useState(() => Date.now())
+
+  // 카운트다운 1초 틱
+  useEffect(() => {
+    const id = setInterval(() => setNowTs(Date.now()), 1000)
+    return () => clearInterval(id)
+  }, [])
 
   if (!game) return null
 
@@ -19,7 +34,13 @@ export default function AdminProgress({ actions, game, teams, refresh, notify })
   const notStarted = cur === 0
   const nextYear = game.round_year_map?.[String(cur + 1)]
 
-  const notSubmitted = teams.filter((t) => Number(t.sheet_lines) === 0)
+  // 거래 타이머 상태 (서버 round_ends_at 기준)
+  const endsAt = game.round_ends_at ? new Date(game.round_ends_at).getTime() : null
+  const remainingMs = endsAt ? Math.max(0, endsAt - nowTs) : 0
+  const timerRunning = !notStarted && remainingMs > 0
+  const durMin = Math.round((game.round_duration_seconds ?? 600) / 60)
+
+  const traded = teams.filter((t) => Number(t.trades_this_round) > 0)
 
   const run = async (fn, okMsg) => {
     setBusy(true)
@@ -60,7 +81,7 @@ export default function AdminProgress({ actions, game, teams, refresh, notify })
         <div className="arow">
           {!isLast ? (
             <button className="act-btn buy" disabled={busy} onClick={() => setConfirm('advance')}>
-              {notStarted ? '대회 시작 (ROUND 1 열기)' : '다음 연도로 넘어가기'}
+              {notStarted ? '대회 시작 (ROUND 1 열기)' : '다음 연도로 넘어가기 (순위 갱신)'}
             </button>
           ) : (
             <button className="act-btn sell" disabled={busy} onClick={() => setConfirm('end')}>
@@ -71,32 +92,66 @@ export default function AdminProgress({ actions, game, teams, refresh, notify })
 
         {!notStarted && !isLast && (
           <p className="anote">
-            누르면 <b>전 조의 주문서가 {game.round_year_map?.[String(cur)]}년 가격으로 일괄 체결</b>된 뒤
-            {nextYear}년 가격이 공개됩니다. 되돌릴 수 없습니다.
+            누르면 <b>{nextYear}년 가격이 공개</b>되고 보유종목이 재평가돼 <b>순위가 갱신</b>됩니다.
+            순위를 확인한 뒤 아래에서 <b>타이머를 시작</b>하면 거래가 열립니다. 되돌릴 수 없습니다.
           </p>
         )}
       </section>
 
-      {/* 주문서 제출 현황 — 누가 아직 안 냈는지 */}
+      {/* 거래 타이머 — 순위 확인 후 여기서 거래를 연다 */}
+      {!notStarted && (
+        <section className="acard big">
+          <span className="acap">거래 타이머</span>
+          <div className="round-big">
+            {timerRunning ? (
+              <>
+                <b className="timer-count live">{mmss(remainingMs)}</b>
+                <span>거래 진행 중 — 학생들이 매매할 수 있어요</span>
+              </>
+            ) : endsAt ? (
+              <>
+                <b className="timer-count">0:00</b>
+                <span>거래 마감 — 순위 확인 후 다음 연도로 넘기세요</span>
+              </>
+            ) : (
+              <>
+                <b className="timer-count">대기</b>
+                <span>타이머를 시작하면 {durMin}분간 거래가 열립니다</span>
+              </>
+            )}
+          </div>
+          <div className="arow">
+            <button
+              className="act-btn buy"
+              disabled={busy}
+              onClick={() => run(actions.startTimer, timerRunning ? '타이머를 다시 시작했어요' : '거래를 열었어요')}
+            >
+              {timerRunning ? `타이머 다시 시작 (${durMin}분)` : `타이머 시작 (${durMin}분)`}
+            </button>
+          </div>
+        </section>
+      )}
+
+      {/* 거래 현황 — 이번 라운드에 누가 매매했는지 */}
       {!notStarted && (
         <section className="acard">
-          <span className="acap">주문서 제출 현황</span>
+          <span className="acap">이번 라운드 거래 현황</span>
           {teams.length === 0 ? (
             <p className="aempty">등록된 조가 없습니다.</p>
-          ) : notSubmitted.length === 0 ? (
-            <p className="aok">모든 조가 주문서를 냈습니다 ({teams.length}조)</p>
           ) : (
             <>
-              <p className="awarn">
-                아직 안 낸 조 {notSubmitted.length} / {teams.length}
+              <p className={traded.length === teams.length ? 'aok' : 'anote'}>
+                거래한 조 {traded.length} / {teams.length}
               </p>
-              <div className="chips">
-                {notSubmitted.map((t) => (
-                  <span key={t.code} className="chip warn">
-                    {t.name} ({t.code})
-                  </span>
-                ))}
-              </div>
+              {traded.length > 0 && (
+                <div className="chips">
+                  {traded.map((t) => (
+                    <span key={t.code} className="chip">
+                      {t.name} · {Number(t.trades_this_round)}건
+                    </span>
+                  ))}
+                </div>
+              )}
             </>
           )}
         </section>
@@ -131,8 +186,10 @@ export default function AdminProgress({ actions, game, teams, refresh, notify })
             )}
           </p>
           <p className="ask">모든 조에 즉시 반영됩니다. 되돌릴 수 없습니다.</p>
-          {!notStarted && notSubmitted.length > 0 && (
-            <p className="sheet-warn">아직 주문서를 안 낸 조가 {notSubmitted.length}곳 있습니다.</p>
+          {timerRunning && (
+            <p className="sheet-warn">
+              아직 거래 타이머가 {mmss(remainingMs)} 남아 있습니다. 넘기면 거래가 바로 닫힙니다.
+            </p>
           )}
         </div>
         <div className="mfoot">

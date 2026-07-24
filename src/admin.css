@@ -160,8 +160,9 @@
 .hold-head,
 .hold-row {
   display: grid;
-  grid-template-columns: 1fr auto auto;
-  gap: 10px;
+  /* 이름칸은 최소 폭을 보장해 좁은 패널에서도 "|"로 찌부되지 않게 한다 */
+  grid-template-columns: minmax(56px, 1fr) auto auto;
+  gap: 7px;
   align-items: baseline;
   width: 100%;
   padding: 8px 11px;
@@ -176,6 +177,14 @@
 .hold-row .hq,
 .hold-row .hval {
   text-align: right;
+}
+/* 보유수량은 짧으니 폭을 아껴 이름칸에 넘긴다. 금액만 넉넉히. */
+.hold-head span:nth-child(2),
+.hold-row .hq {
+  min-width: 40px;
+}
+.hold-head span:nth-child(3),
+.hold-row .hval {
   min-width: 64px;
 }
 .hold-row {
@@ -375,6 +384,14 @@
 .round-big span {
   font-size: 12.5px;
   color: var(--muted);
+}
+/* 거래 타이머 카운트다운 */
+.timer-count {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+}
+.timer-count.live {
+  color: var(--up);
 }
 
 .chips {

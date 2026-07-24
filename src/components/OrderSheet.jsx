@@ -1,84 +1,64 @@
-import { useMemo } from 'react'
+import { useState } from 'react'
 import { num, signed, pct, dirOf } from '../format'
 import { positionPnl } from '../account'
 import QtyStepper, { QtyRatios } from './QtyStepper'
 
 /**
- * 주문서 패널. [잠정 설계 — UI 명세 미수령]
+ * 주문 패널 — 즉시 체결.
  *
- * 즉시 체결이 아니다. 종목별 매수량/매도량을 적어두면 강사가 라운드를 넘길 때
- * 그 라운드 가격으로 일괄 체결된다. 라운드 중에는 언제든 고칠 수 있다.
+ * 작년 방식으로 되돌렸다. 매수·매도를 누르면 서버(place_order)가 그 자리에서 체결한다.
+ * 단 거래 시간(관리자가 시작한 라운드 타이머)이 열려 있을 때만 가능하다. 타이머 밖 클릭은
+ * 서버가 거부하고, 여기서는 버튼을 미리 잠가 왕복을 아낀다.
  *
- * @param {(next) => void} onDraftChange  화면상의 임시 수정
- * @param {() => void} onSave  현재 주문서를 서버에 저장
+ * @param {(side:'buy'|'sell', qty:number) => void} onOrder  즉시 체결 요청
+ * @param {boolean} tradingOpen  타이머가 열려 거래 가능한 상태
  */
 export default function OrderSheet({
   stock,
   cash,
-  draft,
-  onDraftChange,
-  onSave,
+  onOrder,
   onSelectStock,
-  saving,
-  locked,
+  placing,
+  tradingOpen,
+  started,
   stocks,
-  year,
 }) {
-  const line = draft[stock.code] ?? { buy_qty: 0, sell_qty: 0 }
-  const buyQty = line.buy_qty ?? 0
-  const sellQty = line.sell_qty ?? 0
+  // 수량은 이 종목에 한정된 임시값. App이 key={종목코드}로 리마운트하므로 종목을 바꾸면 0으로 초기화된다.
+  const [buyQty, setBuyQty] = useState(0)
+  const [sellQty, setSellQty] = useState(0)
   const pos = positionPnl(stock)
 
-  // 지금 보유 중인 종목 — 주문서를 짜려면 무엇을 얼마에 갖고 있는지 봐야 한다.
-  const held = useMemo(
-    () =>
-      stocks
-        .filter((s) => s.holding > 0),
-    [stocks],
-  )
-  const holdingsValue = useMemo(() => held.reduce((sum, s) => sum + s.holding * s.price, 0), [held])
-
-  // 주문서 전체의 체결 후 예수금. 음수면 예산 초과.
-  // ⚠ 잠정 규칙: 같은 주문서의 매도 대금을 매수 자금으로 인정한다 (서버 order_funds_ok와 동일).
-  const afterCash = useMemo(() => {
-    let net = 0
-    for (const [code, l] of Object.entries(draft)) {
-      const s = stocks.find((x) => x.code === code)
-      if (!s || s.halted) continue
-      net += (l.buy_qty ?? 0) * s.price - (l.sell_qty ?? 0) * s.price
-    }
-    return cash - net
-  }, [draft, stocks, cash])
-
-  // 이 종목에 쓸 수 있는 돈 = 예수금 − 다른 종목에 이미 배정한 순매수 금액
-  const otherNet = useMemo(() => {
-    let net = 0
-    for (const [code, l] of Object.entries(draft)) {
-      if (code === stock.code) continue
-      const s = stocks.find((x) => x.code === code)
-      if (!s || s.halted) continue
-      net += (l.buy_qty ?? 0) * s.price - (l.sell_qty ?? 0) * s.price
-    }
-    return net
-  }, [draft, stocks, stock.code])
-
-  const availableForThis = Math.max(0, cash - otherNet + sellQty * stock.price)
-  const buyable = stock.halted ? 0 : Math.floor(availableForThis / stock.price)
+  const buyable = stock.halted ? 0 : Math.floor(cash / stock.price)
   const sellable = stock.halted ? 0 : stock.holding
 
-  const setLine = (patch) =>
-    onDraftChange({ ...draft, [stock.code]: { ...line, ...patch } })
+  // 지금 보유 중인 종목 — 무엇을 얼마에 갖고 있는지
+  const held = stocks.filter((s) => s.holding > 0)
+  const holdingsValue = held.reduce((sum, s) => sum + s.holding * s.price, 0)
 
-  const overBudget = afterCash < 0
+  const canBuy = tradingOpen && !stock.halted && !placing && buyQty > 0 && buyQty <= buyable
+  const canSell = tradingOpen && !stock.halted && !placing && sellQty > 0 && sellQty <= sellable
+
+  const submit = async (side, qty) => {
+    await onOrder(side, qty)
+    if (side === 'buy') setBuyQty(0)
+    else setSellQty(0)
+  }
+
+  // 거래가 닫힌 이유 (안내 문구). 종목별 거래정지는 아래에서 따로 안내한다.
+  const closedNote = !started
+    ? '아직 대회가 시작되지 않았어요. 강사 선생님을 기다려 주세요.'
+    : !tradingOpen && !stock.halted
+      ? '지금은 거래 시간이 아니에요. 강사 선생님이 타이머를 시작하면 매매할 수 있어요.'
+      : null
 
   return (
     <aside className="col order">
       {/* 매수·매도는 위에 고정 — 화면 높이와 무관하게 버튼이 항상 보인다 */}
       <div className="order-top">
-        {locked && (
+        {closedNote && (
           <div className="halted-note">
-            <b>정산 중</b>
-            <span>지금은 주문서를 고칠 수 없어요.</span>
+            <b>거래 대기</b>
+            <span>{closedNote}</span>
           </div>
         )}
         {stock.halted && (
@@ -89,73 +69,64 @@ export default function OrderSheet({
         )}
 
         {/* 매수 */}
-          <div className="ordsec">
-            <div className="cap">
-              <span className="t up">매수</span>
-              <span className="avail">최대 {num(buyable)}주</span>
-            </div>
-            <QtyRatios max={buyable} onPick={(n) => setLine({ buy_qty: n })} maxLabel="최대" />
-            <QtyStepper
-              value={buyQty}
-              onChange={(n) => setLine({ buy_qty: n })}
-              max={buyable}
-              label="매수 수량"
-            />
-            <div className="est">
-              <span>예상 매수금액</span>
-              <span className="num">₩ {num(buyQty * stock.price)}</span>
-            </div>
-            <button
-              className="act-btn buy"
-              disabled={stock.halted || locked || saving || buyQty <= 0 || overBudget}
-              onClick={onSave}
-            >
-              {saving ? '저장 중…' : '매수'}
-            </button>
+        <div className="ordsec">
+          <div className="cap">
+            <span className="t up">매수</span>
+            <span className="avail">최대 {num(buyable)}주</span>
+          </div>
+          <QtyRatios max={buyable} onPick={setBuyQty} maxLabel="최대" />
+          <QtyStepper value={buyQty} onChange={setBuyQty} max={buyable} label="매수 수량" />
+          <div className="est">
+            <span>예상 매수금액</span>
+            <span className="num">₩ {num(buyQty * stock.price)}</span>
+          </div>
+          <button className="act-btn buy" disabled={!canBuy} onClick={() => submit('buy', buyQty)}>
+            {placing ? '체결 중…' : '매수'}
+          </button>
+        </div>
+
+        {/* 매도 */}
+        <div className="ordsec">
+          <div className="cap">
+            <span className="t down">매도</span>
+            <span className="avail">보유 {num(stock.holding)}주</span>
           </div>
 
-          {/* 매도 */}
-          <div className="ordsec">
-            <div className="cap">
-              <span className="t down">매도</span>
-              <span className="avail">보유 {num(stock.holding)}주</span>
-            </div>
-
-            {stock.holding > 0 && (
-              <div className="posbox">
-                <div className="r">
-                  <span className="k">평균단가</span>
-                  <span className="v num">₩ {num(stock.avgPrice)}</span>
-                </div>
-                <div className="r">
-                  <span className="k">평가손익</span>
-                  <span className={'v num ' + dirOf(pos.pnl)}>
-                    {signed(pos.pnl)} ({pct(pos.pnlPct)})
-                  </span>
-                </div>
+          {stock.holding > 0 && (
+            <div className="posbox">
+              <div className="r">
+                <span className="k">평균단가</span>
+                <span className="v num">₩ {num(stock.avgPrice)}</span>
               </div>
-            )}
-
-            <QtyRatios max={sellable} onPick={(n) => setLine({ sell_qty: n })} maxLabel="전량" />
-            <QtyStepper
-              value={sellQty}
-              onChange={(n) => setLine({ sell_qty: n })}
-              max={sellable}
-              label="매도 수량"
-              maxLabel="전량"
-            />
-            <div className="est">
-              <span>예상 매도금액</span>
-              <span className="num">₩ {num(sellQty * stock.price)}</span>
+              <div className="r">
+                <span className="k">평가손익</span>
+                <span className={'v num ' + dirOf(pos.pnl)}>
+                  {signed(pos.pnl)} ({pct(pos.pnlPct)})
+                </span>
+              </div>
             </div>
-            <button
-              className="act-btn sell"
-              disabled={stock.halted || locked || saving || sellQty <= 0}
-              onClick={onSave}
-            >
-              {saving ? '저장 중…' : '매도'}
-            </button>
+          )}
+
+          <QtyRatios max={sellable} onPick={setSellQty} maxLabel="전량" />
+          <QtyStepper
+            value={sellQty}
+            onChange={setSellQty}
+            max={sellable}
+            label="매도 수량"
+            maxLabel="전량"
+          />
+          <div className="est">
+            <span>예상 매도금액</span>
+            <span className="num">₩ {num(sellQty * stock.price)}</span>
           </div>
+          <button
+            className="act-btn sell"
+            disabled={!canSell}
+            onClick={() => submit('sell', sellQty)}
+          >
+            {placing ? '체결 중…' : '매도'}
+          </button>
+        </div>
       </div>
 
       {/* 보유종목·안내는 아래에서 스크롤 (넘쳐도 매수·매도는 안 밀린다) */}
@@ -172,7 +143,7 @@ export default function OrderSheet({
 
             {held.length === 0 ? (
               <p className="holdings-empty">
-                아직 가진 종목이 없어요. 주문서에 매수를 담고 강사 선생님이 연도를 넘기면 보유하게 돼요.
+                아직 가진 종목이 없어요. 거래 시간에 매수하면 여기에 나타나요.
               </p>
             ) : (
               <div className="hold-list">
@@ -200,10 +171,9 @@ export default function OrderSheet({
 
           {/* 안내 */}
           <div className="ordsec sheet-save">
-            {overBudget && <p className="sheet-warn">예수금을 넘었어요. 수량을 줄여 주세요.</p>}
             <p className="sheet-hint">
-              담은 주문은 강사 선생님이 다음 연도로 넘길 때 <b>{year}년 가격</b>으로 한꺼번에
-              체결돼요. 그 전까지는 몇 번이든 고칠 수 있어요.
+              매수·매도는 <b>누르는 즉시 체결</b>돼요. 강사 선생님이 <b>타이머를 시작한 동안</b>에만
+              매매할 수 있고, 시간이 끝나면 자동으로 닫혀요.
             </p>
           </div>
         </div>
