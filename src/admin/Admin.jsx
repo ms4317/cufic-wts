@@ -38,21 +38,24 @@ export default function Admin({ theme, onToggleTheme }) {
   const [teams, setTeams] = useState([])
   const [hints, setHints] = useState([])
   const [board, setBoard] = useState([])
+  const [broadcasts, setBroadcasts] = useState([])
 
   const actions = useMemo(() => makeAdminActions(() => secret), [secret])
 
   const refresh = useCallback(async () => {
-    const [g, s, ts, hs, lb] = await Promise.all([
+    const [g, s, ts, hs, , bc] = await Promise.all([
       select('game_state', '*'),
       select('stocks', '*'),
       actions.teamsStatus(),
       actions.listHints(),
       select('public_teams', '*'), // 리더보드는 RPC로 따로
+      select('broadcasts', '*', (q) => q.order('id', { ascending: false })),
     ])
     if (g.ok) setGame(g.rows[0] ?? null)
     if (s.ok) setStocks(s.rows.slice().sort((a, b) => a.display_order - b.display_order))
     if (ts.ok) setTeams(ts.teams ?? [])
     if (hs.ok) setHints(hs.hints ?? [])
+    if (bc.ok) setBroadcasts(bc.rows ?? [])
     const { rpc } = await import('../supabase')
     const b = await rpc('leaderboard')
     if (b.ok) setBoard(b.rows ?? [])
@@ -141,7 +144,7 @@ export default function Admin({ theme, onToggleTheme }) {
     )
   }
 
-  const shared = { actions, game, stocks, teams, hints, board, refresh, notify: pushToast }
+  const shared = { actions, game, stocks, teams, hints, board, broadcasts, refresh, notify: pushToast }
 
   return (
     <div className="admin">

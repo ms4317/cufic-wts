@@ -22,6 +22,7 @@ export default function OrderSheet({
   tradingOpen,
   started,
   stocks,
+  hasTraded,
 }) {
   // 수량은 이 종목에 한정된 임시값. App이 key={종목코드}로 리마운트하므로 종목을 바꾸면 0으로 초기화된다.
   const [buyQty, setBuyQty] = useState(0)
@@ -169,13 +170,15 @@ export default function OrderSheet({
             )}
           </div>
 
-          {/* 안내 */}
-          <div className="ordsec sheet-save">
-            <p className="sheet-hint">
-              매수·매도는 <b>누르는 즉시 체결</b>돼요. 강사 선생님이 <b>타이머를 시작한 동안</b>에만
-              매매할 수 있고, 시간이 끝나면 자동으로 닫혀요.
-            </p>
-          </div>
+          {/* 안내 — 아직 한 번도 거래 안 한 학생에게만. 첫 체결 뒤엔 자리를 비운다. */}
+          {!hasTraded && (
+            <div className="ordsec sheet-save">
+              <p className="sheet-hint">
+                매수·매도는 <b>누르는 즉시 체결</b>돼요. 강사 선생님이 <b>타이머를 시작한 동안</b>에만
+                매매할 수 있고, 시간이 끝나면 자동으로 닫혀요.
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </aside>

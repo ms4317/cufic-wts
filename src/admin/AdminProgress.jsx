@@ -14,11 +14,12 @@ const mmss = (ms) => {
  * 게임 루프: [연도 넘기기]로 새 가격·순위를 공개하고 → 순위를 확인한 뒤 →
  * [타이머 시작]으로 거래를 연다. 10분이 지나면 거래는 자동으로 닫히고, 관리자가 다시 연도를 넘긴다.
  */
-export default function AdminProgress({ actions, game, teams, refresh, notify }) {
+export default function AdminProgress({ actions, game, teams, broadcasts = [], refresh, notify }) {
   const [confirm, setConfirm] = useState(null) // 'advance' | 'end' | 'reset'
   const [resetText, setResetText] = useState('')
   const [busy, setBusy] = useState(false)
   const [nowTs, setNowTs] = useState(() => Date.now())
+  const [bcText, setBcText] = useState('') // 속보 입력
 
   // 카운트다운 1초 틱
   useEffect(() => {
@@ -53,6 +54,30 @@ export default function AdminProgress({ actions, game, teams, refresh, notify })
       return
     }
     notify(okMsg, 'gold')
+    await refresh()
+  }
+
+  const sendBc = async () => {
+    const t = bcText.trim()
+    if (!t) return
+    setBusy(true)
+    const r = await actions.sendBroadcast(t)
+    setBusy(false)
+    if (!r.ok) {
+      notify(errorText(r.error), 'down')
+      return
+    }
+    setBcText('')
+    notify('속보를 전체 발송했어요', 'gold')
+    await refresh()
+  }
+
+  const delBc = async (id) => {
+    const r = await actions.deleteBroadcast(id)
+    if (!r.ok) {
+      notify(errorText(r.error), 'down')
+      return
+    }
     await refresh()
   }
 
@@ -131,6 +156,42 @@ export default function AdminProgress({ actions, game, teams, refresh, notify })
           </div>
         </section>
       )}
+
+      {/* 속보 · 공통 힌트 — 전체 조에 즉시 발송 */}
+      <section className="acard">
+        <span className="acap">속보 · 공통 힌트 (전체 발송)</span>
+        <p className="anote">전 조 화면에 종 알림으로 즉시 뜹니다. 조별 등급 힌트와 별개예요.</p>
+        <div className="bc-send">
+          <input
+            className="bc-input"
+            value={bcText}
+            onChange={(e) => setBcText(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && sendBc()}
+            placeholder="예: 미국 금리 동결 발표 — 성장주 반등 기대"
+            maxLength={120}
+          />
+          <button className="act-btn buy bc-go" disabled={busy || !bcText.trim()} onClick={sendBc}>
+            전체 발송
+          </button>
+        </div>
+        {broadcasts.length > 0 && (
+          <div className="bc-sent">
+            {broadcasts.map((b) => (
+              <div key={b.id} className="bc-sent-row">
+                <span className="bc-sent-head">{b.headline}</span>
+                <span className="bc-sent-meta">R{b.round}</span>
+                <button
+                  className="text-btn danger tiny"
+                  disabled={busy}
+                  onClick={() => delBc(b.id)}
+                >
+                  회수
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
 
       {/* 거래 현황 — 이번 라운드에 누가 매매했는지 */}
       {!notStarted && (

@@ -13,6 +13,7 @@ import StockList from './components/StockList'
 import Chart from './components/Chart'
 import OrderSheet from './components/OrderSheet'
 import HintModal from './components/HintModal'
+import BroadcastModal from './components/BroadcastModal'
 import MyModal from './components/MyModal'
 import FinancialModal from './components/FinancialModal'
 import RoundModal from './components/RoundModal'
@@ -48,6 +49,7 @@ function Student({ theme, onToggleTheme }) {
   const [hints, setHints] = useState([])
   const [snapshots, setSnapshots] = useState([])
   const [board, setBoard] = useState([])
+  const [broadcasts, setBroadcasts] = useState([]) // 전체 공통 속보
   const [seed, setSeed] = useState(0) // 내 조의 원금. 조마다 다를 수 있다.
 
   const [placing, setPlacing] = useState(false) // 즉시 체결 요청 중
@@ -59,6 +61,15 @@ function Student({ theme, onToggleTheme }) {
   const [finOpen, setFinOpen] = useState(false)
   const [rankOpen, setRankOpen] = useState(false)
   const [hintsOpen, setHintsOpen] = useState(false)
+  const [bcOpen, setBcOpen] = useState(false) // 속보 팝업
+  // 마지막으로 확인한 속보 id — 이보다 큰 게 있으면 종이 깜빡인다 (기기별 localStorage)
+  const [seenBc, setSeenBc] = useState(() => {
+    try {
+      return Number(localStorage.getItem('wts-seen-bc') || 0)
+    } catch {
+      return 0
+    }
+  })
   const [roundSummary, setRoundSummary] = useState(null)
   const [toasts, pushToast, dismissToast] = useToasts()
 
@@ -96,6 +107,9 @@ function Student({ theme, onToggleTheme }) {
   const remainingMs = endsAt ? Math.max(0, endsAt - nowTs) : 0
   const tradingOpen = started && !locked && remainingMs > 0
 
+  // 안 읽은 속보 개수 — 종 버튼 깜빡임·배지용
+  const unreadBc = broadcasts.reduce((n, b) => n + (Number(b.id) > seenBc ? 1 : 0), 0)
+
   const myRank = board.find((b) => b.team_id === team?.id)?.rank ?? null
 
   // 수익률 차트 — 서버 스냅샷 기반
@@ -131,6 +145,7 @@ function Student({ theme, onToggleTheme }) {
     setHints(r.hints)
     setSnapshots(r.snapshots)
     setBoard(r.leaderboard)
+    setBroadcasts(r.broadcasts)
     setSeed(r.seed)
     setCash(r.cash)
     setSelectedCode((c) => c ?? r.rawStocks[0]?.id ?? null)
@@ -152,6 +167,7 @@ function Student({ theme, onToggleTheme }) {
     setHints(r.hints)
     setSnapshots(r.snapshots)
     setBoard(r.leaderboard)
+    setBroadcasts(r.broadcasts)
     setGame(r.game)
     setCash(r.cash)
     return r
@@ -162,6 +178,18 @@ function Student({ theme, onToggleTheme }) {
     const id = setInterval(() => setNowTs(Date.now()), 1000)
     return () => clearInterval(id)
   }, [])
+
+  // 속보 팝업이 열려 있으면(그리고 목록이 갱신되면) 전부 읽음 처리 → 깜빡임 멈춤
+  useEffect(() => {
+    if (!bcOpen) return
+    const maxId = broadcasts.reduce((m, b) => Math.max(m, Number(b.id)), 0)
+    setSeenBc((prev) => Math.max(prev, maxId))
+    try {
+      localStorage.setItem('wts-seen-bc', String(maxId))
+    } catch {
+      /* 무시 */
+    }
+  }, [bcOpen, broadcasts])
 
   // ── 재접속 복원: 저장된 코드로 자동 재로그인
   useEffect(() => {
@@ -205,6 +233,9 @@ function Student({ theme, onToggleTheme }) {
         }
       } else if (sig.kind === 'timer_started') {
         pushToast('거래 시간이 시작됐어요', 'up')
+      } else if (sig.kind === 'broadcast') {
+        // 새 속보 도착 → 종이 깜빡인다. 회수(deleted) 신호면 목록만 조용히 갱신.
+        if (!sig.payload?.deleted) pushToast('📢 속보가 도착했어요', 'gold', () => setBcOpen(true))
       } else if (sig.kind === 'game_reset') {
         pushToast('대회가 초기화되었어요', 'gold')
       } else if (sig.kind === 'game_ended') {
@@ -325,6 +356,9 @@ function Student({ theme, onToggleTheme }) {
         tradingOpen={tradingOpen}
         remainingMs={remainingMs}
         started={started}
+        bellTotal={broadcasts.length}
+        bellCount={unreadBc}
+        onOpenBroadcasts={() => setBcOpen(true)}
         onOpenRanking={() => setRankOpen(true)}
         onOpenHints={() => setHintsOpen(true)}
         theme={theme}
@@ -359,6 +393,7 @@ function Student({ theme, onToggleTheme }) {
           placing={placing}
           tradingOpen={tradingOpen}
           started={started}
+          hasTraded={trades.length > 0}
         />
       </div>
 
@@ -368,15 +403,21 @@ function Student({ theme, onToggleTheme }) {
         account={acct}
         realized={realizedTotal}
         stocks={stocks}
-        history={trades.map((t) => ({
-          time: new Date(t.created_at).toLocaleTimeString('ko-KR', { hour12: false }),
-          name: stocks.find((s) => s.code === t.stock_id)?.name ?? t.stock_id,
-          side: t.side,
-          price: Number(t.price),
-          qty: t.quantity,
-          amount: Number(t.price) * t.quantity,
-          realized: Number(t.realized_pnl ?? 0),
-        }))}
+        history={trades.map((t) => {
+          const d = new Date(t.created_at)
+          const p2 = (n) => String(n).padStart(2, '0')
+          return {
+            time: `${p2(d.getHours())}:${p2(d.getMinutes())}:${p2(d.getSeconds())}`,
+            round: t.round,
+            year: yearOf(game, t.round),
+            name: stocks.find((s) => s.code === t.stock_id)?.name ?? t.stock_id,
+            side: t.side,
+            price: Number(t.price),
+            qty: t.quantity,
+            amount: Number(t.price) * t.quantity,
+            realized: Number(t.realized_pnl ?? 0),
+          }
+        })}
         rounds={rounds}
       />
       <RankingModal open={rankOpen} onClose={() => setRankOpen(false)} rows={rankRows} />
@@ -386,6 +427,12 @@ function Student({ theme, onToggleTheme }) {
         hints={hints}
         stocks={stocks}
         onSelectStock={setSelectedCode}
+      />
+      <BroadcastModal
+        open={bcOpen}
+        onClose={() => setBcOpen(false)}
+        broadcasts={broadcasts}
+        game={game}
       />
       <FinancialModal
         open={finOpen}

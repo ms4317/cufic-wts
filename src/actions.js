@@ -53,6 +53,9 @@ export function makeAdminActions(getSecret) {
     endGame: () => call('admin_end_game'),
     resetGame: () => call('reset_game'),
 
+    sendBroadcast: (headline) => call('admin_send_broadcast', { p_headline: headline }),
+    deleteBroadcast: (id) => call('admin_delete_broadcast', { p_id: id }),
+
     teamsStatus: () => call('admin_teams_status'),
     createTeam: (code, name, seed) =>
       call('admin_create_team', { p_code: code, p_name: name, p_seed: seed }),

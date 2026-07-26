@@ -143,11 +143,8 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
-  /* 보유가 많아도 매수·매도 버튼을 밀어내지 않게 자체 스크롤 */
-  max-height: 168px;
-  overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: var(--line) transparent;
+  /* 자체 스크롤 캡을 두지 않는다 — 넘치면 바깥 .order-scroll 하나만 처리해
+     이중 스크롤을 없앤다. 고정 영역(매수·매도)을 줄여 보통은 스크롤이 안 생긴다. */
 }
 .hold-list::-webkit-scrollbar {
   width: 5px;
@@ -241,6 +238,91 @@
 }
 .ordsec.holdings {
   padding-bottom: 12px;
+}
+
+/* ── 속보 팝업 (학생) */
+.bc-empty {
+  font-size: 14px;
+  color: var(--dim);
+  line-height: 1.6;
+  padding: 8px 2px;
+}
+.bc-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.bc-item {
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: 12px 14px;
+}
+.bc-item .bc-meta {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+.bc-item .bc-head {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+/* ── 관리자 속보 발송 카드 */
+.bc-send {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+  margin-top: 4px;
+}
+.bc-input {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 12px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 14px;
+}
+.bc-input:focus {
+  outline: none;
+  border-color: var(--gold);
+}
+.bc-send button.bc-go {
+  width: auto;
+  flex: 0 0 auto;
+  padding: 0 18px;
+}
+.bc-sent {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 12px;
+}
+.bc-sent-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 10px;
+  align-items: center;
+  padding: 8px 10px;
+  background: var(--panel-2);
+  border-radius: var(--r-sm);
+}
+.bc-sent-head {
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.bc-sent-meta {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--muted);
 }
 
 /* ═══════════ 관리자 ═══════════ */

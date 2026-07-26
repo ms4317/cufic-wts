@@ -147,7 +147,7 @@ export default function MyModal({ open, onClose, account, realized, stocks, hist
         <table>
           <thead>
             <tr>
-              <th>시간</th>
+              <th>체결 시점</th>
               <th>종목</th>
               <th>구분</th>
               <th>체결가</th>
@@ -166,7 +166,10 @@ export default function MyModal({ open, onClose, account, realized, stocks, hist
             )}
             {history.map((h, i) => (
               <tr key={i}>
-                <td className="num">{h.time}</td>
+                <td>
+                  {h.year ? `R${h.round} · ${h.year}년` : `R${h.round}`}
+                  <div className="sub num">{h.time}</div>
+                </td>
                 <td>{h.name}</td>
                 <td>
                   <span className={'tag ' + (h.side === 'buy' ? 'b' : 's')}>

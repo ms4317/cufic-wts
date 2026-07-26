@@ -16,6 +16,9 @@ export default function Header({
   tradingOpen = false,
   remainingMs = 0,
   started = false,
+  bellTotal = 0,
+  bellCount = 0,
+  onOpenBroadcasts,
   onOpenRanking,
   onOpenHints,
   theme,
@@ -68,6 +71,25 @@ export default function Header({
       <button className="badge hint-badge" onClick={onOpenHints} title="내 힌트 보기">
         내 힌트 {hintCount > 0 && <span className="hcount">{hintCount}</span>}
       </button>
+
+      {/* 속보 — 강사가 전체에 보낸 공통 힌트. 새 게 오면 종이 깜빡인다 */}
+      {bellTotal > 0 && (
+        <button
+          className={'badge bell' + (bellCount > 0 ? ' ring' : '')}
+          onClick={onOpenBroadcasts}
+          title="속보 보기"
+          aria-label={bellCount > 0 ? `속보 ${bellCount}건` : '속보'}
+        >
+          <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true">
+            <path
+              d="M12 2.4a5.2 5.2 0 0 0-5.2 5.2v2.9L5.3 13.4a1 1 0 0 0 .9 1.5h11.6a1 1 0 0 0 .9-1.5l-1.5-2.9V7.6A5.2 5.2 0 0 0 12 2.4Z"
+              fill="currentColor"
+            />
+            <path d="M9.7 18a2.3 2.3 0 0 0 4.6 0Z" fill="currentColor" />
+          </svg>
+          {bellCount > 0 && <span className="bcount">{bellCount}</span>}
+        </button>
+      )}
 
       <div className="acct">
         <div className="item">
