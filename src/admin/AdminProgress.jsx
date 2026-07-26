@@ -81,6 +81,26 @@ export default function AdminProgress({ actions, game, teams, broadcasts = [], r
     await refresh()
   }
 
+  // 연도 넘기기 — 자동 힌트 배분 결과·부족 경고를 함께 알린다
+  const doAdvance = async () => {
+    setBusy(true)
+    const r = await actions.advanceRound()
+    setBusy(false)
+    setConfirm(null)
+    if (!r.ok) {
+      notify(errorText(r.error), 'down')
+      return
+    }
+    const granted = Number(r.hints?.granted ?? 0)
+    const warns = r.hints?.warnings ?? []
+    notify(granted > 0 ? `라운드가 넘어갔어요 · 힌트 ${granted}건 자동 배분` : '라운드가 넘어갔어요', 'gold')
+    if (warns.length > 0) {
+      const grades = [...new Set(warns.map((w) => w.grade))].join('·')
+      notify(`⚠ ${grades} 등급 힌트 부족 — 인접 등급으로 대체됐어요`, 'down')
+    }
+    await refresh()
+  }
+
   return (
     <div className="apanel">
       <section className="acard big">
@@ -117,8 +137,9 @@ export default function AdminProgress({ actions, game, teams, broadcasts = [], r
 
         {!notStarted && !isLast && (
           <p className="anote">
-            누르면 <b>{nextYear}년 가격이 공개</b>되고 보유종목이 재평가돼 <b>순위가 갱신</b>됩니다.
-            순위를 확인한 뒤 아래에서 <b>타이머를 시작</b>하면 거래가 열립니다. 되돌릴 수 없습니다.
+            누르면 <b>{nextYear}년 가격이 공개</b>되고 보유종목이 재평가돼 <b>순위가 갱신</b>되며,
+            새 순위로 <b>힌트가 자동 배분</b>됩니다(하위권 우대). 순위를 확인한 뒤 아래에서
+            <b>타이머를 시작</b>하면 거래가 열립니다. 되돌릴 수 없습니다.
           </p>
         )}
       </section>
@@ -257,11 +278,7 @@ export default function AdminProgress({ actions, game, teams, broadcasts = [], r
           <button className="cancel" onClick={() => setConfirm(null)}>
             취소
           </button>
-          <button
-            className="act-btn buy"
-            disabled={busy}
-            onClick={() => run(actions.advanceRound, '라운드가 넘어갔습니다')}
-          >
+          <button className="act-btn buy" disabled={busy} onClick={doAdvance}>
             {busy ? '진행 중…' : '진행'}
           </button>
         </div>
