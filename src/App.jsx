@@ -17,6 +17,7 @@ import BroadcastModal from './components/BroadcastModal'
 import MyModal from './components/MyModal'
 import FinancialModal from './components/FinancialModal'
 import RoundModal from './components/RoundModal'
+import FinalModal from './components/FinalModal'
 import RankingModal from './components/RankingModal'
 import Toasts, { useToasts } from './components/Toast'
 import Admin from './admin/Admin'
@@ -71,6 +72,7 @@ function Student({ theme, onToggleTheme }) {
     }
   })
   const [roundSummary, setRoundSummary] = useState(null)
+  const [finalOpen, setFinalOpen] = useState(false) // 대회 종료 결과 모달
   const [toasts, pushToast, dismissToast] = useToasts()
 
   const stocks = useMemo(() => buildStocks(rawStocks, game, positions), [rawStocks, game, positions])
@@ -255,14 +257,16 @@ function Student({ theme, onToggleTheme }) {
   useEffect(() => {
     const r = game?.current_round
     if (r == null) return
+    const isEnd = r > (game.total_rounds ?? 0) // 종료(final_year 공개)면 라운드 요약 대신 결과 모달
     if (seenRound.current === null) {
       seenRound.current = r
+      if (isEnd) setFinalOpen(true) // 이미 종료된 상태로 접속 → 결과 표시
       return
     }
     if (seenRound.current !== r && r >= 1) {
       seenRound.current = r
-      const isEnd = r > (game.total_rounds ?? 0)
-      setRoundSummary({ round: r, year: yearOf(game, r), ended: isEnd })
+      if (isEnd) setFinalOpen(true)
+      else setRoundSummary({ round: r, year: yearOf(game, r) })
     }
   }, [game])
 
@@ -450,13 +454,19 @@ function Student({ theme, onToggleTheme }) {
         round={roundSummary}
         account={acct}
         stocks={stocks}
-        ended={roundSummary?.ended}
         prevEquity={
           roundSummary
             ? Number(snapshots.find((s) => s.round === roundSummary.round - 1)?.equity ?? seed)
             : null
         }
         onClose={() => setRoundSummary(null)}
+      />
+      <FinalModal
+        open={finalOpen}
+        onClose={() => setFinalOpen(false)}
+        account={acct}
+        rows={rankRows}
+        finalYear={game.final_year}
       />
 
       <Toasts toasts={toasts} onDismiss={dismissToast} />
