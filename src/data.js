@@ -1,174 +1,506 @@
-// 모의투자용 목업 데이터 (추후 API 연동 예정)
-
-// 금액은 전부 보유종목에서 파생 계산한다 (src/account.js deriveAccount)
-//   평가금액 = 예수금 + Σ(보유수량 × 현재가)
-//   총 손익  = 평가금액 - 원금
+// 자동 생성 파일 — 직접 고치지 말 것.
+// 원천: seed_stocks_2025.json + seed_financials_2025.json + scripts/build-data.mjs(소개·힌트).
+// 교체: JSON(+소개·힌트) 수정 → `node scripts/build-data.mjs` → `node scripts/gen-seed.mjs`.
 //
-// 정합성 규칙 — 데이터를 고칠 땐 이 등식을 깨지 말 것:
-//   예수금 = 원금 - Σ(매수 체결금액) + Σ(매도 체결금액)
-//   보유수량 = Σ(매수 수량) - Σ(매도 수량)          (종목별)
-//   평균단가 = Σ(매수 체결금액) / Σ(매수 수량)      (종목별)
-//
-// 시작은 학생 시작 상태다: 거래 없음 → 예수금 = 원금, 보유 없음, 손익 0.
-export const PRINCIPAL = 100000000 // 조별 시드머니(원금) 1억원
-export const initialCash = PRINCIPAL // 거래 전이므로 원금 전액이 예수금
+// data.js는 FinancialModal·정합성 테스트(data.test)·시드의 공통 원천이다.
 
-// ===== 라운드 =====
-// 라운드는 연도에 매핑된다. 라운드가 넘어가면 그 해의 시세로 바뀌고,
-// 보유 종목의 평가액이 움직이면서 비로소 손익이 생긴다. 이게 수업의 핵심 루프다.
-//   재무제표·뉴스로 판단 → 매수 → 라운드 진행 → 주가 변동 → 손익 확인
-export const ROUNDS = [
-  { round: 1, year: 2022 },
-  { round: 2, year: 2023 },
-  { round: 3, year: 2024 },
-]
+export const PRINCIPAL = 100000000 // 조별 시드머니(원금). 관리자가 조별로 바꿀 수 있고, 이건 기본값.
+export const initialCash = PRINCIPAL
+
+// 라운드 → 연도. R1=2020 … R5=2024에서 매매하고, 대회 종료 시 FINAL_YEAR로 최종 정산한다.
+export const ROUNDS = [{"round":1,"year":2020},{"round":2,"year":2021},{"round":3,"year":2022},{"round":4,"year":2023},{"round":5,"year":2024}]
 export const initialRound = ROUNDS[0]
+export const FINAL_YEAR = 2025
 
-// 재무제표에 노출할 연도 (현재 라운드 연도 초과분은 화면에서 가림 — 스포일러 방지)
-export const FIN_YEARS = [2021, 2022, 2023, 2024]
+// 재무제표에 노출할 연도 (현재 라운드 연도 초과분은 스포일러라 화면에서 가림)
+export const FIN_YEARS = [2020,2021,2022,2023,2024,2025]
 
-// ===== 종목 =====
-// priceByYear: 연도별 주가. 2021은 게임 시작 전 기준선으로, R1(2022)의 등락률 계산에만 쓴다.
-// 현재가·등락은 여기서 파생한다 (App.jsx) — 종목 객체에 price를 박아두지 않는다.
-//
-// 가격이 0이거나 그 해 값이 없으면 '거래정지'로 처리된다 (상장폐지 등).
-// 매수 불가 + 평가액 0으로 잡히므로, 그런 시나리오를 넣어도 계산이 깨지지 않는다.
-//
-// desc: 청소년 대상 한 줄 소개. 재무제표 모달에 표시된다.
-export const stocks = [
-  { name: '삼성전자',        code: '005930', market: 'KOSPI', desc: '반도체와 스마트폰·가전을 만드는 회사예요. 우리나라에서 가장 큰 기업이에요.',        priceByYear: { 2021: 78300,  2022: 55300,  2023: 78500,  2024: 74200 } },
-  { name: 'SK하이닉스',      code: '000660', market: 'KOSPI', desc: '컴퓨터와 AI 서버에 들어가는 메모리 반도체를 만들어요.',                          priceByYear: { 2021: 131000, 2022: 75000,  2023: 141500, 2024: 183500 } },
-  { name: 'NAVER',          code: '035420', market: 'KOSPI', desc: '검색 포털을 운영하고 웹툰·쇼핑 같은 인터넷 서비스를 해요.',                      priceByYear: { 2021: 376000, 2022: 177500, 2023: 223000, 2024: 218000 } },
-  { name: '카카오',          code: '035720', market: 'KOSPI', desc: '카카오톡을 만든 회사예요. 메신저·택시·결제 서비스를 함께 해요.',                 priceByYear: { 2021: 112500, 2022: 53100,  2023: 57300,  2024: 41850 } },
-  { name: '현대차',          code: '005380', market: 'KOSPI', desc: '자동차를 만들어 전 세계에 파는 회사예요.',                                     priceByYear: { 2021: 209000, 2022: 151500, 2023: 202000, 2024: 245500 } },
-  // 2022년 1월 상장이라 2021년 주가가 존재하지 않는다 — 비워두면 R1 등락률이 보합으로 잡힌다.
-  { name: 'LG에너지솔루션',   code: '373220', market: 'KOSPI', desc: '전기차에 들어가는 배터리를 만들어요.',                                        priceByYear: { 2022: 440000, 2023: 413000, 2024: 312000 } },
-  { name: '기아',            code: '000270', market: 'KOSPI', desc: '현대차와 같은 그룹인 자동차 회사예요.',                                       priceByYear: { 2021: 83700,  2022: 66000,  2023: 100300, 2024: 118200 } },
-  { name: 'POSCO홀딩스',     code: '005490', market: 'KOSPI', desc: '철을 만드는 회사예요. 요즘은 배터리 소재 사업도 하고 있어요.',                  priceByYear: { 2021: 275000, 2022: 275000, 2023: 486000, 2024: 372000 } },
-  { name: '셀트리온',        code: '068270', market: 'KOSPI', desc: '바이오 의약품을 개발하고 만드는 회사예요.',                                    priceByYear: { 2021: 210000, 2022: 163000, 2023: 200000, 2024: 186300 } },
-  { name: '삼성바이오로직스', code: '207940', market: 'KOSPI', desc: '다른 제약회사의 약을 대신 만들어주는 공장 역할을 해요.',                        priceByYear: { 2021: 900000, 2022: 823000, 2023: 780000, 2024: 985000 } },
-  { name: 'KB금융',          code: '105560', market: 'KOSPI', desc: '국민은행을 비롯해 보험·카드를 묶은 금융 회사예요.',                            priceByYear: { 2021: 55000,  2022: 51300,  2023: 55000,  2024: 86400 } },
-  { name: '삼성SDI',         code: '006400', market: 'KOSPI', desc: '전기차와 전자기기에 들어가는 배터리를 만들어요.',                              priceByYear: { 2021: 655000, 2022: 600000, 2023: 470000, 2024: 342500 } },
-]
-
-// 체결내역. 최신순으로 앞에 쌓인다. 시작 상태이므로 비어 있다.
-export const initialHistory = []
-
-// 뉴스의 related에 종목명 대신 쓸 수 있는 값. 실존 종목이 아니어도 통과한다.
+// 뉴스/힌트의 related에 종목 대신 쓸 수 있는 값 (전체 시장 등). 지금 데이터엔 미사용.
 export const NEWS_SENTINELS = ['전체 시장']
 
-// ===== 시황 뉴스 =====
-// impact: 'up' = 호재(빨강) / 'down' = 악재(파랑) / 'flat' = 중립(회색)
-//
-// 규칙 1 — related의 종목명은 반드시 위 stocks에 존재해야 한다.
-//   (예외: NEWS_SENTINELS에 있는 값). 오타가 나면 학생에게 존재하지 않는 종목을
-//   사라고 안내하는 꼴이 된다. 아래 개발용 검사가 콘솔로 잡아준다.
-//
-// 규칙 2 — 뉴스는 "그 라운드에 발표되어 '다음' 라운드 주가를 예고"하는 힌트다.
-//   학생이 R1에서 호재를 읽고 사면 R2에 오른다 — 이게 학습 포인트다.
-//   따라서 impact는 반드시 다음 해의 실제 등락과 맞아야 한다. 위 priceByYear와
-//   어긋나면 학생이 정직하게 판단해도 손해를 보므로, 시세를 고칠 땐 뉴스도 같이 고칠 것.
-//   (마지막 라운드 뉴스는 예고할 다음 해가 없어 단순 시황이다.)
-export const initialNews = [
-  // ── R1 (2022) → 2023년 등락 예고
-  {
-    id: 'r1-1', round: 1, time: '14:30', impact: 'up',
-    headline: '메모리 감산 효과 가시화… 반도체 업황 바닥 통과 전망',
-    related: ['삼성전자', 'SK하이닉스'],
-  },
-  {
-    id: 'r1-2', round: 1, time: '13:10', impact: 'up',
-    headline: '완성차 북미 판매 사상 최대, 원화 약세도 실적에 보탬',
-    related: ['현대차', '기아'],
-  },
-  {
-    id: 'r1-3', round: 1, time: '11:25', impact: 'up',
-    headline: '포스코, 이차전지 소재 사업 본격화… 리튬 확보 기대감',
-    related: ['POSCO홀딩스'],
-  },
-  {
-    id: 'r1-4', round: 1, time: '10:40', impact: 'down',
-    headline: '배터리 소재 가격 급락, 전기차 수요 둔화 조짐',
-    related: ['삼성SDI', 'LG에너지솔루션'],
-  },
-  {
-    id: 'r1-5', round: 1, time: '09:30', impact: 'flat',
-    headline: '한국은행 기준금리 3.25%로 인상… 긴축 속도 조절 시사',
-    related: ['전체 시장'],
-  },
+export const initialHistory = []
 
-  // ── R2 (2023) → 2024년 등락 예고
+// 종목. priceByYear 값이 없거나 0이면 거래정지. listedFromRound 이전엔 '상장 예정'.
+export const stocks = [
   {
-    id: 'r2-1', round: 2, time: '14:45', impact: 'up',
-    headline: 'AI 서버 열풍에 HBM 품귀… 글로벌 수주 사실상 독식',
-    related: ['SK하이닉스'],
+    "name": "승주보험",
+    "code": "S01",
+    "market": "KOSPI",
+    "desc": "자동차·생명 보험을 파는 회사예요. 경기가 흔들려도 보험료가 꾸준히 들어와요.",
+    "listedFromRound": 1,
+    "displayOrder": 1,
+    "priceByYear": {
+      "2020": 29300,
+      "2021": 35000,
+      "2022": 50200,
+      "2023": 53000,
+      "2024": 52600,
+      "2025": 33000
+    }
   },
   {
-    id: 'r2-2', round: 2, time: '13:20', impact: 'up',
-    headline: '정부 밸류업 프로그램 발표, 저PBR 금융주 재평가 기대',
-    related: ['KB금융'],
+    "name": "백만전자",
+    "code": "S02",
+    "market": "KOSPI",
+    "desc": "반도체와 전자부품을 만드는 대형 기술 기업이에요. 경기에 따라 실적이 크게 움직여요.",
+    "listedFromRound": 1,
+    "displayOrder": 2,
+    "priceByYear": {
+      "2020": 7300,
+      "2021": 13200,
+      "2022": 17700,
+      "2023": 12900,
+      "2024": 19200,
+      "2025": 25000
+    }
   },
   {
-    id: 'r2-3', round: 2, time: '11:55', impact: 'up',
-    headline: '글로벌 제약사 대형 수주 잇따라… 4공장 풀가동 돌입',
-    related: ['삼성바이오로직스'],
+    "name": "C소프트",
+    "code": "S03",
+    "market": "KOSPI",
+    "desc": "기업용 소프트웨어를 만드는 회사예요. 한 번 계약하면 오래 쓰는 고객이 많아요.",
+    "listedFromRound": 1,
+    "displayOrder": 3,
+    "priceByYear": {
+      "2020": 10700,
+      "2021": 14300,
+      "2022": 13100,
+      "2023": 12200,
+      "2024": 13600,
+      "2025": 20400
+    }
   },
   {
-    id: 'r2-4', round: 2, time: '10:30', impact: 'down',
-    headline: '전기차 캐즘 본격화, 배터리 3사 목표주가 줄하향',
-    related: ['LG에너지솔루션', '삼성SDI'],
+    "name": "D게임즈",
+    "code": "S04",
+    "market": "KOSPI",
+    "desc": "모바일 게임을 만드는 작은 회사예요. 게임 하나가 터지면 회사가 통째로 달라져요.",
+    "listedFromRound": 1,
+    "displayOrder": 4,
+    "priceByYear": {
+      "2020": 100,
+      "2021": 400,
+      "2022": 3700,
+      "2023": 1800,
+      "2024": 1700,
+      "2025": 3100
+    }
   },
   {
-    id: 'r2-5', round: 2, time: '09:40', impact: 'down',
-    headline: '플랫폼 규제 논의 재점화… 카카오 경영 리스크 부각',
-    related: ['카카오'],
+    "name": "양재금융",
+    "code": "S05",
+    "market": "KOSPI",
+    "desc": "공격적인 투자로 유명한 금융 회사예요. 벌 때는 크게 벌지만 빚도 많아요.",
+    "listedFromRound": 1,
+    "displayOrder": 5,
+    "priceByYear": {
+      "2020": 25100,
+      "2021": 38800,
+      "2022": 67800,
+      "2023": 31000,
+      "2024": 0,
+      "2025": 0
+    }
   },
   {
-    id: 'r2-6', round: 2, time: '09:15', impact: 'down',
-    headline: '철강 업황 둔화, 중국 저가 공세 심화로 마진 압박',
-    related: ['POSCO홀딩스'],
-  },
-
-  // ── R3 (2024) 시황 (마지막 라운드 — 예고할 다음 해 없음)
-  {
-    id: 'r3-1', round: 3, time: '14:30', impact: 'up',
-    headline: '반도체 수출 3개월 연속 증가… AI 서버용 HBM 수요가 견인',
-    related: ['삼성전자', 'SK하이닉스'],
-  },
-  {
-    id: 'r3-2', round: 3, time: '13:05', impact: 'down',
-    headline: '전기차 캐즘 장기화 우려… 배터리 3사 목표주가 줄하향',
-    related: ['LG에너지솔루션', '삼성SDI'],
-  },
-  {
-    id: 'r3-3', round: 3, time: '11:40', impact: 'flat',
-    headline: '한국은행 기준금리 동결… "물가 둔화 흐름 더 확인해야"',
-    related: ['전체 시장'],
+    "name": "F모빌리티",
+    "code": "S06",
+    "market": "KOSPI",
+    "desc": "전기 스쿠터·공유 모빌리티 스타트업이에요. 미래 성장 기대로 주목받았어요.",
+    "listedFromRound": 1,
+    "displayOrder": 6,
+    "priceByYear": {
+      "2020": 30900,
+      "2021": 187700,
+      "2022": 47800,
+      "2023": 18100,
+      "2024": 3700,
+      "2025": 0
+    }
   },
   {
-    id: 'r3-4', round: 3, time: '09:30', impact: 'up',
-    headline: '완성차 3사 미국 판매 호조, 하이브리드 비중 사상 최대',
-    related: ['현대차', '기아'],
+    "name": "형록전자",
+    "code": "S07",
+    "market": "KOSPI",
+    "desc": "부품을 납품하는 중소 전자 회사예요. 큰 회사 주문에 실적이 좌우돼요.",
+    "listedFromRound": 1,
+    "displayOrder": 7,
+    "priceByYear": {
+      "2020": 5900,
+      "2021": 4900,
+      "2022": 5100,
+      "2023": 2600,
+      "2024": 5000,
+      "2025": 2000
+    }
   },
+  {
+    "name": "백학푸드",
+    "code": "S08",
+    "market": "KOSPI",
+    "desc": "라면·간편식을 만드는 식품 회사예요. 화려하진 않지만 꾸준히 팔려요.",
+    "listedFromRound": 1,
+    "displayOrder": 8,
+    "priceByYear": {
+      "2020": 5500,
+      "2021": 5400,
+      "2022": 5900,
+      "2023": 6300,
+      "2024": 5800,
+      "2025": 6200
+    }
+  },
+  {
+    "name": "I모터스",
+    "code": "S09",
+    "market": "KOSPI",
+    "desc": "전기차를 만드는 자동차 회사예요. 신차 반응에 따라 주가가 크게 출렁여요.",
+    "listedFromRound": 1,
+    "displayOrder": 9,
+    "priceByYear": {
+      "2020": 2700,
+      "2021": 23500,
+      "2022": 35200,
+      "2023": 12300,
+      "2024": 24800,
+      "2025": 40300
+    }
+  },
+  {
+    "name": "J시스템즈",
+    "code": "S10",
+    "market": "KOSPI",
+    "desc": "인공지능 서버 장비를 만드는 회사예요. 오랫동안 무명이었지만 기술력은 있다는 평이에요.",
+    "listedFromRound": 1,
+    "displayOrder": 10,
+    "priceByYear": {
+      "2020": 200,
+      "2021": 300,
+      "2022": 400,
+      "2023": 600,
+      "2024": 7000,
+      "2025": 2200
+    }
+  },
+  {
+    "name": "경상제약",
+    "code": "S11",
+    "market": "KOSPI",
+    "desc": "복제약과 건강기능식품을 만드는 제약사예요. 신약 개발도 조금씩 하고 있어요.",
+    "listedFromRound": 1,
+    "displayOrder": 11,
+    "priceByYear": {
+      "2020": 2800,
+      "2021": 3400,
+      "2022": 5600,
+      "2023": 6700,
+      "2024": 10300,
+      "2025": 8600
+    }
+  },
+  {
+    "name": "HeeSoo ENT.",
+    "code": "S12",
+    "market": "KOSPI",
+    "desc": "아이돌 그룹을 키우는 엔터테인먼트 회사예요. 소속 가수 활동에 따라 실적이 요동쳐요.",
+    "listedFromRound": 1,
+    "displayOrder": 12,
+    "priceByYear": {
+      "2020": 3200,
+      "2021": 5400,
+      "2022": 6000,
+      "2023": 2900,
+      "2024": 4800,
+      "2025": 8900
+    }
+  },
+  {
+    "name": "M증권",
+    "code": "S13",
+    "market": "KOSPI",
+    "desc": "새로 생긴 온라인 증권사예요. 수수료 무료 정책으로 이용자를 모으고 있어요. (R3 신규 상장)",
+    "listedFromRound": 3,
+    "displayOrder": 13,
+    "priceByYear": {
+      "2020": 0,
+      "2021": 0,
+      "2022": 1700,
+      "2023": 800,
+      "2024": 1200,
+      "2025": 3700
+    }
+  },
+  {
+    "name": "N스포츠",
+    "code": "S14",
+    "market": "KOSPI",
+    "desc": "스포츠 용품 브랜드예요. 한때 SNS에서 크게 유행했던 적이 있어요.",
+    "listedFromRound": 1,
+    "displayOrder": 14,
+    "priceByYear": {
+      "2020": 2800,
+      "2021": 15100,
+      "2022": 3500,
+      "2023": 700,
+      "2024": 600,
+      "2025": 800
+    }
+  },
+  {
+    "name": "O에어로",
+    "code": "S15",
+    "market": "KOSPI",
+    "desc": "항공기 부품을 만드는 회사예요. 여행 수요와 방산 수주에 영향을 받아요.",
+    "listedFromRound": 1,
+    "displayOrder": 15,
+    "priceByYear": {
+      "2020": 32500,
+      "2021": 21400,
+      "2022": 20100,
+      "2023": 19000,
+      "2024": 26000,
+      "2025": 17700
+    }
+  },
+  {
+    "name": "윤선바이오",
+    "code": "S16",
+    "market": "KOSPI",
+    "desc": "신약을 개발하는 바이오 벤처예요. 임상 결과 발표 하나에 주가가 급변해요.",
+    "listedFromRound": 1,
+    "displayOrder": 16,
+    "priceByYear": {
+      "2020": 1900,
+      "2021": 10400,
+      "2022": 25300,
+      "2023": 17900,
+      "2024": 9900,
+      "2025": 4100
+    }
+  },
+  {
+    "name": "큐픽플랫폼",
+    "code": "S17",
+    "market": "KOSPI",
+    "desc": "중고 거래 플랫폼을 운영하는 IT 회사예요. 이용자는 많지만 아직 적자예요.",
+    "listedFromRound": 1,
+    "displayOrder": 17,
+    "priceByYear": {
+      "2020": 1800,
+      "2021": 4700,
+      "2022": 4600,
+      "2023": 100,
+      "2024": 1000,
+      "2025": 4000
+    }
+  },
+  {
+    "name": "하프케이",
+    "code": "S18",
+    "market": "KOSPI",
+    "desc": "여러 사업을 거느린 대형 지주회사예요. 주가가 비싸고 움직임이 묵직해요.",
+    "listedFromRound": 1,
+    "displayOrder": 18,
+    "priceByYear": {
+      "2020": 323000,
+      "2021": 375600,
+      "2022": 475500,
+      "2023": 383900,
+      "2024": 476900,
+      "2025": 588100
+    }
+  }
 ]
 
-// 개발 중 데이터 정합성 검사. 주석은 오타를 막지 못하므로 실제로 확인시킨다.
-// 위 규칙 1을 어긴 뉴스가 있으면 콘솔에 뜬다. (운영 빌드에서는 제거됨)
-if (import.meta.env?.DEV) {
-  const known = new Set([...stocks.map((s) => s.name), ...NEWS_SENTINELS])
-  const bad = initialNews.flatMap((n) =>
-    n.related.filter((r) => !known.has(r)).map((r) => `${n.id}: "${r}"`),
-  )
-  if (bad.length) {
-    console.error(
-      '[data.js] 뉴스의 관련 종목이 stocks에 없습니다. 오타이거나 지운 종목입니다:\n  ' +
-        bad.join('\n  '),
-    )
+// 등급 힌트. R1은 없음. round 힌트는 그 해→다음 해 등락을 예고한다(R5는 FINAL_YEAR).
+// impact: up=호재(빨강) / down=악재(파랑) / flat=중립(회색). related는 종목 code.
+export const initialHints = [
+  {
+    "round": 2,
+    "grade": "S",
+    "impact": "up",
+    "headline": "D게임즈 신작, 사전예약 서버가 마비됐다… 업계 '역대급 흥행' 확신",
+    "related": [
+      "S04"
+    ]
+  },
+  {
+    "round": 2,
+    "grade": "A",
+    "impact": "down",
+    "headline": "거품 논란의 모빌리티 업계, 투자금이 마르고 있다는 소문 — F모빌리티 자금난설",
+    "related": [
+      "S06"
+    ]
+  },
+  {
+    "round": 2,
+    "grade": "B",
+    "impact": "up",
+    "headline": "바이오 임상 발표 시즌 도래… 일부 바이오 기업에 큰 장이 설 것이란 전망",
+    "related": [
+      "S16"
+    ]
+  },
+  {
+    "round": 2,
+    "grade": "C",
+    "impact": "down",
+    "headline": "작년에 SNS에서 유행한 것들, 올해도 유행하리란 법은 없다",
+    "related": [
+      "S14"
+    ]
+  },
+  {
+    "round": 2,
+    "grade": "D",
+    "impact": "up",
+    "headline": "시장이 흔들릴 때는 오히려 금융이 웃는다는 옛말이 있다. 늘 맞는 말은 아니지만.",
+    "related": [
+      "S05"
+    ]
+  },
+  {
+    "round": 3,
+    "grade": "S",
+    "impact": "down",
+    "headline": "큐픽플랫폼 회계 부정 의혹 내부 고발… 상장폐지 심사설까지 거론",
+    "related": [
+      "S17"
+    ]
+  },
+  {
+    "round": 3,
+    "grade": "A",
+    "impact": "down",
+    "headline": "전기차 보조금 대폭 축소 예고 — 전기차·모빌리티 업계 실적 경고등",
+    "related": [
+      "S09",
+      "S06"
+    ]
+  },
+  {
+    "round": 3,
+    "grade": "B",
+    "impact": "up",
+    "headline": "불경기에는 결국 먹는 장사와 약 장사가 남는다는 분석",
+    "related": [
+      "S08",
+      "S11"
+    ]
+  },
+  {
+    "round": 3,
+    "grade": "C",
+    "impact": "up",
+    "headline": "화려한 곳에서 조용한 곳으로, 큰손들의 시선이 옮겨가고 있다",
+    "related": [
+      "S10"
+    ]
+  },
+  {
+    "round": 3,
+    "grade": "D",
+    "impact": "flat",
+    "headline": "올해는 '살아남는 것'이 수익률이라는 말이 돈다",
+    "related": []
+  },
+  {
+    "round": 4,
+    "grade": "S",
+    "impact": "up",
+    "headline": "J시스템즈, 글로벌 AI 기업과 서버 공급 계약 임박설 — 사실이면 회사가 달라진다",
+    "related": [
+      "S10"
+    ]
+  },
+  {
+    "round": 4,
+    "grade": "A",
+    "impact": "down",
+    "headline": "양재금융 부채 만기 집중… 채권단 '상환 능력 의문' — 최악의 경우 상장폐지",
+    "related": [
+      "S05"
+    ]
+  },
+  {
+    "round": 4,
+    "grade": "B",
+    "impact": "up",
+    "headline": "AI 붐이 진짜라면, 서버·반도체·전력 관련주가 먼저 움직인다",
+    "related": [
+      "S10",
+      "S02",
+      "S07"
+    ]
+  },
+  {
+    "round": 4,
+    "grade": "C",
+    "impact": "up",
+    "headline": "죽었다던 그 플랫폼, 새 주인을 만났다는 소문이 있다",
+    "related": [
+      "S17"
+    ]
+  },
+  {
+    "round": 4,
+    "grade": "D",
+    "impact": "down",
+    "headline": "바닥인 줄 알았는데 지하실이 있더라 — 어느 투자자의 한탄",
+    "related": [
+      "S16",
+      "S06"
+    ]
+  },
+  {
+    "round": 5,
+    "grade": "S",
+    "impact": "up",
+    "headline": "M증권, 이용자 1천만 돌파에 흑자 전환까지 — 증권가 '올해의 성장주' 만장일치",
+    "related": [
+      "S13"
+    ]
+  },
+  {
+    "round": 5,
+    "grade": "A",
+    "impact": "down",
+    "headline": "F모빌리티 법정관리 신청 초읽기… 주식이 휴지가 될 수 있다는 경고",
+    "related": [
+      "S06"
+    ]
+  },
+  {
+    "round": 5,
+    "grade": "B",
+    "impact": "up",
+    "headline": "K-콘텐츠 해외 매출 사상 최대 전망 — 엔터·게임주 수혜 기대",
+    "related": [
+      "S12",
+      "S04"
+    ]
+  },
+  {
+    "round": 5,
+    "grade": "C",
+    "impact": "down",
+    "headline": "작년의 영웅이 올해도 영웅인 경우는 드물다",
+    "related": [
+      "S10"
+    ]
+  },
+  {
+    "round": 5,
+    "grade": "D",
+    "impact": "down",
+    "headline": "보험을 들어야 할 때와 팔아야 할 때가 있다",
+    "related": [
+      "S01"
+    ]
   }
-}
+]
 
-// ===== 재무제표 =====
-// 단위: 매출액·영업이익·당기순이익 = 억원 / 부채비율·ROE = %
 export const FIN_METRICS = [
   { key: 'revenue', label: '매출액', unit: '억원', desc: '회사가 물건이나 서비스를 팔아서 벌어들인 돈 전체예요.' },
   { key: 'opIncome', label: '영업이익', unit: '억원', desc: '매출액에서 재료비·인건비 같은 비용을 뺀, 본업으로 남긴 이익이에요.' },
@@ -177,77 +509,768 @@ export const FIN_METRICS = [
   { key: 'roe', label: 'ROE', unit: '%', desc: '내 돈으로 얼마나 잘 벌었는지 보여주는 지표예요. 높을수록 장사를 잘한 거예요.' },
 ]
 
+// 재무제표. null = 미상장/상장폐지 연도(화면에서 '-'). 단위: 금액=억원, 비율=%.
 export const financials = {
-  '005930': {
-    2021: { revenue: 2796048, opIncome: 516339, netIncome: 399074, debtRatio: 39.9, roe: 13.9 },
-    2022: { revenue: 3022314, opIncome: 433766, netIncome: 556541, debtRatio: 36.1, roe: 17.1 },
-    2023: { revenue: 2589355, opIncome: 65670, netIncome: 154871, debtRatio: 25.4, roe: 4.1 },
-    2024: { revenue: 3007771, opIncome: 326725, netIncome: 340120, debtRatio: 27.9, roe: 8.6 },
+  "S01": {
+    "2020": {
+      "revenue": 38000,
+      "opIncome": 3200,
+      "netIncome": 2400,
+      "debtRatio": 95,
+      "roe": 8.5
+    },
+    "2021": {
+      "revenue": 40500,
+      "opIncome": 3900,
+      "netIncome": 3000,
+      "debtRatio": 92,
+      "roe": 9.8
+    },
+    "2022": {
+      "revenue": 43800,
+      "opIncome": 4600,
+      "netIncome": 3500,
+      "debtRatio": 90,
+      "roe": 10.9
+    },
+    "2023": {
+      "revenue": 45200,
+      "opIncome": 4800,
+      "netIncome": 3700,
+      "debtRatio": 88,
+      "roe": 10.8
+    },
+    "2024": {
+      "revenue": 45900,
+      "opIncome": 4700,
+      "netIncome": 3600,
+      "debtRatio": 89,
+      "roe": 10.1
+    },
+    "2025": {
+      "revenue": 44100,
+      "opIncome": 2100,
+      "netIncome": 1300,
+      "debtRatio": 103,
+      "roe": 3.6
+    }
   },
-  '000660': {
-    2021: { revenue: 429978, opIncome: 124103, netIncome: 96162, debtRatio: 53.9, roe: 16.8 },
-    2022: { revenue: 446216, opIncome: 68094, netIncome: 22417, debtRatio: 63.1, roe: 3.6 },
-    2023: { revenue: 327657, opIncome: -77303, netIncome: -91375, debtRatio: 87.4, roe: -15.6 },
-    2024: { revenue: 572000, opIncome: 234000, netIncome: 198400, debtRatio: 62.2, roe: 28.4 },
+  "S02": {
+    "2020": {
+      "revenue": 236000,
+      "opIncome": 28000,
+      "netIncome": 21000,
+      "debtRatio": 45,
+      "roe": 12.1
+    },
+    "2021": {
+      "revenue": 268000,
+      "opIncome": 41000,
+      "netIncome": 32000,
+      "debtRatio": 42,
+      "roe": 16.5
+    },
+    "2022": {
+      "revenue": 292000,
+      "opIncome": 46000,
+      "netIncome": 35000,
+      "debtRatio": 40,
+      "roe": 16.9
+    },
+    "2023": {
+      "revenue": 245000,
+      "opIncome": 9500,
+      "netIncome": 6800,
+      "debtRatio": 43,
+      "roe": 3.2
+    },
+    "2024": {
+      "revenue": 289000,
+      "opIncome": 38000,
+      "netIncome": 29000,
+      "debtRatio": 41,
+      "roe": 12.8
+    },
+    "2025": {
+      "revenue": 331000,
+      "opIncome": 52000,
+      "netIncome": 40000,
+      "debtRatio": 39,
+      "roe": 15.7
+    }
   },
-  '035420': {
-    2021: { revenue: 68176, opIncome: 13255, netIncome: 164776, debtRatio: 45.2, roe: 41.2 },
-    2022: { revenue: 82201, opIncome: 13047, netIncome: 6640, debtRatio: 51.8, roe: 1.5 },
-    2023: { revenue: 96706, opIncome: 14888, netIncome: 6845, debtRatio: 49.3, roe: 1.5 },
-    2024: { revenue: 105000, opIncome: 19500, netIncome: 8210, debtRatio: 47.1, roe: 1.8 },
+  "S03": {
+    "2020": {
+      "revenue": 12400,
+      "opIncome": 2100,
+      "netIncome": 1600,
+      "debtRatio": 35,
+      "roe": 11.2
+    },
+    "2021": {
+      "revenue": 13800,
+      "opIncome": 2500,
+      "netIncome": 1900,
+      "debtRatio": 33,
+      "roe": 12.4
+    },
+    "2022": {
+      "revenue": 13200,
+      "opIncome": 2200,
+      "netIncome": 1700,
+      "debtRatio": 34,
+      "roe": 10.6
+    },
+    "2023": {
+      "revenue": 12900,
+      "opIncome": 2000,
+      "netIncome": 1500,
+      "debtRatio": 34,
+      "roe": 9.1
+    },
+    "2024": {
+      "revenue": 13600,
+      "opIncome": 2300,
+      "netIncome": 1800,
+      "debtRatio": 32,
+      "roe": 10.3
+    },
+    "2025": {
+      "revenue": 15900,
+      "opIncome": 3100,
+      "netIncome": 2400,
+      "debtRatio": 30,
+      "roe": 12.9
+    }
   },
-  '035720': {
-    2021: { revenue: 61367, opIncome: 5949, netIncome: 16419, debtRatio: 42.7, roe: 12.4 },
-    2022: { revenue: 71068, opIncome: 5803, netIncome: 10625, debtRatio: 45.9, roe: 7.3 },
-    2023: { revenue: 79000, opIncome: 4609, netIncome: -7360, debtRatio: 52.3, roe: -5.1 },
-    2024: { revenue: 78700, opIncome: 4200, netIncome: 1140, debtRatio: 54.8, roe: 0.8 },
+  "S04": {
+    "2020": {
+      "revenue": 120,
+      "opIncome": -35,
+      "netIncome": -40,
+      "debtRatio": 180,
+      "roe": -25
+    },
+    "2021": {
+      "revenue": 310,
+      "opIncome": 20,
+      "netIncome": 12,
+      "debtRatio": 150,
+      "roe": 6
+    },
+    "2022": {
+      "revenue": 2850,
+      "opIncome": 1350,
+      "netIncome": 1050,
+      "debtRatio": 60,
+      "roe": 48
+    },
+    "2023": {
+      "revenue": 1420,
+      "opIncome": 380,
+      "netIncome": 290,
+      "debtRatio": 70,
+      "roe": 11.5
+    },
+    "2024": {
+      "revenue": 1180,
+      "opIncome": 240,
+      "netIncome": 180,
+      "debtRatio": 75,
+      "roe": 6.8
+    },
+    "2025": {
+      "revenue": 1650,
+      "opIncome": 520,
+      "netIncome": 410,
+      "debtRatio": 65,
+      "roe": 13.9
+    }
   },
-  '005380': {
-    2021: { revenue: 1176106, opIncome: 66789, netIncome: 56931, debtRatio: 172.4, roe: 8.0 },
-    2022: { revenue: 1425275, opIncome: 98249, netIncome: 79836, debtRatio: 168.9, roe: 10.4 },
-    2023: { revenue: 1626636, opIncome: 151269, netIncome: 122723, debtRatio: 161.2, roe: 14.5 },
-    2024: { revenue: 1750000, opIncome: 142000, netIncome: 118300, debtRatio: 155.7, roe: 12.9 },
+  "S05": {
+    "2020": {
+      "revenue": 8900,
+      "opIncome": 2100,
+      "netIncome": 1600,
+      "debtRatio": 320,
+      "roe": 14
+    },
+    "2021": {
+      "revenue": 14200,
+      "opIncome": 4800,
+      "netIncome": 3700,
+      "debtRatio": 410,
+      "roe": 24.5
+    },
+    "2022": {
+      "revenue": 21500,
+      "opIncome": 7900,
+      "netIncome": 6100,
+      "debtRatio": 540,
+      "roe": 31
+    },
+    "2023": {
+      "revenue": 9800,
+      "opIncome": -5200,
+      "netIncome": -6800,
+      "debtRatio": 890,
+      "roe": -48
+    },
+    "2024": null,
+    "2025": null
   },
-  '373220': {
-    2021: { revenue: 178519, opIncome: 7685, netIncome: 9299, debtRatio: 128.4, roe: 6.4 },
-    2022: { revenue: 255986, opIncome: 12137, netIncome: 7798, debtRatio: 84.2, roe: 3.4 },
-    2023: { revenue: 337455, opIncome: 21632, netIncome: 16380, debtRatio: 76.5, roe: 6.2 },
-    2024: { revenue: 258000, opIncome: 5800, netIncome: 3120, debtRatio: 81.3, roe: 1.1 },
+  "S06": {
+    "2020": {
+      "revenue": 850,
+      "opIncome": -420,
+      "netIncome": -480,
+      "debtRatio": 210,
+      "roe": -35
+    },
+    "2021": {
+      "revenue": 2400,
+      "opIncome": -680,
+      "netIncome": -750,
+      "debtRatio": 260,
+      "roe": -42
+    },
+    "2022": {
+      "revenue": 2900,
+      "opIncome": -1100,
+      "netIncome": -1250,
+      "debtRatio": 380,
+      "roe": -68
+    },
+    "2023": {
+      "revenue": 2100,
+      "opIncome": -950,
+      "netIncome": -1080,
+      "debtRatio": 520,
+      "roe": -95
+    },
+    "2024": {
+      "revenue": 1200,
+      "opIncome": -700,
+      "netIncome": -820,
+      "debtRatio": 780,
+      "roe": -160
+    },
+    "2025": null
   },
-  '000270': {
-    2021: { revenue: 698624, opIncome: 50657, netIncome: 46000, debtRatio: 78.4, roe: 12.1 },
-    2022: { revenue: 863559, opIncome: 72331, netIncome: 54090, debtRatio: 72.6, roe: 13.2 },
-    2023: { revenue: 999666, opIncome: 116079, netIncome: 87778, debtRatio: 62.1, roe: 19.4 },
-    2024: { revenue: 1075000, opIncome: 129000, netIncome: 96500, debtRatio: 55.3, roe: 18.8 },
+  "S07": {
+    "2020": {
+      "revenue": 4200,
+      "opIncome": 260,
+      "netIncome": 190,
+      "debtRatio": 110,
+      "roe": 6.5
+    },
+    "2021": {
+      "revenue": 3900,
+      "opIncome": 180,
+      "netIncome": 120,
+      "debtRatio": 115,
+      "roe": 4.1
+    },
+    "2022": {
+      "revenue": 4100,
+      "opIncome": 210,
+      "netIncome": 150,
+      "debtRatio": 112,
+      "roe": 5
+    },
+    "2023": {
+      "revenue": 3100,
+      "opIncome": -240,
+      "netIncome": -310,
+      "debtRatio": 135,
+      "roe": -11
+    },
+    "2024": {
+      "revenue": 4600,
+      "opIncome": 420,
+      "netIncome": 320,
+      "debtRatio": 105,
+      "roe": 10.5
+    },
+    "2025": {
+      "revenue": 3400,
+      "opIncome": -120,
+      "netIncome": -180,
+      "debtRatio": 128,
+      "roe": -6.2
+    }
   },
-  '005490': {
-    2021: { revenue: 763323, opIncome: 92381, netIncome: 71958, debtRatio: 62.4, roe: 12.9 },
-    2022: { revenue: 848021, opIncome: 48501, netIncome: 33500, debtRatio: 64.1, roe: 5.6 },
-    2023: { revenue: 771272, opIncome: 35314, netIncome: 18456, debtRatio: 65.8, roe: 3.1 },
-    2024: { revenue: 728000, opIncome: 21000, netIncome: 9800, debtRatio: 67.2, roe: 1.6 },
+  "S08": {
+    "2020": {
+      "revenue": 21000,
+      "opIncome": 1500,
+      "netIncome": 1100,
+      "debtRatio": 62,
+      "roe": 7.2
+    },
+    "2021": {
+      "revenue": 21400,
+      "opIncome": 1550,
+      "netIncome": 1150,
+      "debtRatio": 61,
+      "roe": 7.3
+    },
+    "2022": {
+      "revenue": 22800,
+      "opIncome": 1700,
+      "netIncome": 1280,
+      "debtRatio": 60,
+      "roe": 7.8
+    },
+    "2023": {
+      "revenue": 24100,
+      "opIncome": 1850,
+      "netIncome": 1400,
+      "debtRatio": 58,
+      "roe": 8.1
+    },
+    "2024": {
+      "revenue": 24600,
+      "opIncome": 1800,
+      "netIncome": 1350,
+      "debtRatio": 58,
+      "roe": 7.6
+    },
+    "2025": {
+      "revenue": 25900,
+      "opIncome": 1950,
+      "netIncome": 1480,
+      "debtRatio": 56,
+      "roe": 7.9
+    }
   },
-  '068270': {
-    2021: { revenue: 19116, opIncome: 7442, netIncome: 5942, debtRatio: 32.1, roe: 15.2 },
-    2022: { revenue: 22840, opIncome: 6472, netIncome: 5426, debtRatio: 29.8, roe: 12.4 },
-    2023: { revenue: 21764, opIncome: 6510, netIncome: 5340, debtRatio: 27.4, roe: 10.1 },
-    2024: { revenue: 35573, opIncome: 4920, netIncome: 3210, debtRatio: 24.6, roe: 3.4 },
+  "S09": {
+    "2020": {
+      "revenue": 98000,
+      "opIncome": 2800,
+      "netIncome": 1900,
+      "debtRatio": 145,
+      "roe": 4.2
+    },
+    "2021": {
+      "revenue": 132000,
+      "opIncome": 8900,
+      "netIncome": 6800,
+      "debtRatio": 130,
+      "roe": 12.8
+    },
+    "2022": {
+      "revenue": 158000,
+      "opIncome": 12500,
+      "netIncome": 9600,
+      "debtRatio": 120,
+      "roe": 15.6
+    },
+    "2023": {
+      "revenue": 141000,
+      "opIncome": 4200,
+      "netIncome": 2900,
+      "debtRatio": 128,
+      "roe": 4.5
+    },
+    "2024": {
+      "revenue": 172000,
+      "opIncome": 14800,
+      "netIncome": 11500,
+      "debtRatio": 115,
+      "roe": 15.9
+    },
+    "2025": {
+      "revenue": 198000,
+      "opIncome": 19500,
+      "netIncome": 15200,
+      "debtRatio": 108,
+      "roe": 18.3
+    }
   },
-  '207940': {
-    2021: { revenue: 15680, opIncome: 5373, netIncome: 3936, debtRatio: 42.3, roe: 9.1 },
-    2022: { revenue: 30013, opIncome: 9836, netIncome: 7981, debtRatio: 51.7, roe: 13.6 },
-    2023: { revenue: 36946, opIncome: 11137, netIncome: 8577, debtRatio: 44.2, roe: 11.8 },
-    2024: { revenue: 45473, opIncome: 13201, netIncome: 10150, debtRatio: 40.5, roe: 12.4 },
+  "S10": {
+    "2020": {
+      "revenue": 340,
+      "opIncome": 15,
+      "netIncome": 8,
+      "debtRatio": 95,
+      "roe": 2
+    },
+    "2021": {
+      "revenue": 380,
+      "opIncome": 22,
+      "netIncome": 14,
+      "debtRatio": 92,
+      "roe": 3.3
+    },
+    "2022": {
+      "revenue": 450,
+      "opIncome": 30,
+      "netIncome": 20,
+      "debtRatio": 90,
+      "roe": 4.5
+    },
+    "2023": {
+      "revenue": 620,
+      "opIncome": 55,
+      "netIncome": 40,
+      "debtRatio": 85,
+      "roe": 8.2
+    },
+    "2024": {
+      "revenue": 5800,
+      "opIncome": 1900,
+      "netIncome": 1500,
+      "debtRatio": 55,
+      "roe": 42
+    },
+    "2025": {
+      "revenue": 4100,
+      "opIncome": 780,
+      "netIncome": 590,
+      "debtRatio": 68,
+      "roe": 13.1
+    }
   },
-  '105560': {
-    2021: { revenue: 158000, opIncome: 58000, netIncome: 44096, debtRatio: 1180, roe: 9.8 },
-    2022: { revenue: 172000, opIncome: 62000, netIncome: 44133, debtRatio: 1215, roe: 9.3 },
-    2023: { revenue: 181000, opIncome: 63500, netIncome: 46319, debtRatio: 1190, roe: 9.1 },
-    2024: { revenue: 195000, opIncome: 70200, netIncome: 51200, debtRatio: 1160, roe: 9.6 },
+  "S11": {
+    "2020": {
+      "revenue": 3100,
+      "opIncome": 280,
+      "netIncome": 210,
+      "debtRatio": 85,
+      "roe": 7.5
+    },
+    "2021": {
+      "revenue": 3600,
+      "opIncome": 360,
+      "netIncome": 270,
+      "debtRatio": 82,
+      "roe": 9
+    },
+    "2022": {
+      "revenue": 4500,
+      "opIncome": 520,
+      "netIncome": 400,
+      "debtRatio": 78,
+      "roe": 12
+    },
+    "2023": {
+      "revenue": 5200,
+      "opIncome": 640,
+      "netIncome": 500,
+      "debtRatio": 74,
+      "roe": 13.4
+    },
+    "2024": {
+      "revenue": 6400,
+      "opIncome": 850,
+      "netIncome": 670,
+      "debtRatio": 70,
+      "roe": 15.5
+    },
+    "2025": {
+      "revenue": 6100,
+      "opIncome": 720,
+      "netIncome": 560,
+      "debtRatio": 72,
+      "roe": 12.1
+    }
   },
-  '006400': {
-    2021: { revenue: 137532, opIncome: 10676, netIncome: 12659, debtRatio: 68.3, roe: 8.4 },
-    2022: { revenue: 201241, opIncome: 18080, netIncome: 20659, debtRatio: 74.1, roe: 11.9 },
-    2023: { revenue: 226708, opIncome: 16334, netIncome: 20659, debtRatio: 79.6, roe: 10.2 },
-    2024: { revenue: 165000, opIncome: 3200, netIncome: 2100, debtRatio: 86.4, roe: 1.0 },
+  "S12": {
+    "2020": {
+      "revenue": 980,
+      "opIncome": 110,
+      "netIncome": 80,
+      "debtRatio": 70,
+      "roe": 8
+    },
+    "2021": {
+      "revenue": 1450,
+      "opIncome": 230,
+      "netIncome": 180,
+      "debtRatio": 65,
+      "roe": 15.2
+    },
+    "2022": {
+      "revenue": 1620,
+      "opIncome": 260,
+      "netIncome": 200,
+      "debtRatio": 63,
+      "roe": 15.4
+    },
+    "2023": {
+      "revenue": 1100,
+      "opIncome": -80,
+      "netIncome": -120,
+      "debtRatio": 78,
+      "roe": -9
+    },
+    "2024": {
+      "revenue": 1750,
+      "opIncome": 290,
+      "netIncome": 230,
+      "debtRatio": 66,
+      "roe": 15.8
+    },
+    "2025": {
+      "revenue": 2600,
+      "opIncome": 560,
+      "netIncome": 450,
+      "debtRatio": 58,
+      "roe": 24.1
+    }
   },
+  "S13": {
+    "2020": null,
+    "2021": null,
+    "2022": {
+      "revenue": 420,
+      "opIncome": -180,
+      "netIncome": -210,
+      "debtRatio": 150,
+      "roe": -28
+    },
+    "2023": {
+      "revenue": 510,
+      "opIncome": -120,
+      "netIncome": -150,
+      "debtRatio": 165,
+      "roe": -22
+    },
+    "2024": {
+      "revenue": 780,
+      "opIncome": -30,
+      "netIncome": -45,
+      "debtRatio": 140,
+      "roe": -6.5
+    },
+    "2025": {
+      "revenue": 1450,
+      "opIncome": 210,
+      "netIncome": 160,
+      "debtRatio": 110,
+      "roe": 18.5
+    }
+  },
+  "S14": {
+    "2020": {
+      "revenue": 640,
+      "opIncome": 40,
+      "netIncome": 28,
+      "debtRatio": 88,
+      "roe": 4.5
+    },
+    "2021": {
+      "revenue": 2100,
+      "opIncome": 380,
+      "netIncome": 300,
+      "debtRatio": 70,
+      "roe": 28
+    },
+    "2022": {
+      "revenue": 900,
+      "opIncome": -150,
+      "netIncome": -190,
+      "debtRatio": 105,
+      "roe": -18
+    },
+    "2023": {
+      "revenue": 480,
+      "opIncome": -210,
+      "netIncome": -250,
+      "debtRatio": 160,
+      "roe": -35
+    },
+    "2024": {
+      "revenue": 420,
+      "opIncome": -90,
+      "netIncome": -120,
+      "debtRatio": 175,
+      "roe": -20
+    },
+    "2025": {
+      "revenue": 510,
+      "opIncome": 10,
+      "netIncome": 5,
+      "debtRatio": 168,
+      "roe": 0.9
+    }
+  },
+  "S15": {
+    "2020": {
+      "revenue": 5200,
+      "opIncome": -380,
+      "netIncome": -450,
+      "debtRatio": 190,
+      "roe": -12
+    },
+    "2021": {
+      "revenue": 4300,
+      "opIncome": -520,
+      "netIncome": -600,
+      "debtRatio": 215,
+      "roe": -18
+    },
+    "2022": {
+      "revenue": 4800,
+      "opIncome": -150,
+      "netIncome": -220,
+      "debtRatio": 205,
+      "roe": -7
+    },
+    "2023": {
+      "revenue": 5600,
+      "opIncome": 180,
+      "netIncome": 110,
+      "debtRatio": 185,
+      "roe": 3.5
+    },
+    "2024": {
+      "revenue": 7100,
+      "opIncome": 620,
+      "netIncome": 480,
+      "debtRatio": 160,
+      "roe": 13.2
+    },
+    "2025": {
+      "revenue": 6300,
+      "opIncome": 280,
+      "netIncome": 190,
+      "debtRatio": 172,
+      "roe": 5.1
+    }
+  },
+  "S16": {
+    "2020": {
+      "revenue": 45,
+      "opIncome": -120,
+      "netIncome": -130,
+      "debtRatio": 60,
+      "roe": -18
+    },
+    "2021": {
+      "revenue": 60,
+      "opIncome": -180,
+      "netIncome": -195,
+      "debtRatio": 75,
+      "roe": -22
+    },
+    "2022": {
+      "revenue": 85,
+      "opIncome": -240,
+      "netIncome": -260,
+      "debtRatio": 110,
+      "roe": -30
+    },
+    "2023": {
+      "revenue": 70,
+      "opIncome": -280,
+      "netIncome": -300,
+      "debtRatio": 170,
+      "roe": -45
+    },
+    "2024": {
+      "revenue": 55,
+      "opIncome": -250,
+      "netIncome": -270,
+      "debtRatio": 260,
+      "roe": -70
+    },
+    "2025": {
+      "revenue": 40,
+      "opIncome": -210,
+      "netIncome": -230,
+      "debtRatio": 380,
+      "roe": -120
+    }
+  },
+  "S17": {
+    "2020": {
+      "revenue": 380,
+      "opIncome": -140,
+      "netIncome": -160,
+      "debtRatio": 120,
+      "roe": -25
+    },
+    "2021": {
+      "revenue": 890,
+      "opIncome": -220,
+      "netIncome": -250,
+      "debtRatio": 135,
+      "roe": -30
+    },
+    "2022": {
+      "revenue": 1350,
+      "opIncome": -180,
+      "netIncome": -210,
+      "debtRatio": 150,
+      "roe": -28
+    },
+    "2023": {
+      "revenue": 620,
+      "opIncome": -890,
+      "netIncome": -1100,
+      "debtRatio": 450,
+      "roe": -180
+    },
+    "2024": {
+      "revenue": 1100,
+      "opIncome": -150,
+      "netIncome": -180,
+      "debtRatio": 200,
+      "roe": -35
+    },
+    "2025": {
+      "revenue": 1900,
+      "opIncome": 60,
+      "netIncome": 30,
+      "debtRatio": 130,
+      "roe": 4.2
+    }
+  },
+  "S18": {
+    "2020": {
+      "revenue": 486000,
+      "opIncome": 32000,
+      "netIncome": 24000,
+      "debtRatio": 55,
+      "roe": 8.2
+    },
+    "2021": {
+      "revenue": 512000,
+      "opIncome": 38000,
+      "netIncome": 29000,
+      "debtRatio": 53,
+      "roe": 9.4
+    },
+    "2022": {
+      "revenue": 561000,
+      "opIncome": 45000,
+      "netIncome": 34000,
+      "debtRatio": 51,
+      "roe": 10.5
+    },
+    "2023": {
+      "revenue": 528000,
+      "opIncome": 31000,
+      "netIncome": 23000,
+      "debtRatio": 54,
+      "roe": 6.9
+    },
+    "2024": {
+      "revenue": 589000,
+      "opIncome": 47000,
+      "netIncome": 36000,
+      "debtRatio": 50,
+      "roe": 10.2
+    },
+    "2025": {
+      "revenue": 642000,
+      "opIncome": 58000,
+      "netIncome": 45000,
+      "debtRatio": 48,
+      "roe": 11.8
+    }
+  }
 }

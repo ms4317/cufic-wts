@@ -42,14 +42,14 @@ select private.set_admin_secret('원하는_비밀');
 - **즉시 체결 + 라운드 타이머.** 매수·매도를 누르면 서버(`place_order`)가 그 자리에서 체결한다
   (예수금·보유 즉시 반영). 단 거래는 **관리자가 [타이머 시작]을 눌러 연 동안에만** 가능하다 —
   `round_ends_at`이 지나면 서버가 거부(`round_closed`)하고 화면 버튼도 잠긴다. 타이머 길이는
-  `round_duration_seconds`(기본 600초=10분), 하드코딩하지 않는다.
+  `round_duration_seconds`(기본 600초=10분) — 관리자가 [타이머 시작] 때 분 단위로 조정. 하드코딩 금지.
   - **게임 루프.** 관리자가 **[연도 넘기기]**(`advance_round`)를 누르면 그 라운드 평가금액을
     스냅샷하고 다음 연도 가격이 공개된다 → 보유가 재평가돼 **순위가 바뀐다** → 관리자가 순위를
     확인하고 **[타이머 시작]**(`start_round_timer`)으로 거래를 연다. 10분 뒤 자동 마감 → 다시 [연도 넘기기].
   - **타이머 강제는 서버.** `place_order`가 `now() < round_ends_at`을 검사한다. 클라이언트
     카운트다운은 UX용일 뿐 — 마감 뒤 거래는 콘솔로도 못 뚫는다.
-  - **주문서(order_sheets)는 휴면.** 옛 일괄체결 방식의 테이블·함수(`save_order_sheet`·
-    `order_funds_ok`)는 파괴적 drop 없이 남겨뒀지만 아무도 호출하지 않는다.
+  - **주문서 경로는 삭제됨.** 옛 일괄체결 방식(order_sheets·save_order_sheet·order_funds_ok)은
+    2025 데이터 이식 때 drop했다(즉시 체결 확정).
 - **힌트는 조별로 다르다 — R2부터 자동 차등 지급.** S/A/B/C/D 등급 힌트를 조별로 다르게 준다.
   **R1은 지급 없음.** R2부터 [연도 넘기기]가 **새 순위(가격 공개 후) 기준으로 자동 배분**한다 —
   **하위권 우대(꼴찌=S)**. 강사 수동 지급은 보조로 남는다. 지급 안 된 힌트는 어떤 경로로도 안 보인다.
@@ -58,6 +58,14 @@ select private.set_admin_secret('원하는_비밀');
     대체 + 관리자 경고. 로직은 `distribute_round_hints()`, `advance_round`가 호출.
 - **리더보드는 연도가 넘어갈 때만 바뀐다.** 라운드 중엔 전 거래가 같은 가격이라 평가금액이
   안 변한다 — 순위는 [연도 넘기기]로 가격이 바뀔 때만 움직인다. 거래별 실시간 순위 갱신은 없다.
+- **5라운드 + 최종 정산.** R1~R5가 각각 한 해(현재 데이터 2020~2024). 마지막 [대회 종료]
+  (`admin_end_game`)가 `final_year`(2025) 가격을 공개해 최종 평가금액을 스냅샷한다 —
+  `current_round`를 `total_rounds+1`로 올리면 `current_price`가 `final_year`로 폴백한다(거래는 없음).
+- **신규상장·상장폐지는 다른 상태.** `stocks.listed_from_round` 이전 라운드엔 목록에서 미노출(상장 예정).
+  가격이 0이면 거래정지·평가액 0(상장폐지). 둘을 혼동하지 않는다.
+- **데이터 원천은 `src/data.js`(생성물).** `seed_stocks_2025.json`·`seed_financials_2025.json` +
+  `scripts/build-data.mjs`(소개·힌트) → `data.js` → `scripts/gen-seed.mjs` → `seed.sql`.
+  데이터를 바꾸면 JSON을 고치고 두 스크립트를 다시 돌린다. 정합성 테스트(`data.test.js`)가 힌트↔주가 방향을 고정.
 
 ## 아키텍처 규칙
 

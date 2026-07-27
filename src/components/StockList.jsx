@@ -9,7 +9,8 @@ export default function StockList({ stocks, selectedCode, onSelect, onOpenMy }) 
       </div>
 
       <div className="rows">
-        {stocks.map((s) => {
+        {/* 상장 예정(preListed) 종목은 아직 목록에 없다 — 상장 라운드에 나타난다 */}
+        {stocks.filter((s) => !s.preListed).map((s) => {
           const dir = dirOf(s.chg)
           return (
             <div

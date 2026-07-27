@@ -1,0 +1,773 @@
+{
+ "units": {
+  "revenue": "억원",
+  "op_income": "억원",
+  "net_income": "억원",
+  "debt_ratio": "%",
+  "roe": "%"
+ },
+ "financials": {
+  "S01": {
+   "2020": {
+    "revenue": 38000,
+    "op_income": 3200,
+    "net_income": 2400,
+    "debt_ratio": 95,
+    "roe": 8.5
+   },
+   "2021": {
+    "revenue": 40500,
+    "op_income": 3900,
+    "net_income": 3000,
+    "debt_ratio": 92,
+    "roe": 9.8
+   },
+   "2022": {
+    "revenue": 43800,
+    "op_income": 4600,
+    "net_income": 3500,
+    "debt_ratio": 90,
+    "roe": 10.9
+   },
+   "2023": {
+    "revenue": 45200,
+    "op_income": 4800,
+    "net_income": 3700,
+    "debt_ratio": 88,
+    "roe": 10.8
+   },
+   "2024": {
+    "revenue": 45900,
+    "op_income": 4700,
+    "net_income": 3600,
+    "debt_ratio": 89,
+    "roe": 10.1
+   },
+   "2025": {
+    "revenue": 44100,
+    "op_income": 2100,
+    "net_income": 1300,
+    "debt_ratio": 103,
+    "roe": 3.6
+   }
+  },
+  "S02": {
+   "2020": {
+    "revenue": 236000,
+    "op_income": 28000,
+    "net_income": 21000,
+    "debt_ratio": 45,
+    "roe": 12.1
+   },
+   "2021": {
+    "revenue": 268000,
+    "op_income": 41000,
+    "net_income": 32000,
+    "debt_ratio": 42,
+    "roe": 16.5
+   },
+   "2022": {
+    "revenue": 292000,
+    "op_income": 46000,
+    "net_income": 35000,
+    "debt_ratio": 40,
+    "roe": 16.9
+   },
+   "2023": {
+    "revenue": 245000,
+    "op_income": 9500,
+    "net_income": 6800,
+    "debt_ratio": 43,
+    "roe": 3.2
+   },
+   "2024": {
+    "revenue": 289000,
+    "op_income": 38000,
+    "net_income": 29000,
+    "debt_ratio": 41,
+    "roe": 12.8
+   },
+   "2025": {
+    "revenue": 331000,
+    "op_income": 52000,
+    "net_income": 40000,
+    "debt_ratio": 39,
+    "roe": 15.7
+   }
+  },
+  "S03": {
+   "2020": {
+    "revenue": 12400,
+    "op_income": 2100,
+    "net_income": 1600,
+    "debt_ratio": 35,
+    "roe": 11.2
+   },
+   "2021": {
+    "revenue": 13800,
+    "op_income": 2500,
+    "net_income": 1900,
+    "debt_ratio": 33,
+    "roe": 12.4
+   },
+   "2022": {
+    "revenue": 13200,
+    "op_income": 2200,
+    "net_income": 1700,
+    "debt_ratio": 34,
+    "roe": 10.6
+   },
+   "2023": {
+    "revenue": 12900,
+    "op_income": 2000,
+    "net_income": 1500,
+    "debt_ratio": 34,
+    "roe": 9.1
+   },
+   "2024": {
+    "revenue": 13600,
+    "op_income": 2300,
+    "net_income": 1800,
+    "debt_ratio": 32,
+    "roe": 10.3
+   },
+   "2025": {
+    "revenue": 15900,
+    "op_income": 3100,
+    "net_income": 2400,
+    "debt_ratio": 30,
+    "roe": 12.9
+   }
+  },
+  "S04": {
+   "2020": {
+    "revenue": 120,
+    "op_income": -35,
+    "net_income": -40,
+    "debt_ratio": 180,
+    "roe": -25.0
+   },
+   "2021": {
+    "revenue": 310,
+    "op_income": 20,
+    "net_income": 12,
+    "debt_ratio": 150,
+    "roe": 6.0
+   },
+   "2022": {
+    "revenue": 2850,
+    "op_income": 1350,
+    "net_income": 1050,
+    "debt_ratio": 60,
+    "roe": 48.0
+   },
+   "2023": {
+    "revenue": 1420,
+    "op_income": 380,
+    "net_income": 290,
+    "debt_ratio": 70,
+    "roe": 11.5
+   },
+   "2024": {
+    "revenue": 1180,
+    "op_income": 240,
+    "net_income": 180,
+    "debt_ratio": 75,
+    "roe": 6.8
+   },
+   "2025": {
+    "revenue": 1650,
+    "op_income": 520,
+    "net_income": 410,
+    "debt_ratio": 65,
+    "roe": 13.9
+   }
+  },
+  "S05": {
+   "2020": {
+    "revenue": 8900,
+    "op_income": 2100,
+    "net_income": 1600,
+    "debt_ratio": 320,
+    "roe": 14.0
+   },
+   "2021": {
+    "revenue": 14200,
+    "op_income": 4800,
+    "net_income": 3700,
+    "debt_ratio": 410,
+    "roe": 24.5
+   },
+   "2022": {
+    "revenue": 21500,
+    "op_income": 7900,
+    "net_income": 6100,
+    "debt_ratio": 540,
+    "roe": 31.0
+   },
+   "2023": {
+    "revenue": 9800,
+    "op_income": -5200,
+    "net_income": -6800,
+    "debt_ratio": 890,
+    "roe": -48.0
+   },
+   "2024": null,
+   "2025": null
+  },
+  "S06": {
+   "2020": {
+    "revenue": 850,
+    "op_income": -420,
+    "net_income": -480,
+    "debt_ratio": 210,
+    "roe": -35.0
+   },
+   "2021": {
+    "revenue": 2400,
+    "op_income": -680,
+    "net_income": -750,
+    "debt_ratio": 260,
+    "roe": -42.0
+   },
+   "2022": {
+    "revenue": 2900,
+    "op_income": -1100,
+    "net_income": -1250,
+    "debt_ratio": 380,
+    "roe": -68.0
+   },
+   "2023": {
+    "revenue": 2100,
+    "op_income": -950,
+    "net_income": -1080,
+    "debt_ratio": 520,
+    "roe": -95.0
+   },
+   "2024": {
+    "revenue": 1200,
+    "op_income": -700,
+    "net_income": -820,
+    "debt_ratio": 780,
+    "roe": -160.0
+   },
+   "2025": null
+  },
+  "S07": {
+   "2020": {
+    "revenue": 4200,
+    "op_income": 260,
+    "net_income": 190,
+    "debt_ratio": 110,
+    "roe": 6.5
+   },
+   "2021": {
+    "revenue": 3900,
+    "op_income": 180,
+    "net_income": 120,
+    "debt_ratio": 115,
+    "roe": 4.1
+   },
+   "2022": {
+    "revenue": 4100,
+    "op_income": 210,
+    "net_income": 150,
+    "debt_ratio": 112,
+    "roe": 5.0
+   },
+   "2023": {
+    "revenue": 3100,
+    "op_income": -240,
+    "net_income": -310,
+    "debt_ratio": 135,
+    "roe": -11.0
+   },
+   "2024": {
+    "revenue": 4600,
+    "op_income": 420,
+    "net_income": 320,
+    "debt_ratio": 105,
+    "roe": 10.5
+   },
+   "2025": {
+    "revenue": 3400,
+    "op_income": -120,
+    "net_income": -180,
+    "debt_ratio": 128,
+    "roe": -6.2
+   }
+  },
+  "S08": {
+   "2020": {
+    "revenue": 21000,
+    "op_income": 1500,
+    "net_income": 1100,
+    "debt_ratio": 62,
+    "roe": 7.2
+   },
+   "2021": {
+    "revenue": 21400,
+    "op_income": 1550,
+    "net_income": 1150,
+    "debt_ratio": 61,
+    "roe": 7.3
+   },
+   "2022": {
+    "revenue": 22800,
+    "op_income": 1700,
+    "net_income": 1280,
+    "debt_ratio": 60,
+    "roe": 7.8
+   },
+   "2023": {
+    "revenue": 24100,
+    "op_income": 1850,
+    "net_income": 1400,
+    "debt_ratio": 58,
+    "roe": 8.1
+   },
+   "2024": {
+    "revenue": 24600,
+    "op_income": 1800,
+    "net_income": 1350,
+    "debt_ratio": 58,
+    "roe": 7.6
+   },
+   "2025": {
+    "revenue": 25900,
+    "op_income": 1950,
+    "net_income": 1480,
+    "debt_ratio": 56,
+    "roe": 7.9
+   }
+  },
+  "S09": {
+   "2020": {
+    "revenue": 98000,
+    "op_income": 2800,
+    "net_income": 1900,
+    "debt_ratio": 145,
+    "roe": 4.2
+   },
+   "2021": {
+    "revenue": 132000,
+    "op_income": 8900,
+    "net_income": 6800,
+    "debt_ratio": 130,
+    "roe": 12.8
+   },
+   "2022": {
+    "revenue": 158000,
+    "op_income": 12500,
+    "net_income": 9600,
+    "debt_ratio": 120,
+    "roe": 15.6
+   },
+   "2023": {
+    "revenue": 141000,
+    "op_income": 4200,
+    "net_income": 2900,
+    "debt_ratio": 128,
+    "roe": 4.5
+   },
+   "2024": {
+    "revenue": 172000,
+    "op_income": 14800,
+    "net_income": 11500,
+    "debt_ratio": 115,
+    "roe": 15.9
+   },
+   "2025": {
+    "revenue": 198000,
+    "op_income": 19500,
+    "net_income": 15200,
+    "debt_ratio": 108,
+    "roe": 18.3
+   }
+  },
+  "S10": {
+   "2020": {
+    "revenue": 340,
+    "op_income": 15,
+    "net_income": 8,
+    "debt_ratio": 95,
+    "roe": 2.0
+   },
+   "2021": {
+    "revenue": 380,
+    "op_income": 22,
+    "net_income": 14,
+    "debt_ratio": 92,
+    "roe": 3.3
+   },
+   "2022": {
+    "revenue": 450,
+    "op_income": 30,
+    "net_income": 20,
+    "debt_ratio": 90,
+    "roe": 4.5
+   },
+   "2023": {
+    "revenue": 620,
+    "op_income": 55,
+    "net_income": 40,
+    "debt_ratio": 85,
+    "roe": 8.2
+   },
+   "2024": {
+    "revenue": 5800,
+    "op_income": 1900,
+    "net_income": 1500,
+    "debt_ratio": 55,
+    "roe": 42.0
+   },
+   "2025": {
+    "revenue": 4100,
+    "op_income": 780,
+    "net_income": 590,
+    "debt_ratio": 68,
+    "roe": 13.1
+   }
+  },
+  "S11": {
+   "2020": {
+    "revenue": 3100,
+    "op_income": 280,
+    "net_income": 210,
+    "debt_ratio": 85,
+    "roe": 7.5
+   },
+   "2021": {
+    "revenue": 3600,
+    "op_income": 360,
+    "net_income": 270,
+    "debt_ratio": 82,
+    "roe": 9.0
+   },
+   "2022": {
+    "revenue": 4500,
+    "op_income": 520,
+    "net_income": 400,
+    "debt_ratio": 78,
+    "roe": 12.0
+   },
+   "2023": {
+    "revenue": 5200,
+    "op_income": 640,
+    "net_income": 500,
+    "debt_ratio": 74,
+    "roe": 13.4
+   },
+   "2024": {
+    "revenue": 6400,
+    "op_income": 850,
+    "net_income": 670,
+    "debt_ratio": 70,
+    "roe": 15.5
+   },
+   "2025": {
+    "revenue": 6100,
+    "op_income": 720,
+    "net_income": 560,
+    "debt_ratio": 72,
+    "roe": 12.1
+   }
+  },
+  "S12": {
+   "2020": {
+    "revenue": 980,
+    "op_income": 110,
+    "net_income": 80,
+    "debt_ratio": 70,
+    "roe": 8.0
+   },
+   "2021": {
+    "revenue": 1450,
+    "op_income": 230,
+    "net_income": 180,
+    "debt_ratio": 65,
+    "roe": 15.2
+   },
+   "2022": {
+    "revenue": 1620,
+    "op_income": 260,
+    "net_income": 200,
+    "debt_ratio": 63,
+    "roe": 15.4
+   },
+   "2023": {
+    "revenue": 1100,
+    "op_income": -80,
+    "net_income": -120,
+    "debt_ratio": 78,
+    "roe": -9.0
+   },
+   "2024": {
+    "revenue": 1750,
+    "op_income": 290,
+    "net_income": 230,
+    "debt_ratio": 66,
+    "roe": 15.8
+   },
+   "2025": {
+    "revenue": 2600,
+    "op_income": 560,
+    "net_income": 450,
+    "debt_ratio": 58,
+    "roe": 24.1
+   }
+  },
+  "S13": {
+   "2020": null,
+   "2021": null,
+   "2022": {
+    "revenue": 420,
+    "op_income": -180,
+    "net_income": -210,
+    "debt_ratio": 150,
+    "roe": -28.0
+   },
+   "2023": {
+    "revenue": 510,
+    "op_income": -120,
+    "net_income": -150,
+    "debt_ratio": 165,
+    "roe": -22.0
+   },
+   "2024": {
+    "revenue": 780,
+    "op_income": -30,
+    "net_income": -45,
+    "debt_ratio": 140,
+    "roe": -6.5
+   },
+   "2025": {
+    "revenue": 1450,
+    "op_income": 210,
+    "net_income": 160,
+    "debt_ratio": 110,
+    "roe": 18.5
+   }
+  },
+  "S14": {
+   "2020": {
+    "revenue": 640,
+    "op_income": 40,
+    "net_income": 28,
+    "debt_ratio": 88,
+    "roe": 4.5
+   },
+   "2021": {
+    "revenue": 2100,
+    "op_income": 380,
+    "net_income": 300,
+    "debt_ratio": 70,
+    "roe": 28.0
+   },
+   "2022": {
+    "revenue": 900,
+    "op_income": -150,
+    "net_income": -190,
+    "debt_ratio": 105,
+    "roe": -18.0
+   },
+   "2023": {
+    "revenue": 480,
+    "op_income": -210,
+    "net_income": -250,
+    "debt_ratio": 160,
+    "roe": -35.0
+   },
+   "2024": {
+    "revenue": 420,
+    "op_income": -90,
+    "net_income": -120,
+    "debt_ratio": 175,
+    "roe": -20.0
+   },
+   "2025": {
+    "revenue": 510,
+    "op_income": 10,
+    "net_income": 5,
+    "debt_ratio": 168,
+    "roe": 0.9
+   }
+  },
+  "S15": {
+   "2020": {
+    "revenue": 5200,
+    "op_income": -380,
+    "net_income": -450,
+    "debt_ratio": 190,
+    "roe": -12.0
+   },
+   "2021": {
+    "revenue": 4300,
+    "op_income": -520,
+    "net_income": -600,
+    "debt_ratio": 215,
+    "roe": -18.0
+   },
+   "2022": {
+    "revenue": 4800,
+    "op_income": -150,
+    "net_income": -220,
+    "debt_ratio": 205,
+    "roe": -7.0
+   },
+   "2023": {
+    "revenue": 5600,
+    "op_income": 180,
+    "net_income": 110,
+    "debt_ratio": 185,
+    "roe": 3.5
+   },
+   "2024": {
+    "revenue": 7100,
+    "op_income": 620,
+    "net_income": 480,
+    "debt_ratio": 160,
+    "roe": 13.2
+   },
+   "2025": {
+    "revenue": 6300,
+    "op_income": 280,
+    "net_income": 190,
+    "debt_ratio": 172,
+    "roe": 5.1
+   }
+  },
+  "S16": {
+   "2020": {
+    "revenue": 45,
+    "op_income": -120,
+    "net_income": -130,
+    "debt_ratio": 60,
+    "roe": -18.0
+   },
+   "2021": {
+    "revenue": 60,
+    "op_income": -180,
+    "net_income": -195,
+    "debt_ratio": 75,
+    "roe": -22.0
+   },
+   "2022": {
+    "revenue": 85,
+    "op_income": -240,
+    "net_income": -260,
+    "debt_ratio": 110,
+    "roe": -30.0
+   },
+   "2023": {
+    "revenue": 70,
+    "op_income": -280,
+    "net_income": -300,
+    "debt_ratio": 170,
+    "roe": -45.0
+   },
+   "2024": {
+    "revenue": 55,
+    "op_income": -250,
+    "net_income": -270,
+    "debt_ratio": 260,
+    "roe": -70.0
+   },
+   "2025": {
+    "revenue": 40,
+    "op_income": -210,
+    "net_income": -230,
+    "debt_ratio": 380,
+    "roe": -120.0
+   }
+  },
+  "S17": {
+   "2020": {
+    "revenue": 380,
+    "op_income": -140,
+    "net_income": -160,
+    "debt_ratio": 120,
+    "roe": -25.0
+   },
+   "2021": {
+    "revenue": 890,
+    "op_income": -220,
+    "net_income": -250,
+    "debt_ratio": 135,
+    "roe": -30.0
+   },
+   "2022": {
+    "revenue": 1350,
+    "op_income": -180,
+    "net_income": -210,
+    "debt_ratio": 150,
+    "roe": -28.0
+   },
+   "2023": {
+    "revenue": 620,
+    "op_income": -890,
+    "net_income": -1100,
+    "debt_ratio": 450,
+    "roe": -180.0
+   },
+   "2024": {
+    "revenue": 1100,
+    "op_income": -150,
+    "net_income": -180,
+    "debt_ratio": 200,
+    "roe": -35.0
+   },
+   "2025": {
+    "revenue": 1900,
+    "op_income": 60,
+    "net_income": 30,
+    "debt_ratio": 130,
+    "roe": 4.2
+   }
+  },
+  "S18": {
+   "2020": {
+    "revenue": 486000,
+    "op_income": 32000,
+    "net_income": 24000,
+    "debt_ratio": 55,
+    "roe": 8.2
+   },
+   "2021": {
+    "revenue": 512000,
+    "op_income": 38000,
+    "net_income": 29000,
+    "debt_ratio": 53,
+    "roe": 9.4
+   },
+   "2022": {
+    "revenue": 561000,
+    "op_income": 45000,
+    "net_income": 34000,
+    "debt_ratio": 51,
+    "roe": 10.5
+   },
+   "2023": {
+    "revenue": 528000,
+    "op_income": 31000,
+    "net_income": 23000,
+    "debt_ratio": 54,
+    "roe": 6.9
+   },
+   "2024": {
+    "revenue": 589000,
+    "op_income": 47000,
+    "net_income": 36000,
+    "debt_ratio": 50,
+    "roe": 10.2
+   },
+   "2025": {
+    "revenue": 642000,
+    "op_income": 58000,
+    "net_income": 45000,
+    "debt_ratio": 48,
+    "roe": 11.8
+   }
+  }
+ }
+}

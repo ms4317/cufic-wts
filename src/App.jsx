@@ -74,10 +74,12 @@ function Student({ theme, onToggleTheme }) {
   const [toasts, pushToast, dismissToast] = useToasts()
 
   const stocks = useMemo(() => buildStocks(rawStocks, game, positions), [rawStocks, game, positions])
-  const selected = useMemo(
-    () => stocks.find((s) => s.code === selectedCode) ?? stocks[0] ?? null,
-    [stocks, selectedCode],
-  )
+  const selected = useMemo(() => {
+    const found = stocks.find((s) => s.code === selectedCode)
+    if (found && !found.preListed) return found
+    // 상장 예정 종목은 목록에 없으니, 선택도 상장된 종목으로 넘어간다
+    return stocks.find((s) => !s.preListed) ?? stocks[0] ?? null
+  }, [stocks, selectedCode])
   const acct = useMemo(() => deriveAccount(stocks, cash, seed || 0), [stocks, cash, seed])
 
   // 순위 행 (헤더 배지 · 순위 모달이 공유)
@@ -100,6 +102,7 @@ function Student({ theme, onToggleTheme }) {
   const year = yearOf(game)
   const locked = !!game?.is_locked
   const started = (game?.current_round ?? 0) >= 1
+  const ended = !!game?.is_ended // 최종 정산 완료 (final_year 공개)
 
   // 라운드 타이머. 서버 round_ends_at이 유일한 기준이다(place_order도 서버 시각으로 검사).
   // 클라이언트 시계가 어긋나도 표시만 틀릴 뿐, 마감 이후 거래는 서버가 거부한다.
@@ -258,7 +261,8 @@ function Student({ theme, onToggleTheme }) {
     }
     if (seenRound.current !== r && r >= 1) {
       seenRound.current = r
-      setRoundSummary({ round: r, year: yearOf(game, r) })
+      const isEnd = r > (game.total_rounds ?? 0)
+      setRoundSummary({ round: r, year: yearOf(game, r), ended: isEnd })
     }
   }, [game])
 
@@ -350,6 +354,7 @@ function Student({ theme, onToggleTheme }) {
         account={acct}
         team={team.name || team.code}
         round={{ round: game.current_round, year }}
+        ended={ended}
         rank={myRank}
         teamCount={board.length}
         hintCount={hints.length}
@@ -393,6 +398,7 @@ function Student({ theme, onToggleTheme }) {
           placing={placing}
           tradingOpen={tradingOpen}
           started={started}
+          ended={ended}
           hasTraded={trades.length > 0}
         />
       </div>
@@ -444,6 +450,7 @@ function Student({ theme, onToggleTheme }) {
         round={roundSummary}
         account={acct}
         stocks={stocks}
+        ended={roundSummary?.ended}
         prevEquity={
           roundSummary
             ? Number(snapshots.find((s) => s.round === roundSummary.round - 1)?.equity ?? seed)

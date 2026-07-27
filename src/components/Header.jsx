@@ -10,6 +10,7 @@ export default function Header({
   account,
   team,
   round,
+  ended = false,
   rank,
   teamCount,
   hintCount = 0,
@@ -40,14 +41,14 @@ export default function Header({
         {team}
       </span>
 
-      {/* 현재 라운드 */}
+      {/* 현재 라운드 (종료 후엔 최종 정산) */}
       <span className="badge round">
         <span className="pulse" />
-        ROUND {round.round} · {round.year}년
+        {ended ? `🏁 최종 · ${round.year}년` : `ROUND ${round.round} · ${round.year}년`}
       </span>
 
-      {/* 거래 타이머 — 열려 있으면 카운트다운, 아니면 대기 */}
-      {started && (
+      {/* 거래 타이머 — 열려 있으면 카운트다운, 아니면 대기 (종료 후엔 숨김) */}
+      {started && !ended && (
         <span className={'badge timer' + (tradingOpen ? ' live' : ' idle')}>
           {tradingOpen ? (
             <>

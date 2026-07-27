@@ -20,6 +20,7 @@ export default function AdminProgress({ actions, game, teams, broadcasts = [], r
   const [busy, setBusy] = useState(false)
   const [nowTs, setNowTs] = useState(() => Date.now())
   const [bcText, setBcText] = useState('') // 속보 입력
+  const [timerMin, setTimerMin] = useState(null) // 타이머 분 입력 (null이면 기본값 사용)
 
   // 카운트다운 1초 틱
   useEffect(() => {
@@ -78,6 +79,19 @@ export default function AdminProgress({ actions, game, teams, broadcasts = [], r
       notify(errorText(r.error), 'down')
       return
     }
+    await refresh()
+  }
+
+  const startTimerNow = async () => {
+    const m = Number(timerMin ?? durMin) || durMin
+    setBusy(true)
+    const r = await actions.startTimer(m)
+    setBusy(false)
+    if (!r.ok) {
+      notify(errorText(r.error), 'down')
+      return
+    }
+    notify(timerRunning ? '타이머를 다시 시작했어요' : `거래를 열었어요 (${m}분)`, 'gold')
     await refresh()
   }
 
@@ -166,13 +180,27 @@ export default function AdminProgress({ actions, game, teams, broadcasts = [], r
               </>
             )}
           </div>
+          <div className="timer-set">
+            <label>
+              거래 시간
+              <input
+                type="number"
+                min="1"
+                max="60"
+                className="num"
+                value={timerMin ?? durMin}
+                onChange={(e) =>
+                  setTimerMin(e.target.value === '' ? '' : Math.max(1, Math.min(60, Number(e.target.value))))
+                }
+              />
+              분
+            </label>
+          </div>
           <div className="arow">
-            <button
-              className="act-btn buy"
-              disabled={busy}
-              onClick={() => run(actions.startTimer, timerRunning ? '타이머를 다시 시작했어요' : '거래를 열었어요')}
-            >
-              {timerRunning ? `타이머 다시 시작 (${durMin}분)` : `타이머 시작 (${durMin}분)`}
+            <button className="act-btn buy" disabled={busy} onClick={startTimerNow}>
+              {timerRunning
+                ? `타이머 다시 시작 (${Number(timerMin ?? durMin) || durMin}분)`
+                : `타이머 시작 (${Number(timerMin ?? durMin) || durMin}분)`}
             </button>
           </div>
         </section>

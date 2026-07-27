@@ -5,9 +5,14 @@
 
 import { supabase, rpc, select } from './supabase'
 
-/** 라운드 → 연도 */
-export const yearOf = (game, round = game?.current_round) =>
-  game?.round_year_map?.[String(round)] ?? null
+/** 라운드 → 연도. 종료 후엔 current_round가 total_rounds를 넘어 round_year_map에 없으므로
+ *  final_year(예: 2025)로 폴백한다 — 최종 정산 시 2025 가격을 공개하는 장치. */
+export const yearOf = (game, round = game?.current_round) => {
+  const y = game?.round_year_map?.[String(round)]
+  if (y != null) return y
+  if (game?.final_year != null && round != null && round > (game?.total_rounds ?? 0)) return game.final_year
+  return null
+}
 
 /**
  * 종목 + 현재 라운드 시세 + 내 보유를 합친 목록. 화면은 전부 이걸 쓴다.
@@ -16,6 +21,7 @@ export const yearOf = (game, round = game?.current_round) =>
 export function buildStocks(rawStocks, game, positions) {
   const year = yearOf(game)
   const prevYear = year != null ? year - 1 : null
+  const round = game?.current_round ?? 0
   const posByCode = Object.fromEntries((positions ?? []).map((p) => [p.stock_id, p]))
 
   return (rawStocks ?? [])
@@ -29,6 +35,9 @@ export function buildStocks(rawStocks, game, positions) {
       const prev = !prevRaw || prevRaw <= 0 ? price : prevRaw
       const delta = price - prev
       const pos = posByCode[s.id]
+      // 상장 예정: 아직 상장 라운드에 못 미친 종목. 목록에서 숨긴다(스포일러·오조작 방지).
+      // 가격 0으로 거래정지되는 '상장폐지'와 구분되는 상태다.
+      const preListed = round > 0 && round < (s.listed_from_round ?? 1)
       return {
         code: s.id,
         name: s.name,
@@ -37,6 +46,8 @@ export function buildStocks(rawStocks, game, positions) {
         prices: s.prices ?? {},
         price,
         halted,
+        preListed,
+        listedFromRound: s.listed_from_round ?? 1,
         delta: halted ? 0 : delta,
         chg: halted || !prev ? 0 : (delta / prev) * 100,
         holding: pos?.quantity ?? 0,

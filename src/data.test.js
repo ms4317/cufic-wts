@@ -1,9 +1,10 @@
 import { describe, it, expect } from 'vitest'
 import {
   stocks,
-  initialNews,
+  initialHints,
   NEWS_SENTINELS,
   ROUNDS,
+  FINAL_YEAR,
   FIN_YEARS,
   FIN_METRICS,
   financials,
@@ -12,20 +13,27 @@ import {
   initialHistory,
 } from './data'
 
-// 더미 데이터의 정합성. 손으로 전수 대조하던 것을 테스트로 고정한다.
-// 데이터를 고칠 때 여기가 깨지면 교육 시나리오가 어긋난 것이다.
+// 데이터 정합성. 손으로 전수 대조하던 것을 테스트로 고정한다.
+// 여기가 깨지면 교육 시나리오(힌트가 실제 등락과 일치)가 어긋난 것이다.
 
-const names = stocks.map((s) => s.name)
-const known = new Set([...names, ...NEWS_SENTINELS])
-const nextRound = (n) => ROUNDS.find((r) => r.round === n + 1)
+const codes = stocks.map((s) => s.code)
+const known = new Set([...codes, ...NEWS_SENTINELS])
+const byCode = Object.fromEntries(stocks.map((s) => [s.code, s]))
+const yearOfRound = (r) => ROUNDS.find((x) => x.round === r)?.year
+// round 힌트가 예고하는 '다음 해'. 마지막 라운드는 대회 종료 시 공개되는 FINAL_YEAR.
+const nextYearOf = (round) => {
+  const nr = ROUNDS.find((r) => r.round === round + 1)
+  if (nr) return nr.year
+  return round === ROUNDS[ROUNDS.length - 1].round ? FINAL_YEAR : undefined
+}
 
 describe('종목', () => {
   it('종목코드가 중복되지 않는다', () => {
-    const codes = stocks.map((s) => s.code)
     expect(new Set(codes).size).toBe(codes.length)
   })
 
-  it('종목명이 중복되지 않는다 — 뉴스가 이름으로 종목을 찾는다', () => {
+  it('종목명이 중복되지 않는다', () => {
+    const names = stocks.map((s) => s.name)
     expect(new Set(names).size).toBe(names.length)
   })
 
@@ -33,60 +41,68 @@ describe('종목', () => {
     for (const s of stocks) expect(s.desc, s.name).toBeTruthy()
   })
 
-  it('라운드 연도의 주가는 0보다 크거나, 아예 없어야 한다 (거래정지로 처리됨)', () => {
+  it('모든 라운드·최종 연도의 주가가 0 이상 정수다 (0 = 거래정지/미상장)', () => {
     for (const s of stocks) {
-      for (const r of ROUNDS) {
-        const p = s.priceByYear[r.year]
-        if (p !== undefined) expect(p, `${s.name} ${r.year}`).toBeGreaterThan(0)
+      for (const y of FIN_YEARS) {
+        const p = s.priceByYear[y]
+        expect(Number.isInteger(p), `${s.name} ${y}`).toBe(true)
+        expect(p, `${s.name} ${y}`).toBeGreaterThanOrEqual(0)
       }
+    }
+  })
+
+  it('상장 라운드(listedFromRound) 그 해엔 가격이 0보다 크다', () => {
+    for (const s of stocks) {
+      const y = yearOfRound(s.listedFromRound)
+      expect(s.priceByYear[y], `${s.name} 상장연도 ${y}`).toBeGreaterThan(0)
     }
   })
 })
 
-describe('뉴스', () => {
-  it('id가 중복되지 않는다', () => {
-    const ids = initialNews.map((n) => n.id)
-    expect(new Set(ids).size).toBe(ids.length)
+describe('힌트', () => {
+  it('R1에는 힌트가 없다', () => {
+    expect(initialHints.filter((h) => h.round === 1)).toEqual([])
+  })
+
+  it('등급은 S/A/B/C/D 중 하나다', () => {
+    for (const h of initialHints) expect(['S', 'A', 'B', 'C', 'D'], h.headline).toContain(h.grade)
+  })
+
+  it('impact가 up/down/flat 중 하나다', () => {
+    for (const h of initialHints) expect(['up', 'down', 'flat'], h.headline).toContain(h.impact)
   })
 
   it('모든 관련 종목이 실존한다 (오타·삭제된 종목 없음)', () => {
-    const bad = initialNews.flatMap((n) =>
-      n.related.filter((r) => !known.has(r)).map((r) => `${n.id}: "${r}"`),
+    const bad = initialHints.flatMap((h) =>
+      h.related.filter((c) => !known.has(c)).map((c) => `${h.grade}R${h.round}: "${c}"`),
     )
     expect(bad).toEqual([])
   })
 
-  it('impact가 up/down/flat 중 하나다', () => {
-    for (const n of initialNews) expect(['up', 'down', 'flat'], n.id).toContain(n.impact)
-  })
-
   it('실제 존재하는 라운드에만 붙어 있다', () => {
     const valid = new Set(ROUNDS.map((r) => r.round))
-    for (const n of initialNews) expect(valid.has(n.round), n.id).toBe(true)
+    for (const h of initialHints) expect(valid.has(h.round), h.headline).toBe(true)
   })
 
   // 이게 이 프로젝트의 교육 계약이다:
-  // 학생이 호재를 읽고 사면 다음 라운드에 오르고, 악재를 읽고 팔면 떨어져야 한다.
-  // 어긋나면 정직하게 판단한 학생이 손해를 본다.
-  it('호재·악재 태그가 다음 라운드 실제 등락 방향과 일치한다', () => {
-    const byName = Object.fromEntries(stocks.map((s) => [s.name, s]))
+  // 힌트가 호재라 하면 그 해→다음 해에 오르고, 악재라 하면 떨어져야 한다.
+  // 마지막 라운드(R5) 힌트는 대회 종료 시 공개되는 FINAL_YEAR 등락으로 검증한다.
+  it('호재·악재 태그가 다음 해 실제 등락 방향과 일치한다', () => {
     const mismatches = []
-
-    for (const n of initialNews) {
-      const cur = ROUNDS.find((r) => r.round === n.round)
-      const next = nextRound(n.round)
-      if (!next) continue // 마지막 라운드 뉴스는 예고할 다음 해가 없다
-      if (n.impact === 'flat') continue // 중립은 방향을 약속하지 않는다
-
-      for (const name of n.related) {
-        const s = byName[name]
-        if (!s) continue // 전체 시장 등
-        const a = s.priceByYear[cur.year]
-        const b = s.priceByYear[next.year]
-        if (!a || !b) continue // 미상장·거래정지 구간
+    for (const h of initialHints) {
+      if (h.impact === 'flat') continue // 중립은 방향을 약속하지 않는다
+      const y = yearOfRound(h.round)
+      const ny = nextYearOf(h.round)
+      if (ny == null) continue
+      for (const code of h.related) {
+        const s = byCode[code]
+        if (!s) continue
+        const a = s.priceByYear[y]
+        const b = s.priceByYear[ny]
+        if (!a || b == null) continue // 미상장·거래정지 구간(현재가 0이면 등락률 정의 불가)
         const move = ((b - a) / a) * 100
-        const ok = n.impact === 'up' ? move > 3 : move < -3
-        if (!ok) mismatches.push(`${n.id} ${name}: ${n.impact} 인데 ${move.toFixed(1)}%`)
+        const ok = h.impact === 'up' ? move > 3 : move < -3
+        if (!ok) mismatches.push(`${h.grade}R${h.round} ${code}: ${h.impact} 인데 ${move.toFixed(1)}%`)
       }
     }
     expect(mismatches).toEqual([])
@@ -98,11 +114,12 @@ describe('재무제표', () => {
     for (const s of stocks) expect(financials[s.code], s.name).toBeDefined()
   })
 
-  it('모든 연도에 5개 지표가 빠짐없이 있다', () => {
+  it('연도별로 null(미상장/폐지)이거나 5개 지표가 빠짐없이 숫자다', () => {
     for (const s of stocks) {
       for (const y of FIN_YEARS) {
+        expect(financials[s.code], `${s.name}`).toHaveProperty(String(y))
         const row = financials[s.code][y]
-        expect(row, `${s.name} ${y}`).toBeDefined()
+        if (row === null) continue // 미상장/폐지 연도
         for (const m of FIN_METRICS) {
           expect(typeof row[m.key], `${s.name} ${y} ${m.key}`).toBe('number')
         }
@@ -113,7 +130,9 @@ describe('재무제표', () => {
   it('부채비율은 음수가 될 수 없다', () => {
     for (const s of stocks) {
       for (const y of FIN_YEARS) {
-        expect(financials[s.code][y].debtRatio, `${s.name} ${y}`).toBeGreaterThanOrEqual(0)
+        const row = financials[s.code][y]
+        if (row === null) continue
+        expect(row.debtRatio, `${s.name} ${y}`).toBeGreaterThanOrEqual(0)
       }
     }
   })
@@ -130,12 +149,13 @@ describe('라운드', () => {
     }
   })
 
-  it('첫 라운드의 전년도가 FIN_YEARS에 있다 — R1 등락률의 기준선', () => {
-    expect(FIN_YEARS).toContain(ROUNDS[0].year - 1)
+  it('모든 라운드 연도 + 최종 연도의 재무제표 열이 있다', () => {
+    for (const r of ROUNDS) expect(FIN_YEARS).toContain(r.year)
+    expect(FIN_YEARS).toContain(FINAL_YEAR)
   })
 
-  it('모든 라운드 연도의 재무제표가 있다', () => {
-    for (const r of ROUNDS) expect(FIN_YEARS).toContain(r.year)
+  it('최종 연도는 마지막 라운드 다음 해다', () => {
+    expect(FINAL_YEAR).toBe(ROUNDS[ROUNDS.length - 1].year + 1)
   })
 })
 

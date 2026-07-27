@@ -21,6 +21,7 @@ export default function OrderSheet({
   placing,
   tradingOpen,
   started,
+  ended,
   stocks,
   hasTraded,
 }) {
@@ -46,11 +47,13 @@ export default function OrderSheet({
   }
 
   // 거래가 닫힌 이유 (안내 문구). 종목별 거래정지는 아래에서 따로 안내한다.
-  const closedNote = !started
-    ? '아직 대회가 시작되지 않았어요. 강사 선생님을 기다려 주세요.'
-    : !tradingOpen && !stock.halted
-      ? '지금은 거래 시간이 아니에요. 강사 선생님이 타이머를 시작하면 매매할 수 있어요.'
-      : null
+  const closedNote = ended
+    ? '대회가 끝났어요. 최종 결과를 확인하세요.'
+    : !started
+      ? '아직 대회가 시작되지 않았어요. 강사 선생님을 기다려 주세요.'
+      : !tradingOpen && !stock.halted
+        ? '지금은 거래 시간이 아니에요. 강사 선생님이 타이머를 시작하면 매매할 수 있어요.'
+        : null
 
   return (
     <aside className="col order">

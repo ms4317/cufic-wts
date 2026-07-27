@@ -6,6 +6,27 @@
 
 ---
 
+## 2026-07-24 · 2025 데이터 이식 + 최종 정산(final_year) + 주문서 경로 삭제
+
+작년 데이터 기반 초안(18종목·5라운드 2020~2024, 종료 시 2025 최종 정산)으로 전면 교체.
+
+- **데이터 파이프라인** — `seed_stocks_2025.json`·`seed_financials_2025.json` + `build-data.mjs`
+  (소개·힌트) → `src/data.js` → `gen-seed.mjs` → `seed.sql`. 가격·재무는 JSON에서 컴파일해
+  손 오타를 없앴고, 소개·힌트(콘텐츠)만 build-data.mjs에서 관리한다. **데이터 교체 = JSON 수정 후
+  두 스크립트 재실행.** data.js는 이제 생성물(직접 편집 금지).
+- **최종 정산** — R1~R5(2020~2024) 매매 후 [대회 종료](`admin_end_game`)가 `current_round`를
+  `total_rounds+1`로 올린다. `current_price`가 round_year_map에 없는 라운드엔 `final_year`(2025)로
+  폴백하도록 고쳐, team_equity·leaderboard가 전부 2025로 잡힌다. 학생 화면은 그때 2025를 공개 +
+  최종 정산 모달. **왜 이 방식** — 별도 최종가 경로를 만들지 않고 기존 라운드 machinery를 그대로 재사용.
+- **신규상장 ≠ 상장폐지** — `listed_from_round` 이전 라운드엔 목록 미노출(상장 예정). 가격 0은
+  거래정지·평가액 0(폐지). 서버는 가격 0으로 이미 매매를 막으므로 listed_from_round는 표시용 구분.
+- **주문서 경로 삭제** — order_sheets 테이블·`save_order_sheet`·`get_my_order_sheet`·`order_funds_ok`
+  drop(즉시 체결 확정, 팀 확인 완료).
+- **타이머 분 조정** — `start_round_timer(secret, minutes)`. 옛 `(text)` 시그니처는 오버로드 방지로 drop.
+- **콘텐츠는 초안** — 소개·힌트·재무 수치는 팀 검토 전. 구조는 JSON/build-data만 고치면 갈아끼워지게 유지.
+- **검증** — `scripts/verify_game.mjs --yes`로 신규상장(R1 거부→R3 매수)·상장폐지 평가액 0·R2~R5
+  자동 힌트·2025 최종 정산까지 11건 실 DB 통과. (⚠ reset_game 하므로 대회 중 실행 금지)
+
 ## 2026-07-24 · 힌트 자동 차등 지급 (R2부터, 하위권 우대)
 
 수동 지급만 있던 등급 힌트를 **라운드 전환 시 자동 배분**으로 바꿨다(강사 수동은 보조로 유지).

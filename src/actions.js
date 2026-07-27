@@ -49,7 +49,7 @@ export function makeAdminActions(getSecret) {
   return {
     login: (secret) => rpc('admin_login', { p_admin_secret: secret }),
     advanceRound: () => call('advance_round'),
-    startTimer: () => call('start_round_timer'),
+    startTimer: (minutes) => call('start_round_timer', { p_minutes: minutes ?? null }),
     endGame: () => call('admin_end_game'),
     resetGame: () => call('reset_game'),
 
