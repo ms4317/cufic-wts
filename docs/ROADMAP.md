@@ -81,5 +81,5 @@
 2. **참가 코드를 아는 사람은 그 조로 로그인할 수 있다** — 코드 기반 인증의 본질.
 3. **힌트 Realtime 직접 구독 불가** — RLS 대신 RPC로 격리해서. signals 우회(신호→재조회)라 약간 지연.
 4. **개발 DB = 대회 DB** — 분리된 개발 프로젝트가 없다.
-5. **`current_price`의 definer 유실** — 0008의 `security definer`가 0016 재정의에서 빠졌다.
-   지금은 `stocks`·`game_state`가 공개 읽기라 정상 동작하나, 그 RLS를 조이면 되돌려야 한다([STATUS](STATUS.md) §3.3).
+
+> ~~`current_price` definer 유실~~ → **해결(0018).** `security definer`를 복원하고 재발 방지 코멘트를 달았다.

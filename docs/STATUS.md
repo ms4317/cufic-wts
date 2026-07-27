@@ -221,10 +221,9 @@
   `teams`는 `public_teams` 뷰(code 제외)만 공개.
 - **관리자 비밀** — `private.config`에 저장. Supabase는 PostgREST에 `public`만 노출하므로 `private`는
   REST 경로 자체가 없다. `set_admin_secret`으로 부트스트랩(git에 값 없음), `verify_admin`이 fail-closed.
-- **`⚠ 주의` (기록용, 기능 이상 아님)** — `current_price`는 0008에서 `security definer`였으나
-  **0016의 `create or replace`가 그 속성 없이 재정의**해 현재 **security invoker**다. `stocks`·`game_state`가
-  공개 읽기라 anon·definer 함수 양쪽에서 정상 동작한다. 다만 훗날 이 두 테이블 RLS를 조이면
-  definer 함수 내부 호출이 깨질 수 있으니, 그때는 `current_price`에 definer를 되돌려야 한다.
+- **`current_price` 권한 (복원됨, 0018)** — 0008의 `security definer`가 0016 재정의에서 유실됐던 것을
+  **0018에서 복원**했다(`security definer` + `set search_path=public`, `team_equity`와 일치. `prosecdef=true` 확인).
+  재정의 시 두 속성을 유지하라는 코멘트를 함수에 달아 회귀를 막았다.
 
 ---
 
@@ -247,7 +246,7 @@
 - **동시 다접속 부하** — 여러 조 동시 매매 실측 없음.
 - **관리자 화면 컴포넌트 단위 테스트** — 없음(로직은 RPC에 있어 서버에서 검증).
 - **콘텐츠 정확성** — 테스트는 *내부 정합*(태그↔등락)만 본다. *현실 사실*(실제 재무 수치)은 검증 대상 아님(초안).
-- **`current_price` definer 유실**의 회귀 테스트 — 없음(위 §3.3 주의).
+- **`current_price` definer** — 0018에서 복원, `prosecdef=true` 수동 확인. 속성 유지는 함수 코멘트로 안내(자동 테스트는 없음).
 
 ---
 
