@@ -136,5 +136,10 @@ select private.set_admin_secret('원하는_비밀');
 
 - `docs/DECISIONS.md` — 왜 그렇게 했는지. **큰 결정이 생기면 여기에 추가한다.**
 - `docs/ROADMAP.md` — 현재 위치와 남은 일.
+- `docs/STATUS.md` — 현재 상태의 완전한 스냅샷(진행률·파일 지도·DB·검증). 외부 검수·인수인계용.
+- `docs/GAME_RULES.md` — 확정된 게임 규칙서(모델 v3·라운드·힌트·밸런스, 미확정은 `[팀 확인 대기]`).
+- `docs/DATA_GUIDE.md` — 다음 게임 데이터 교체 절차(비개발자용).
+- `docs/SCREENS.md` — 화면·버튼 설명서(학생·관리자). `docs/function_btn.md` — 버튼·팝업 참조 표.
+- `docs/OPERATIONS.md` — 대회 당일 운영 순서(⚠ 리허설 전 초안).
 
-규칙이 바뀌면 이 파일을, 판단의 근거가 생기면 `DECISIONS.md`를 갱신한다.
+규칙이 바뀌면 이 파일을, 판단의 근거가 생기면 `DECISIONS.md`를, 현황이 바뀌면 `STATUS.md`를 갱신한다.
