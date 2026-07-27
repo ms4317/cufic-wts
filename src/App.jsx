@@ -119,13 +119,20 @@ function Student({ theme, onToggleTheme }) {
 
   // 수익률 차트 — 서버 스냅샷 기반
   const rounds = useMemo(() => {
+    const total = game?.total_rounds ?? 0
     const pts = [{ label: '시작', equity: seed || 0 }]
     for (const s of snapshots) {
-      pts.push({ label: `R${s.round} · ${game?.round_year_map?.[String(s.round)] ?? ''}`, equity: Number(s.equity) })
+      // total_rounds를 넘는 스냅샷 = 최종 정산(final_year)
+      const lbl =
+        s.round > total
+          ? `최종 · ${game?.final_year ?? ''}`
+          : `R${s.round} · ${game?.round_year_map?.[String(s.round)] ?? ''}`
+      pts.push({ label: lbl, equity: Number(s.equity) })
     }
-    if (started) pts.push({ label: `지금 · R${game.current_round}`, equity: acct.equity })
+    // 종료 상태면 마지막 스냅샷이 곧 현재값이라 '지금' 중복을 넣지 않는다
+    if (started && !ended) pts.push({ label: `지금 · R${game.current_round}`, equity: acct.equity })
     return pts
-  }, [snapshots, seed, acct.equity, game, started])
+  }, [snapshots, seed, acct.equity, game, started, ended])
 
   // ── 데이터 로드
   const teamRef = useRef(null)

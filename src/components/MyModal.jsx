@@ -9,54 +9,130 @@ const TABS = [
   { key: 'returns', label: '수익률' },
 ]
 
-/** 라운드별 자산 추이 라인 차트. points: [{label, equity}] */
+/** 억 단위 축약 라벨 (수백억까지 읽히게) */
+const eokShort = (v) => {
+  const e = v / 1e8
+  if (Math.abs(e) >= 100) return Math.round(e) + '억'
+  if (Math.abs(e) >= 1) return e.toFixed(1) + '억'
+  return Math.round(v / 1e4).toLocaleString() + '만'
+}
+
+function EqToggle({ view, setView }) {
+  return (
+    <div className="eq-toggle">
+      <button className={view === 'curve' ? 'on' : ''} onClick={() => setView('curve')}>
+        자산 곡선
+      </button>
+      <button className={view === 'bars' ? 'on' : ''} onClick={() => setView('bars')}>
+        라운드별 수익률
+      </button>
+    </div>
+  )
+}
+
+/**
+ * 수익률 뷰. points: [{label, equity}] (시작 → R1 … 지금).
+ * 힌트를 잘 따르면 자산이 지수적으로 커져서 선형 축은 마지막만 튀어 보인다. 그래서:
+ *   · 자산 곡선  = 로그 스케일 + 억 단위 축약 (몇 배 커졌는지 읽힘)
+ *   · 라운드별 수익률 = 라운드마다 몇 % 벌었나 (막대). 토글로 전환.
+ */
 function EquityChart({ points }) {
+  const [view, setView] = useState('curve')
   const W = 660
-  const H = 240
-  // r: 마지막 "R3 · 2024" 라벨이 가운데 정렬로 밀려나도 잘리지 않을 만큼 확보
-  const PAD = { t: 18, r: 40, b: 34, l: 76 }
-
-  const values = points.map((p) => p.equity)
-  const lo = Math.min(...values)
-  const hi = Math.max(...values)
-  // 전 구간이 같은 값이면(거래 전) 폭이 0이라 선이 바닥에 붙는다 — 최소 폭을 준다
-  const pad = (hi - lo) * 0.25 || hi * 0.02
-  const min = lo - pad
-  const max = hi + pad
-
+  const H = 260
+  const PAD = { t: 24, r: 18, b: 40, l: 64 }
   const plotW = W - PAD.l - PAD.r
   const plotH = H - PAD.t - PAD.b
   const x = (i) => PAD.l + (plotW * i) / Math.max(1, points.length - 1)
-  const y = (v) => PAD.t + (1 - (v - min) / (max - min)) * plotH
 
+  if (view === 'bars') {
+    const bars = points.slice(1).map((p, i) => {
+      const prev = points[i].equity || 1
+      return { label: p.label, pct: ((p.equity - prev) / prev) * 100 }
+    })
+    const maxAbs = Math.max(10, ...bars.map((b) => Math.abs(b.pct)))
+    const zeroY = PAD.t + plotH / 2
+    const bw = Math.min(48, (plotW / Math.max(1, bars.length)) * 0.55)
+    const bx = (i) => PAD.l + (plotW * (i + 0.5)) / bars.length
+    return (
+      <div className="eqchart">
+        <EqToggle view={view} setView={setView} />
+        <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="라운드별 수익률">
+          <line className="eq-grid" x1={PAD.l} y1={zeroY} x2={W - PAD.r} y2={zeroY} />
+          {bars.map((b, i) => {
+            const up = b.pct >= 0
+            const bh = Math.max(1, (Math.abs(b.pct) / maxAbs) * (plotH / 2))
+            return (
+              <g key={i}>
+                <rect
+                  className={'eqbar ' + (up ? 'up' : 'down')}
+                  x={bx(i) - bw / 2}
+                  y={up ? zeroY - bh : zeroY}
+                  width={bw}
+                  height={bh}
+                />
+                <text
+                  className="eq-label"
+                  x={bx(i)}
+                  y={up ? zeroY - bh - 6 : zeroY + bh + 14}
+                  textAnchor="middle"
+                >
+                  {(b.pct >= 0 ? '+' : '') + b.pct.toFixed(0)}%
+                </text>
+                <text className="eq-label" x={bx(i)} y={H - 12} textAnchor="middle">
+                  {b.label}
+                </text>
+              </g>
+            )
+          })}
+        </svg>
+        <p className="eq-note">막대는 그 라운드에 오르내린 폭이에요. 빨강 = 벌었다 / 파랑 = 잃었다.</p>
+      </div>
+    )
+  }
+
+  // 자산 곡선 (로그 스케일)
+  const lg = (v) => Math.log10(Math.max(v, 1))
+  const lo = Math.min(...points.map((p) => lg(p.equity)))
+  const hi = Math.max(...points.map((p) => lg(p.equity)))
+  const pad = (hi - lo) * 0.15 || 0.3
+  const min = lo - pad
+  const max = hi + pad
+  const y = (v) => PAD.t + (1 - (lg(v) - min) / (max - min)) * plotH
   const line = points.map((p, i) => `${x(i).toFixed(1)},${y(p.equity).toFixed(1)}`).join(' ')
   const area = `${PAD.l},${PAD.t + plotH} ${line} ${PAD.l + plotW},${PAD.t + plotH}`
-  const ticks = Array.from({ length: 4 }, (_, i) => min + ((max - min) * i) / 3)
+  // 10^ 정수 지수 눈금 (억 단위 라벨). 폭이 좁으면 양 끝+중간.
+  const ticks = []
+  for (let e = Math.ceil(min); e <= Math.floor(max); e++) ticks.push(Math.pow(10, e))
+  if (ticks.length < 2) {
+    ticks.length = 0
+    ticks.push(Math.pow(10, min), Math.pow(10, (min + max) / 2), Math.pow(10, max))
+  }
 
   return (
     <div className="eqchart">
-      <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="라운드별 자산 변화">
+      <EqToggle view={view} setView={setView} />
+      <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="라운드별 자산 (로그 스케일)">
         {ticks.map((v, i) => (
           <g key={i}>
             <line className="eq-grid" x1={PAD.l} y1={y(v)} x2={W - PAD.r} y2={y(v)} />
             <text className="eq-label" x={PAD.l - 8} y={y(v) + 3.5} textAnchor="end">
-              {num(v / 10000)}만
+              {eokShort(v)}
             </text>
           </g>
         ))}
-
         <polygon className="eq-area" points={area} />
         <polyline className="eq-line" points={line} />
-
         {points.map((p, i) => (
           <g key={p.label}>
-            <circle className="eq-dot" cx={x(i)} cy={y(p.equity)} r="4.5" />
+            <circle className="eq-dot" cx={x(i)} cy={y(p.equity)} r="4" />
             <text className="eq-label" x={x(i)} y={H - 12} textAnchor="middle">
               {p.label}
             </text>
           </g>
         ))}
       </svg>
+      <p className="eq-note">세로축은 로그 스케일이에요 — 몇 배로 커졌는지 보기 쉽게 했어요.</p>
     </div>
   )
 }

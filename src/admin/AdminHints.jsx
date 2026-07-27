@@ -45,19 +45,38 @@ export default function AdminHints({ actions, game, stocks, teams, hints, refres
     [teams],
   )
 
-  const suggestBottom = (n) => {
-    setPicked(ranked.slice(0, Math.max(1, n)).map((t) => t.code))
-    notify(`하위 ${n}개 조를 제안했어요. 확인 후 지급을 눌러주세요`, 'gold')
-  }
-  const suggestRandom = (n) => {
-    const pool = [...teams]
-    const out = []
-    for (let i = 0; i < Math.min(n, pool.length); i++) {
-      out.push(...pool.splice(Math.floor(Math.random() * pool.length), 1))
+  // 자동 배분 미리보기 — 다음 라운드 진입 시 순위대로 어떤 등급/힌트가 나갈지.
+  // ⚠ 현재 순위 기준 예상. [연도 넘기기]가 새 가격 공개 후 순위로 실제 배분한다(달라질 수 있음).
+  const preview = useMemo(() => {
+    const next = (game?.current_round ?? 0) + 1
+    const total = game?.total_rounds ?? 0
+    const nt = teams.length
+    if (next < 2 || next > total || nt === 0) return null // R1은 지급 없음, 마지막 넘어가면 없음
+    const gi = (rank) => Math.min(Math.max(Math.floor(((rank - 1) / nt) * 5), 0), 4)
+    const idx = { D: 0, C: 1, B: 2, A: 3, S: 4 }
+    const pool = hints.filter((h) => h.round === next)
+    const resolve = (g) => {
+      if (!pool.length) return null
+      return [...pool].sort((a, b) => Math.abs(idx[a.grade] - g) - Math.abs(idx[b.grade] - g))[0]
     }
-    setPicked(out.map((t) => t.code))
-    notify(`무작위 ${out.length}개 조를 제안했어요. 확인 후 지급을 눌러주세요`, 'gold')
-  }
+    const rows = [...teams]
+      .sort((a, b) => Number(b.equity) - Number(a.equity))
+      .map((t) => {
+        const rank = 1 + teams.filter((x) => Number(x.equity) > Number(t.equity)).length
+        const g = gi(rank)
+        const h = resolve(g)
+        return {
+          code: t.code,
+          name: t.name,
+          equity: Number(t.equity),
+          rank,
+          grade: GRADES[4 - g], // g=0→D … g=4→S (GRADES = [S,A,B,C,D])
+          hint: h?.headline ?? null,
+          exact: h ? idx[h.grade] === g : false,
+        }
+      })
+    return { round: next, rows, hasPool: pool.length > 0 }
+  }, [teams, hints, game])
 
   const save = async (h) => {
     setBusy(true)
@@ -183,24 +202,15 @@ export default function AdminHints({ actions, game, stocks, teams, hints, refres
               <span className="hl">{selectedHint.headline}</span>
             </div>
 
-            <div className="suggest">
-              <span className="acap">배분 제안</span>
-              <div className="arow">
-                <button className="text-btn" onClick={() => suggestBottom(3)}>
-                  하위 3개 조
-                </button>
-                <button className="text-btn" onClick={() => suggestBottom(Math.ceil(teams.length / 2))}>
-                  하위 절반
-                </button>
-                <button className="text-btn" onClick={() => suggestRandom(3)}>
-                  무작위 3개 조
-                </button>
-                <button className="text-btn" onClick={() => setPicked([])}>
+            <p className="anote">
+              R2부터는 [연도 넘기기]가 순위대로 <b>자동 배분</b>합니다(아래 미리보기). 여기서는 특정 힌트를
+              특정 조에 <b>수동으로</b> 더 줄 수 있어요.
+              {picked.length > 0 && (
+                <button className="text-btn" onClick={() => setPicked([])} style={{ marginLeft: 6 }}>
                   선택 해제
                 </button>
-              </div>
-              <p className="anote">제안일 뿐입니다. 확인하고 [지급]을 눌러야 확정됩니다.</p>
-            </div>
+              )}
+            </p>
 
             <div className="team-picks">
               {ranked.map((t, i) => {
@@ -239,6 +249,59 @@ export default function AdminHints({ actions, game, stocks, teams, hints, refres
             <button className="act-btn buy" disabled={busy || picked.length === 0} onClick={grant}>
               {picked.length}개 조에 지급
             </button>
+          </>
+        )}
+      </section>
+
+      {/* ── 자동 배분 미리보기 */}
+      <section className="acard">
+        <span className="acap">자동 배분 미리보기</span>
+        {!preview ? (
+          <p className="aempty">
+            R2부터 [연도 넘기기] 때 순위대로 자동 배분됩니다. 지금은 미리 볼 라운드가 없어요.
+          </p>
+        ) : (
+          <>
+            <p className="anote">
+              <b>R{preview.round}</b> 진입 시 예상 배분이에요 — <b>현재 순위 기준</b>. 연도를 넘기면 새
+              가격으로 순위가 바뀌어 달라질 수 있어요.
+            </p>
+            {!preview.hasPool && (
+              <p className="awarn">R{preview.round} 힌트가 아직 없어요. 먼저 힌트를 작성하세요.</p>
+            )}
+            <table>
+              <thead>
+                <tr>
+                  <th>순위</th>
+                  <th>조</th>
+                  <th>평가금액</th>
+                  <th>등급</th>
+                  <th>받을 힌트</th>
+                </tr>
+              </thead>
+              <tbody>
+                {preview.rows.map((r) => (
+                  <tr key={r.code}>
+                    <td className="num">{r.rank}</td>
+                    <td>{r.name}</td>
+                    <td className="num">₩ {num(r.equity)}</td>
+                    <td>
+                      <span className={'grade g' + r.grade}>{r.grade}</span>
+                    </td>
+                    <td>
+                      {r.hint ? (
+                        <>
+                          {r.hint}
+                          {!r.exact && <span className="sub"> (인접 등급 대체)</span>}
+                        </>
+                      ) : (
+                        <span className="sub">힌트 없음</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </>
         )}
       </section>

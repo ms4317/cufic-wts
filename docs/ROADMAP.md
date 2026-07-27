@@ -88,8 +88,9 @@
 
 ## 알려진 한계
 
-1. **관리자 비밀이 브라우저 번들에 들어간다** — `VITE_ADMIN_PASSWORD`는 빌드 시 인라인된다.
-   학생이 `/admin` 소스를 뜯어보면 알 수 있다. 진짜 분리는 Supabase Auth + service role 필요
+1. **관리자 계정 분리가 없다** — 관리자는 비밀번호를 입력하고 서버(`verify_admin`)가 대조한다.
+   `VITE_ADMIN_PASSWORD`는 코드에서 참조하지 않아 **번들에 안 들어간다**. 참가 코드 인증처럼
+   교육용 수준이며, 진짜 계정 분리는 Supabase Auth + service role 필요
 2. **참가 코드를 아는 사람은 그 조로 로그인할 수 있다** — 코드 기반 인증의 본질
 3. **힌트 Realtime 직접 구독 불가** — RLS 대신 RPC로 격리해서. signals 우회로 해결했으나
    신호 → 재조회라 약간의 지연이 있다
