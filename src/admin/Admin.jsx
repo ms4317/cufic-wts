@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { makeAdminActions } from '../actions'
 import { subscribeSignals } from '../gameData'
 import { select, errorText } from '../supabase'
@@ -46,7 +46,11 @@ export default function Admin({ theme, onToggleTheme }) {
   const [financials, setFinancials] = useState([]) // 재무제표 행 (편집용)
   const [macro, setMacro] = useState([]) // 시황 행 (편집용)
 
-  const actions = useMemo(() => makeAdminActions(() => secret), [secret])
+  // 비밀은 ref로 읽는다 — 로그인 직후 refresh()가 옛 secret 클로저를 쓰지 않게(안 그러면
+  // 관리자 RPC가 빈 비밀번호로 호출돼 조·힌트·재무·시황이 로그인 직후 전부 비어 버린다).
+  const secretRef = useRef(secret)
+  secretRef.current = secret
+  const actions = useMemo(() => makeAdminActions(() => secretRef.current), [])
 
   const refresh = useCallback(async () => {
     const [g, s, ts, hs, , bc, fin, mac] = await Promise.all([
@@ -98,6 +102,7 @@ export default function Admin({ theme, onToggleTheme }) {
   const doLogin = async (e) => {
     e.preventDefault()
     const input = new FormData(e.target).get('secret')?.toString() ?? ''
+    secretRef.current = input // 로그인·직후 refresh가 이 비밀을 쓰게(상태 반영 전이라 ref로)
     const r = await actions.login(input)
     if (!r.ok) {
       pushToast(errorText(r.error), 'down')

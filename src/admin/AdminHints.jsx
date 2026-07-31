@@ -3,6 +3,7 @@ import Modal from '../components/Modal'
 import { errorText } from '../supabase'
 import { num } from '../format'
 import { hintMismatches } from '../dataCheck'
+import { distribute, rankWorstFirst } from '../distribute'
 
 const GRADES = ['S', 'A', 'B', 'C', 'D']
 const IMPACTS = [
@@ -49,33 +50,27 @@ export default function AdminHints({ actions, game, stocks, teams, hints, refres
   // 자동 배분 미리보기 — 다음 라운드 진입 시 순위대로 어떤 등급/힌트가 나갈지.
   // ⚠ 현재 순위 기준 예상. [연도 넘기기]가 새 가격 공개 후 순위로 실제 배분한다(달라질 수 있음).
   const preview = useMemo(() => {
-    const next = (game?.current_round ?? 0) + 1
-    const total = game?.total_rounds ?? 0
-    const nt = teams.length
-    if (next < 2 || next > total || nt === 0) return null // R1은 지급 없음, 마지막 넘어가면 없음
-    const gi = (rank) => Math.min(Math.max(Math.floor(((rank - 1) / nt) * 5), 0), 4)
-    const idx = { D: 0, C: 1, B: 2, A: 3, S: 4 }
+    const next = Number(game?.current_round ?? 0) + 1
+    const total = Number(game?.total_rounds ?? 0)
+    if (next < 2 || next > total || teams.length === 0) return null // R1은 지급 없음
     const pool = hints.filter((h) => h.round === next)
-    const resolve = (g) => {
-      if (!pool.length) return null
-      return [...pool].sort((a, b) => Math.abs(idx[a.grade] - g) - Math.abs(idx[b.grade] - g))[0]
-    }
-    const rows = [...teams]
-      .sort((a, b) => Number(b.equity) - Number(a.equity))
+    const map = distribute(teams, pool) // code → 받을 힌트 배열 (라운드로빈)
+    // 순위: 꼴찌 먼저 정렬 → 뒤에서부터 1위. 표는 1위 먼저 보이게.
+    const worstFirst = rankWorstFirst(teams)
+    const rankByCode = Object.fromEntries(worstFirst.map((t, i) => [t.code, teams.length - i]))
+    const rows = teams
       .map((t) => {
-        const rank = 1 + teams.filter((x) => Number(x.equity) > Number(t.equity)).length
-        const g = gi(rank)
-        const h = resolve(g)
+        const got = map.get(t.code) ?? []
         return {
           code: t.code,
           name: t.name,
           equity: Number(t.equity),
-          rank,
-          grade: GRADES[4 - g], // g=0→D … g=4→S (GRADES = [S,A,B,C,D])
-          hint: h?.headline ?? null,
-          exact: h ? idx[h.grade] === g : false,
+          rank: rankByCode[t.code],
+          grades: got.map((h) => h.grade),
+          headlines: got.map((h) => h.headline),
         }
       })
+      .sort((a, b) => a.rank - b.rank)
     return { round: next, rows, hasPool: pool.length > 0 }
   }, [teams, hints, game])
 
@@ -269,8 +264,9 @@ export default function AdminHints({ actions, game, stocks, teams, hints, refres
         ) : (
           <>
             <p className="anote">
-              <b>R{preview.round}</b> 진입 시 예상 배분이에요 — <b>현재 순위 기준</b>. 연도를 넘기면 새
-              가격으로 순위가 바뀌어 달라질 수 있어요.
+              <b>R{preview.round}</b> 진입 시 예상 배분이에요 — <b>현재 순위 기준</b>. 힌트 풀을 등급순으로
+              <b> 꼴찌부터 라운드로빈</b>해 전부 나눠줘요(하위권일수록 좋은 힌트 + 더 많이). 연도를 넘기면
+              순위가 바뀌어 달라질 수 있어요.
             </p>
             {!preview.hasPool && (
               <p className="awarn">R{preview.round} 힌트가 아직 없어요. 먼저 힌트를 작성하세요.</p>
@@ -281,27 +277,27 @@ export default function AdminHints({ actions, game, stocks, teams, hints, refres
                   <th>순위</th>
                   <th>조</th>
                   <th>평가금액</th>
-                  <th>등급</th>
                   <th>받을 힌트</th>
                 </tr>
               </thead>
               <tbody>
                 {preview.rows.map((r) => (
                   <tr key={r.code}>
-                    <td className="num">{r.rank}</td>
+                    <td className="num">{r.rank}위</td>
                     <td>{r.name}</td>
                     <td className="num">₩ {num(r.equity)}</td>
                     <td>
-                      <span className={'grade g' + r.grade}>{r.grade}</span>
-                    </td>
-                    <td>
-                      {r.hint ? (
-                        <>
-                          {r.hint}
-                          {!r.exact && <span className="sub"> (인접 등급 대체)</span>}
-                        </>
+                      {r.grades.length === 0 ? (
+                        <span className="sub">없음</span>
                       ) : (
-                        <span className="sub">힌트 없음</span>
+                        <div className="pv-hints">
+                          {r.grades.map((g, i) => (
+                            <span key={i} className="pv-hint">
+                              <span className={'grade g' + g}>{g}</span>
+                              <span className="pv-hl">{r.headlines[i]}</span>
+                            </span>
+                          ))}
+                        </div>
                       )}
                     </td>
                   </tr>

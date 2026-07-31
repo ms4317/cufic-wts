@@ -721,6 +721,21 @@
   border-radius: 999px;
   white-space: nowrap;
 }
+/* 자동 배분 미리보기 — 조별 여러 힌트 */
+.pv-hints {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.pv-hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.pv-hl {
+  font-size: 12px;
+  color: var(--muted);
+}
 
 .chips {
   display: flex;
