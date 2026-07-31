@@ -191,6 +191,8 @@ function Student({ theme, onToggleTheme }) {
     setSnapshots(r.snapshots)
     setBoard(r.leaderboard)
     setBroadcasts(r.broadcasts)
+    setFinancials(r.financials)
+    setMacro(r.macro)
     setGame(r.game)
     setCash(r.cash)
     return r

@@ -505,6 +505,73 @@
   white-space: nowrap;
 }
 
+/* ── 콘텐츠(재무·시황) 편집 */
+.content-head,
+.content-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0;
+  overflow-x: auto;
+}
+.content-head {
+  font-size: 11px;
+  color: var(--dim);
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 4px;
+  text-align: center;
+}
+.cr-year {
+  flex: 0 0 52px;
+  font-weight: 700;
+  font-size: 13px;
+}
+.cr-summary {
+  flex: 1 1 150px;
+  min-width: 110px;
+}
+.cr-num {
+  flex: 0 0 76px;
+  text-align: center;
+}
+.content-row input {
+  padding: 6px 8px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--text);
+  font-size: 13px;
+}
+.content-row input:focus {
+  outline: none;
+  border-color: var(--gold);
+}
+.act-btn.sm {
+  flex: 0 0 auto;
+  width: auto;
+  padding: 6px 12px;
+  font-size: 13px;
+}
+.sm-sp {
+  flex: 0 0 56px;
+}
+.fin-pick {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.fin-pick select {
+  padding: 6px 8px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--text);
+  font-size: 14px;
+}
+
 .chips {
   display: flex;
   flex-wrap: wrap;

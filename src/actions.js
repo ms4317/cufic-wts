@@ -87,5 +87,30 @@ export function makeAdminActions(getSecret) {
         p_display_order: s.display_order ?? 0,
       }),
     deleteStock: (id) => call('admin_delete_stock', { p_id: id }),
+
+    // 콘텐츠(B): 재무제표·시황 편집
+    upsertMacro: (m) =>
+      call('admin_upsert_macro', {
+        p_year: m.year,
+        p_summary: m.summary ?? '',
+        p_rate: m.rate,
+        p_gdp: m.gdp,
+        p_unemployment: m.unemployment,
+        p_fx: m.fx,
+        p_cpi: m.cpi,
+        p_oil: m.oil,
+      }),
+    upsertFinancial: (f) =>
+      call('admin_upsert_financial', {
+        p_stock_id: f.stockId,
+        p_year: f.year,
+        p_revenue: f.revenue,
+        p_op_income: f.opIncome,
+        p_net_income: f.netIncome,
+        p_debt_ratio: f.debtRatio,
+        p_roe: f.roe,
+      }),
+    deleteFinancial: (stockId, year) =>
+      call('admin_delete_financial', { p_stock_id: stockId, p_year: year }),
   }
 }

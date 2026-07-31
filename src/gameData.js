@@ -132,7 +132,7 @@ export async function loadAll(teamCode, teamId) {
 
 /** 신호를 받았을 때 다시 가져오는 것들 (내 조 데이터 + 공개 데이터) */
 export async function refetchMine(teamCode, teamId) {
-  const [positions, trades, hints, snaps, board, game, cash, bcast] = await Promise.all([
+  const [positions, trades, hints, snaps, board, game, cash, bcast, fin, macro] = await Promise.all([
     select('positions', '*', (q) => q.eq('team_id', teamId)),
     select('trades', '*', (q) => q.eq('team_id', teamId).order('created_at', { ascending: false })),
     rpc('get_my_hints', { p_team_code: teamCode }),
@@ -141,8 +141,10 @@ export async function refetchMine(teamCode, teamId) {
     select('game_state', '*'),
     rpc('team_cash', { p_team_id: teamId }),
     select('broadcasts', '*', (q) => q.order('id', { ascending: false })),
+    select('financials', '*'),
+    select('macro', '*', (q) => q.order('year')),
   ])
-  const failed = [positions, trades, hints, snaps, board, game, bcast].find((r) => !r.ok)
+  const failed = [positions, trades, hints, snaps, board, game, bcast, fin, macro].find((r) => !r.ok)
   if (failed) return { ok: false, error: failed.error ?? 'network' }
   return {
     ok: true,
@@ -152,6 +154,8 @@ export async function refetchMine(teamCode, teamId) {
     snapshots: snaps.rows,
     leaderboard: board.rows ?? [],
     broadcasts: bcast.rows ?? [],
+    financials: shapeFinancials(fin.rows),
+    macro: shapeMacro(macro.rows),
     game: game.rows[0] ?? null,
     cash: Number(cash.value ?? 0),
   }

@@ -8,6 +8,7 @@ import AdminProgress from './AdminProgress'
 import AdminHints from './AdminHints'
 import AdminTeams from './AdminTeams'
 import AdminStocks from './AdminStocks'
+import AdminContent from './AdminContent'
 import AdminBoard from './AdminBoard'
 
 const TABS = [
@@ -15,6 +16,7 @@ const TABS = [
   { key: 'hints', label: '힌트' },
   { key: 'teams', label: '조 관리' },
   { key: 'stocks', label: '종목·가격' },
+  { key: 'content', label: '재무·시황' },
   { key: 'board', label: '리더보드' },
 ]
 
@@ -39,23 +41,29 @@ export default function Admin({ theme, onToggleTheme }) {
   const [hints, setHints] = useState([])
   const [board, setBoard] = useState([])
   const [broadcasts, setBroadcasts] = useState([])
+  const [financials, setFinancials] = useState([]) // 재무제표 행 (편집용)
+  const [macro, setMacro] = useState([]) // 시황 행 (편집용)
 
   const actions = useMemo(() => makeAdminActions(() => secret), [secret])
 
   const refresh = useCallback(async () => {
-    const [g, s, ts, hs, , bc] = await Promise.all([
+    const [g, s, ts, hs, , bc, fin, mac] = await Promise.all([
       select('game_state', '*'),
       select('stocks', '*'),
       actions.teamsStatus(),
       actions.listHints(),
       select('public_teams', '*'), // 리더보드는 RPC로 따로
       select('broadcasts', '*', (q) => q.order('id', { ascending: false })),
+      select('financials', '*'),
+      select('macro', '*', (q) => q.order('year')),
     ])
     if (g.ok) setGame(g.rows[0] ?? null)
     if (s.ok) setStocks(s.rows.slice().sort((a, b) => a.display_order - b.display_order))
     if (ts.ok) setTeams(ts.teams ?? [])
     if (hs.ok) setHints(hs.hints ?? [])
     if (bc.ok) setBroadcasts(bc.rows ?? [])
+    if (fin.ok) setFinancials(fin.rows ?? [])
+    if (mac.ok) setMacro(mac.rows ?? [])
     const { rpc } = await import('../supabase')
     const b = await rpc('leaderboard')
     if (b.ok) setBoard(b.rows ?? [])
@@ -144,7 +152,19 @@ export default function Admin({ theme, onToggleTheme }) {
     )
   }
 
-  const shared = { actions, game, stocks, teams, hints, board, broadcasts, refresh, notify: pushToast }
+  const shared = {
+    actions,
+    game,
+    stocks,
+    teams,
+    hints,
+    board,
+    broadcasts,
+    financials,
+    macro,
+    refresh,
+    notify: pushToast,
+  }
 
   return (
     <div className="admin">
@@ -184,6 +204,7 @@ export default function Admin({ theme, onToggleTheme }) {
           {tab === 'hints' && <AdminHints {...shared} />}
           {tab === 'teams' && <AdminTeams {...shared} />}
           {tab === 'stocks' && <AdminStocks {...shared} />}
+          {tab === 'content' && <AdminContent {...shared} />}
           {tab === 'board' && <AdminBoard {...shared} />}
         </main>
       </div>
