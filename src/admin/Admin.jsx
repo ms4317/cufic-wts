@@ -54,8 +54,8 @@ export default function Admin({ theme, onToggleTheme }) {
       actions.listHints(),
       select('public_teams', '*'), // 리더보드는 RPC로 따로
       select('broadcasts', '*', (q) => q.order('id', { ascending: false })),
-      select('financials', '*'),
-      select('macro', '*', (q) => q.order('year')),
+      actions.listFinancials(), // 편집용: 미래 연도까지 전부
+      actions.listMacro(),
     ])
     if (g.ok) setGame(g.rows[0] ?? null)
     if (s.ok) setStocks(s.rows.slice().sort((a, b) => a.display_order - b.display_order))

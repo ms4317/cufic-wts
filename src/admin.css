@@ -599,6 +599,14 @@
   flex: 1;
   font-weight: 700;
 }
+.frow.two {
+  display: flex;
+  flex-direction: row;
+  gap: 12px;
+}
+.frow.two .frow.col {
+  flex: 1;
+}
 
 .chips {
   display: flex;

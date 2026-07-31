@@ -104,8 +104,8 @@ export async function loadAll(teamCode, teamId) {
       select('public_teams', '*', (q) => q.eq('id', teamId)),
       rpc('team_cash', { p_team_id: teamId }),
       select('broadcasts', '*', (q) => q.order('id', { ascending: false })),
-      select('financials', '*'),
-      select('macro', '*', (q) => q.order('year')),
+      rpc('get_financials'), // 현재 라운드 연도까지만 (서버가 미래 연도 차단)
+      rpc('get_macro'),
     ])
 
   const failed = [game, stocks, positions, trades, hints, snaps, board, me, bcast, fin, macro].find(
@@ -142,8 +142,8 @@ export async function refetchMine(teamCode, teamId) {
       select('game_state', '*'),
       rpc('team_cash', { p_team_id: teamId }),
       select('broadcasts', '*', (q) => q.order('id', { ascending: false })),
-      select('financials', '*'),
-      select('macro', '*', (q) => q.order('year')),
+      rpc('get_financials'),
+      rpc('get_macro'),
       select('stocks', '*'), // 팩 전환으로 종목이 통째로 바뀔 수 있어 함께 갱신
     ])
   const failed = [positions, trades, hints, snaps, board, game, bcast, fin, macro, stocks].find(

@@ -83,6 +83,8 @@ export function makeAdminActions(getSecret) {
         p_id: s.id,
         p_name: s.name,
         p_description: s.description ?? '',
+        p_sector: s.sector ?? '',
+        p_listed_from_round: s.listed_from_round ?? s.listedFromRound ?? 1,
         p_prices: s.prices ?? {},
         p_display_order: s.display_order ?? 0,
       }),
@@ -112,6 +114,18 @@ export function makeAdminActions(getSecret) {
       }),
     deleteFinancial: (stockId, year) =>
       call('admin_delete_financial', { p_stock_id: stockId, p_year: year }),
+
+    // 콘텐츠 편집용 전체 조회(미래 연도 포함) + 게임 설정
+    listFinancials: () => call('admin_list_financials'),
+    listMacro: () => call('admin_list_macro'),
+    updateGameConfig: (c) =>
+      call('admin_update_game_config', {
+        p_total_rounds: c.totalRounds,
+        p_round_year_map: c.roundYearMap,
+        p_final_year: c.finalYear,
+        p_default_seed: c.defaultSeed,
+        p_duration_minutes: c.durationMinutes,
+      }),
 
     // 콘텐츠 팩 (B, Phase 2)
     savePack: (name, id = null) => call('admin_save_pack', { p_name: name, p_id: id }),

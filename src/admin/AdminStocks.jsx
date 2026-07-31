@@ -45,7 +45,17 @@ export default function AdminStocks({ actions, game, stocks, refresh, notify }) 
           <span className="acap">종목 ({stocks.length})</span>
           <button
             className="text-btn"
-            onClick={() => setEditing({ id: '', name: '', description: '', prices: {}, display_order: stocks.length })}
+            onClick={() =>
+              setEditing({
+                id: '',
+                name: '',
+                description: '',
+                sector: '',
+                listed_from_round: 1,
+                prices: {},
+                display_order: stocks.length,
+              })
+            }
           >
             + 종목 추가
           </button>
@@ -174,6 +184,26 @@ function StockEditor({ stock, years, busy, onClose, onSave }) {
             onChange={(e) => set({ description: e.target.value })}
             placeholder="반도체를 만드는 회사예요"
           />
+        </div>
+        <div className="frow two">
+          <div className="frow col">
+            <label>업종</label>
+            <input
+              value={cur.sector ?? ''}
+              onChange={(e) => set({ sector: e.target.value })}
+              placeholder="반도체"
+            />
+          </div>
+          <div className="frow col">
+            <label>상장 라운드 (이 라운드부터 노출)</label>
+            <input
+              className="num"
+              type="number"
+              min="1"
+              value={cur.listed_from_round ?? 1}
+              onChange={(e) => set({ listed_from_round: Number(e.target.value) || 1 })}
+            />
+          </div>
         </div>
         <div className="frow col">
           <label>연도별 가격 (비우면 거래정지)</label>
