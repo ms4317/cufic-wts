@@ -20,7 +20,6 @@ export default function AdminProgress({ actions, game, teams, broadcasts = [], r
   const [busy, setBusy] = useState(false)
   const [nowTs, setNowTs] = useState(() => Date.now())
   const [bcText, setBcText] = useState('') // 속보 입력
-  const [timerMin, setTimerMin] = useState(null) // 타이머 분 입력 (null이면 기본값 사용)
 
   // 카운트다운 1초 틱
   useEffect(() => {
@@ -82,16 +81,29 @@ export default function AdminProgress({ actions, game, teams, broadcasts = [], r
     await refresh()
   }
 
+  // 라운드 시간은 무조건 10분으로 시작한다. 미세 조정은 아래 ±1분 버튼으로.
   const startTimerNow = async () => {
-    const m = Number(timerMin ?? durMin) || durMin
     setBusy(true)
-    const r = await actions.startTimer(m)
+    const r = await actions.startTimer(10)
     setBusy(false)
     if (!r.ok) {
       notify(errorText(r.error), 'down')
       return
     }
-    notify(timerRunning ? '타이머를 다시 시작했어요' : `거래를 열었어요 (${m}분)`, 'gold')
+    notify(timerRunning ? '타이머를 다시 시작했어요 (10분)' : '거래를 열었어요 (10분)', 'gold')
+    await refresh()
+  }
+
+  // 진행 중인 타이머를 ±1분 조정
+  const adjustTimer = async (deltaMin) => {
+    setBusy(true)
+    const r = await actions.adjustTimer(deltaMin * 60)
+    setBusy(false)
+    if (!r.ok) {
+      notify(errorText(r.error), 'down')
+      return
+    }
+    notify(`거래 시간 ${deltaMin > 0 ? '+' : ''}${deltaMin}분`, 'gold')
     await refresh()
   }
 
@@ -180,27 +192,20 @@ export default function AdminProgress({ actions, game, teams, broadcasts = [], r
               </>
             )}
           </div>
-          <div className="timer-set">
-            <label>
-              거래 시간
-              <input
-                type="number"
-                min="1"
-                max="60"
-                className="num"
-                value={timerMin ?? durMin}
-                onChange={(e) =>
-                  setTimerMin(e.target.value === '' ? '' : Math.max(1, Math.min(60, Number(e.target.value))))
-                }
-              />
-              분
-            </label>
-          </div>
+          {timerRunning && (
+            <div className="timer-adjust">
+              <button className="act-btn adj" disabled={busy} onClick={() => adjustTimer(-1)}>
+                − 1분
+              </button>
+              <span className="adj-hint">거래 시간 조정</span>
+              <button className="act-btn adj" disabled={busy} onClick={() => adjustTimer(1)}>
+                + 1분
+              </button>
+            </div>
+          )}
           <div className="arow">
             <button className="act-btn buy" disabled={busy} onClick={startTimerNow}>
-              {timerRunning
-                ? `타이머 다시 시작 (${Number(timerMin ?? durMin) || durMin}분)`
-                : `타이머 시작 (${Number(timerMin ?? durMin) || durMin}분)`}
+              {timerRunning ? '타이머 다시 시작 (10분)' : '타이머 시작 (10분)'}
             </button>
           </div>
         </section>

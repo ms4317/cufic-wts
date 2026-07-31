@@ -1,16 +1,48 @@
+import { useState } from 'react'
 import { num, pct, dirOf } from '../format'
 
+// 종목 정렬 옵션. '기본'은 등록 순서(display_order)를 그대로 둔다.
+const SORTS = [
+  { key: 'default', label: '기본순' },
+  { key: 'name', label: '이름순' },
+  { key: 'price_desc', label: '가격 높은순' },
+  { key: 'price_asc', label: '가격 낮은순' },
+  { key: 'chg_desc', label: '등락률 높은순' },
+  { key: 'chg_asc', label: '등락률 낮은순' },
+]
+
 export default function StockList({ stocks, selectedCode, onSelect, onOpenMy }) {
+  const [sort, setSort] = useState('default')
+
+  // 상장 예정(preListed) 종목은 아직 목록에 없다 — 상장 라운드에 나타난다
+  const rows = stocks.filter((s) => !s.preListed)
+  if (sort === 'name') rows.sort((a, b) => a.name.localeCompare(b.name, 'ko'))
+  else if (sort === 'price_desc') rows.sort((a, b) => b.price - a.price)
+  else if (sort === 'price_asc') rows.sort((a, b) => a.price - b.price)
+  else if (sort === 'chg_desc') rows.sort((a, b) => b.chg - a.chg)
+  else if (sort === 'chg_asc') rows.sort((a, b) => a.chg - b.chg)
+  // default → filter가 유지한 등록 순서 그대로
+
   return (
     <aside className="col stocklist">
       <div className="listhead">
         <span>종목명</span>
-        <span>현재가 / 등락률</span>
+        <select
+          className="sort-sel"
+          value={sort}
+          onChange={(e) => setSort(e.target.value)}
+          aria-label="종목 정렬"
+        >
+          {SORTS.map((s) => (
+            <option key={s.key} value={s.key}>
+              {s.label}
+            </option>
+          ))}
+        </select>
       </div>
 
       <div className="rows">
-        {/* 상장 예정(preListed) 종목은 아직 목록에 없다 — 상장 라운드에 나타난다 */}
-        {stocks.filter((s) => !s.preListed).map((s) => {
+        {rows.map((s) => {
           const dir = dirOf(s.chg)
           return (
             <div

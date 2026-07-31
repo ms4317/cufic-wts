@@ -50,6 +50,7 @@ export function makeAdminActions(getSecret) {
     login: (secret) => rpc('admin_login', { p_admin_secret: secret }),
     advanceRound: () => call('advance_round'),
     startTimer: (minutes) => call('start_round_timer', { p_minutes: minutes ?? null }),
+    adjustTimer: (deltaSeconds) => call('adjust_round_timer', { p_delta_seconds: deltaSeconds }),
     endGame: () => call('admin_end_game'),
     resetGame: () => call('reset_game'),
 
