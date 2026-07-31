@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import Modal from '../components/Modal'
 import { errorText } from '../supabase'
+import { checkContent } from '../dataCheck'
+import { num } from '../format'
 
 const mmss = (ms) => {
   const s = Math.max(0, Math.round(ms / 1000))
@@ -14,12 +16,25 @@ const mmss = (ms) => {
  * 게임 루프: [연도 넘기기]로 새 가격·순위를 공개하고 → 순위를 확인한 뒤 →
  * [타이머 시작]으로 거래를 연다. 10분이 지나면 거래는 자동으로 닫히고, 관리자가 다시 연도를 넘긴다.
  */
-export default function AdminProgress({ actions, game, teams, broadcasts = [], refresh, notify }) {
+export default function AdminProgress({
+  actions,
+  game,
+  teams,
+  stocks = [],
+  hints = [],
+  financials = [],
+  macro = [],
+  broadcasts = [],
+  refresh,
+  notify,
+}) {
   const [confirm, setConfirm] = useState(null) // 'advance' | 'end' | 'reset'
   const [resetText, setResetText] = useState('')
   const [busy, setBusy] = useState(false)
   const [nowTs, setNowTs] = useState(() => Date.now())
   const [bcText, setBcText] = useState('') // 속보 입력
+  const [issues, setIssues] = useState(null) // [데이터 점검] 결과
+  const [cfg, setCfg] = useState(null) // 게임 설정 편집 상태
 
   // 카운트다운 1초 틱
   useEffect(() => {
@@ -124,6 +139,49 @@ export default function AdminProgress({ actions, game, teams, broadcasts = [], r
       const grades = [...new Set(warns.map((w) => w.grade))].join('·')
       notify(`⚠ ${grades} 등급 힌트 부족 — 인접 등급으로 대체됐어요`, 'down')
     }
+    await refresh()
+  }
+
+  const runCheck = () => setIssues(checkContent(game, stocks, hints, financials, macro))
+
+  // ── 게임 설정 편집 (시작 전에만)
+  const startCfg = () =>
+    setCfg({
+      totalRounds: game.total_rounds,
+      years: Object.fromEntries(
+        Array.from({ length: game.total_rounds }, (_, i) => [
+          i + 1,
+          game.round_year_map?.[String(i + 1)] ?? '',
+        ]),
+      ),
+      finalYear: game.final_year ?? '',
+      defaultSeed: game.default_seed ?? 100000000,
+      durationMinutes: Math.round((game.round_duration_seconds ?? 600) / 60),
+    })
+  const setCfgYear = (r, v) => setCfg((c) => ({ ...c, years: { ...c.years, [r]: v } }))
+  const setTotal = (n) => {
+    const t = Math.max(1, Math.min(20, Number(n) || 1))
+    setCfg((c) => {
+      const years = {}
+      for (let r = 1; r <= t; r++) years[r] = c.years[r] ?? ''
+      return { ...c, totalRounds: t, years }
+    })
+  }
+  const saveCfg = async () => {
+    const roundYearMap = {}
+    for (let r = 1; r <= cfg.totalRounds; r++) roundYearMap[r] = Number(cfg.years[r])
+    setBusy(true)
+    const res = await actions.updateGameConfig({
+      totalRounds: cfg.totalRounds,
+      roundYearMap,
+      finalYear: Number(cfg.finalYear),
+      defaultSeed: Number(cfg.defaultSeed),
+      durationMinutes: Number(cfg.durationMinutes),
+    })
+    setBusy(false)
+    if (!res.ok) return notify(errorText(res.error), 'down')
+    setCfg(null)
+    notify('게임 설정을 저장했어요', 'gold')
     await refresh()
   }
 
@@ -272,6 +330,103 @@ export default function AdminProgress({ actions, game, teams, broadcasts = [], r
         </section>
       )}
 
+      {/* 게임 설정 — 시작 전에만 */}
+      {notStarted && (
+        <section className="acard">
+          <span className="acap">게임 설정 (시작 전에만)</span>
+          {!cfg ? (
+            <>
+              <p className="anote">
+                라운드 {game.total_rounds}개 · 연도 {Object.values(game.round_year_map ?? {}).join('·')} ·
+                최종 {game.final_year} · 기본 시드 ₩{num(game.default_seed)} · 타이머{' '}
+                {Math.round((game.round_duration_seconds ?? 600) / 60)}분
+              </p>
+              <button className="text-btn" onClick={startCfg}>
+                설정 편집
+              </button>
+            </>
+          ) : (
+            <div className="cfg-form">
+              <div className="frow col">
+                <label>라운드 수</label>
+                <input
+                  className="num"
+                  type="number"
+                  min="1"
+                  max="20"
+                  value={cfg.totalRounds}
+                  onChange={(e) => setTotal(e.target.value)}
+                />
+              </div>
+              <div className="frow col">
+                <label>라운드별 연도</label>
+                <div className="cfg-years">
+                  {Array.from({ length: cfg.totalRounds }, (_, i) => i + 1).map((r) => (
+                    <div key={r} className="pcell">
+                      <span>R{r}</span>
+                      <input
+                        className="num"
+                        type="number"
+                        value={cfg.years[r]}
+                        onChange={(e) => setCfgYear(r, e.target.value)}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="frow two">
+                <div className="frow col">
+                  <label>최종 정산 연도</label>
+                  <input
+                    className="num"
+                    type="number"
+                    value={cfg.finalYear}
+                    onChange={(e) => setCfg({ ...cfg, finalYear: e.target.value })}
+                  />
+                </div>
+                <div className="frow col">
+                  <label>기본 시드머니</label>
+                  <input
+                    className="num"
+                    type="number"
+                    value={cfg.defaultSeed}
+                    onChange={(e) => setCfg({ ...cfg, defaultSeed: e.target.value })}
+                  />
+                </div>
+                <div className="frow col">
+                  <label>타이머(분)</label>
+                  <input
+                    className="num"
+                    type="number"
+                    value={cfg.durationMinutes}
+                    onChange={(e) => setCfg({ ...cfg, durationMinutes: e.target.value })}
+                  />
+                </div>
+              </div>
+              <div className="arow">
+                <button className="text-btn" onClick={() => setCfg(null)}>
+                  취소
+                </button>
+                <button className="act-btn buy" disabled={busy} onClick={saveCfg}>
+                  설정 저장
+                </button>
+              </div>
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* 데이터 점검 */}
+      <section className="acard">
+        <span className="acap">데이터 점검</span>
+        <p className="anote">
+          힌트 호재/악재↔실제 등락 · 힌트 누락 · 가격 공백 등 콘텐츠 정합성을 검사해요.
+        </p>
+        <button className="act-btn buy" disabled={busy} onClick={runCheck}>
+          데이터 점검 실행
+        </button>
+      </section>
+
       <section className="acard danger">
         <span className="acap">게임 리셋</span>
         <p className="anote">
@@ -364,6 +519,29 @@ export default function AdminProgress({ actions, game, teams, broadcasts = [], r
             onClick={() => run(actions.resetGame, '게임이 초기화되었습니다')}
           >
             초기화
+          </button>
+        </div>
+      </Modal>
+
+      {/* 데이터 점검 결과 */}
+      <Modal open={issues !== null} onClose={() => setIssues(null)} title="데이터 점검 결과" wide>
+        {issues && issues.length === 0 ? (
+          <p className="aok">문제를 찾지 못했어요. 데이터가 정합적이에요 ✅</p>
+        ) : (
+          <ul className="issue-list">
+            {(issues ?? []).map((it, i) => (
+              <li key={i} className={'issue ' + it.level}>
+                <span className="ilv">
+                  {it.level === 'error' ? '오류' : it.level === 'warn' ? '경고' : '참고'}
+                </span>
+                {it.msg}
+              </li>
+            ))}
+          </ul>
+        )}
+        <div className="mfoot">
+          <button className="act-btn buy" onClick={() => setIssues(null)}>
+            닫기
           </button>
         </div>
       </Modal>

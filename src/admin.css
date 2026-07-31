@@ -661,6 +661,58 @@
   flex-shrink: 0;
 }
 
+/* ── 게임 설정 편집 */
+.cfg-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.cfg-years {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* ── 데이터 점검 결과 */
+.issue-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-height: 52vh;
+  overflow-y: auto;
+}
+.issue {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13px;
+  padding: 8px 10px;
+  border-radius: var(--r-sm);
+  background: var(--panel-2);
+}
+.issue .ilv {
+  flex: 0 0 auto;
+  font-weight: 700;
+  font-size: 11px;
+  padding: 1px 7px;
+  border-radius: 999px;
+}
+.issue.error .ilv {
+  background: var(--down-soft);
+  color: var(--down);
+}
+.issue.warn .ilv {
+  background: var(--up-soft);
+  color: var(--up);
+}
+.issue.info .ilv {
+  background: var(--panel);
+  color: var(--muted);
+}
+
 .chips {
   display: flex;
   flex-wrap: wrap;
