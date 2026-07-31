@@ -3,8 +3,9 @@ import Modal from '../components/Modal'
 import { errorText } from '../supabase'
 
 /**
- * 데이터셋(시나리오 팩) — 게임 한 판 콘텐츠 전체를 저장/전환/백업한다.
- * 불러오기는 파괴적(콘텐츠 교체 + 게임 리셋)이라 진행 중(current_round>0)이면 서버가 차단한다.
+ * 데이터셋(시나리오) — 저장·전환·백업.
+ * "지금 편집 중인 데이터셋"(game.active_dataset_id)을 보여주고, 다른 탭에서 콘텐츠를 고친 뒤
+ * [저장]을 누르면 그 데이터셋에 반영된다. [편집]으로 다른 데이터셋으로 전환(불러오기, 게임 리셋).
  */
 export default function AdminDatasets({ actions, game, refresh, notify }) {
   const [datasets, setDatasets] = useState([])
@@ -14,6 +15,8 @@ export default function AdminDatasets({ actions, game, refresh, notify }) {
   const [confirm, setConfirm] = useState(null) // {type:'load'|'delete', id, name}
 
   const started = (game?.current_round ?? 0) > 0
+  const activeId = game?.active_dataset_id ?? null
+  const active = datasets.find((d) => d.id === activeId) ?? null
 
   const loadDatasets = async () => {
     const r = await actions.listDatasets()
@@ -24,6 +27,19 @@ export default function AdminDatasets({ actions, game, refresh, notify }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // 지금 콘텐츠를 편집 중인 데이터셋에 저장(덮어쓰기)
+  const saveActive = async () => {
+    if (!active) return
+    setBusy(true)
+    const r = await actions.saveDataset(active.name, active.description, active.id)
+    setBusy(false)
+    if (!r.ok) return notify(errorText(r.error), 'down')
+    notify(`'${active.name}'에 저장했어요`, 'gold')
+    loadDatasets()
+    await refresh()
+  }
+
+  // 지금 콘텐츠를 새 데이터셋으로 저장(그게 편집 중이 됨)
   const saveNew = async () => {
     const nm = name.trim()
     if (!nm) return
@@ -33,17 +49,9 @@ export default function AdminDatasets({ actions, game, refresh, notify }) {
     if (!r.ok) return notify(errorText(r.error), 'down')
     setName('')
     setDesc('')
-    notify(`'${nm}' 데이터셋으로 저장했어요`, 'gold')
+    notify(`'${nm}' 새 데이터셋으로 저장했어요`, 'gold')
     loadDatasets()
-  }
-
-  const overwrite = async (d) => {
-    setBusy(true)
-    const r = await actions.saveDataset(d.name, d.description, d.id)
-    setBusy(false)
-    if (!r.ok) return notify(errorText(r.error), 'down')
-    notify(`'${d.name}'에 현재 상태를 덮어썼어요`, 'gold')
-    loadDatasets()
+    await refresh()
   }
 
   const exportDs = async (d) => {
@@ -73,7 +81,7 @@ export default function AdminDatasets({ actions, game, refresh, notify }) {
     const r = await actions.importDataset(nm, '가져온 데이터셋', payload)
     setBusy(false)
     if (!r.ok) return notify(errorText(r.error), 'down')
-    notify(`'${nm}' 데이터셋을 가져왔어요`, 'gold')
+    notify(`'${nm}' 가져왔어요. [편집]으로 열 수 있어요`, 'gold')
     loadDatasets()
   }
 
@@ -85,29 +93,39 @@ export default function AdminDatasets({ actions, game, refresh, notify }) {
     const r = c.type === 'load' ? await actions.loadDataset(c.id) : await actions.deleteDataset(c.id)
     setBusy(false)
     if (!r.ok) return notify(errorText(r.error), 'down')
-    if (c.type === 'load') {
-      notify(`'${c.name}' 데이터셋을 불러왔어요`, 'gold')
-      await refresh()
-    } else {
-      notify(`'${c.name}' 데이터셋을 삭제했어요`, 'gold')
-      loadDatasets()
-    }
+    if (c.type === 'load') notify(`'${c.name}' 편집을 시작해요`, 'gold')
+    else notify(`'${c.name}' 삭제했어요`, 'gold')
+    loadDatasets()
+    await refresh()
   }
 
   return (
     <div className="apanel">
       <section className="acard">
         <span className="acap">데이터셋 · 시나리오 저장·전환·백업</span>
-        <p className="anote">
-          게임 한 판 콘텐츠(종목·가격·재무·시황·힌트·게임설정) 전체를 데이터셋으로 저장·전환해요. .json으로
-          내보내 백업·공유하거나 파일을 가져올 수 있어요. <b>불러오기는 게임 시작 전(리셋 상태)에만</b> 됩니다.
-        </p>
+
+        {/* 지금 편집 중 */}
+        <div className="ds-active">
+          <div className="ds-active-info">
+            <span className="ds-active-label">지금 편집 중</span>
+            <span className="ds-active-name">{active ? active.name : '(아직 저장 안 함)'}</span>
+            <span className="anote ds-active-hint">
+              다른 탭에서 콘텐츠(종목·가격·재무·시황·힌트·게임설정)를 고친 뒤 여기 [저장]을 누르면 이
+              데이터셋에 반영돼요.
+            </span>
+          </div>
+          <button className="act-btn buy" disabled={busy || !active} onClick={saveActive}>
+            💾 저장
+          </button>
+        </div>
+
+        {/* 새 데이터셋으로 저장 + 파일 */}
         <div className="ds-save">
           <input
             className="bc-input"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="이름 (예: 2026 시나리오)"
+            placeholder="새 데이터셋 이름 (예: 2026 시나리오)"
             maxLength={60}
           />
           <input
@@ -117,8 +135,8 @@ export default function AdminDatasets({ actions, game, refresh, notify }) {
             placeholder="설명 (선택)"
             maxLength={120}
           />
-          <button className="act-btn buy bc-go" disabled={busy || !name.trim()} onClick={saveNew}>
-            현재 콘텐츠를 데이터셋으로 저장
+          <button className="act-btn bc-go" disabled={busy || !name.trim()} onClick={saveNew}>
+            + 새 데이터셋으로 저장
           </button>
         </div>
         <div className="ds-import">
@@ -130,7 +148,7 @@ export default function AdminDatasets({ actions, game, refresh, notify }) {
 
         {started && (
           <p className="awarn">
-            게임 진행 중이라 불러오기가 잠겨 있어요. [진행] 탭에서 게임 리셋 후 가능합니다.
+            게임 진행 중이라 다른 데이터셋으로 [편집] 전환이 잠겨 있어요. [진행] 탭에서 게임 리셋 후 가능합니다.
           </p>
         )}
 
@@ -139,24 +157,24 @@ export default function AdminDatasets({ actions, game, refresh, notify }) {
         ) : (
           <div className="ds-list">
             {datasets.map((d) => (
-              <div key={d.id} className="ds-row">
+              <div key={d.id} className={'ds-row' + (d.id === activeId ? ' on' : '')}>
                 <div className="ds-info">
-                  <span className="ds-name">{d.name}</span>
+                  <span className="ds-name">
+                    {d.name}
+                    {d.id === activeId && <span className="ds-badge">편집 중</span>}
+                  </span>
                   {d.description && <span className="ds-desc">{d.description}</span>}
                 </div>
                 <div className="ds-btns">
-                  <button className="text-btn" disabled={busy} onClick={() => exportDs(d)}>
-                    내보내기
-                  </button>
-                  <button className="text-btn" disabled={busy} onClick={() => overwrite(d)}>
-                    덮어쓰기
-                  </button>
                   <button
                     className="act-btn buy sm"
-                    disabled={busy || started}
+                    disabled={busy || started || d.id === activeId}
                     onClick={() => setConfirm({ type: 'load', id: d.id, name: d.name })}
                   >
-                    불러오기
+                    편집
+                  </button>
+                  <button className="text-btn" disabled={busy} onClick={() => exportDs(d)}>
+                    내보내기
                   </button>
                   <button
                     className="text-btn danger tiny"
@@ -175,17 +193,17 @@ export default function AdminDatasets({ actions, game, refresh, notify }) {
       <Modal
         open={!!confirm}
         onClose={() => setConfirm(null)}
-        title={confirm?.type === 'load' ? '데이터셋 불러오기' : '데이터셋 삭제'}
+        title={confirm?.type === 'load' ? '데이터셋 편집 전환' : '데이터셋 삭제'}
       >
         <div className="confirm">
           {confirm?.type === 'load' ? (
             <>
               <p className="big">
-                <b>'{confirm?.name}'</b>을 불러옵니다
+                <b>'{confirm?.name}'</b> 편집을 시작합니다
               </p>
               <p className="ask">
-                현재 종목·재무·시황·힌트·게임설정이 <b>이 데이터셋으로 전부 교체</b>됩니다(조는 유지, 게임은
-                시작 전 상태). 되돌릴 수 없습니다.
+                지금 콘텐츠가 이 데이터셋으로 <b>바뀌고 게임이 리셋</b>됩니다(조는 유지). <b>저장하지 않은
+                변경은 사라져요.</b>
               </p>
             </>
           ) : (
@@ -203,7 +221,7 @@ export default function AdminDatasets({ actions, game, refresh, notify }) {
             disabled={busy}
             onClick={runConfirm}
           >
-            {confirm?.type === 'load' ? '불러오기' : '삭제'}
+            {confirm?.type === 'load' ? '편집 시작' : '삭제'}
           </button>
         </div>
       </Modal>

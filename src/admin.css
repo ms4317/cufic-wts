@@ -660,6 +660,56 @@
   gap: 6px;
   flex-shrink: 0;
 }
+.ds-active {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--gold);
+  border-radius: var(--r-md);
+  background: color-mix(in srgb, var(--gold) 10%, transparent);
+  margin-bottom: 12px;
+}
+.ds-active-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.ds-active-label {
+  font-size: 11px;
+  color: var(--muted);
+}
+.ds-active-name {
+  font-size: 16px;
+  font-weight: 800;
+}
+.ds-active-hint {
+  margin: 2px 0 0 !important;
+}
+.ds-active .act-btn {
+  width: auto;
+  flex: 0 0 auto;
+  padding: 10px 20px;
+  font-size: 15px;
+}
+.ds-save .act-btn.bc-go {
+  width: auto;
+  flex: 0 0 auto;
+}
+.ds-badge {
+  margin-left: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #1a1206;
+  background: var(--gold);
+  padding: 1px 7px;
+  border-radius: 999px;
+}
+.ds-row.on {
+  border-color: var(--gold);
+}
 
 /* ── 게임 설정 편집 */
 .cfg-form {
