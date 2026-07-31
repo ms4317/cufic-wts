@@ -141,5 +141,6 @@ select private.set_admin_secret('원하는_비밀');
 - `docs/DATA_GUIDE.md` — 다음 게임 데이터 교체 절차(비개발자용).
 - `docs/SCREENS.md` — 화면·버튼 설명서(학생·관리자). `docs/function_btn.md` — 버튼·팝업 참조 표.
 - `docs/OPERATIONS.md` — 대회 당일 운영 순서(⚠ 리허설 전 초안).
+- `docs/MANUAL_ADMIN.md` — 강사용 대회 진행 매뉴얼(실제 버튼·순서). `docs/MANUAL_CONTENT.md` — 콘텐츠 제작자용(관리자 화면으로 데이터 만드는 법).
 
 규칙이 바뀌면 이 파일을, 판단의 근거가 생기면 `DECISIONS.md`를, 현황이 바뀌면 `STATUS.md`를 갱신한다.
