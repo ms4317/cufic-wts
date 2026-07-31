@@ -112,5 +112,11 @@ export function makeAdminActions(getSecret) {
       }),
     deleteFinancial: (stockId, year) =>
       call('admin_delete_financial', { p_stock_id: stockId, p_year: year }),
+
+    // 콘텐츠 팩 (B, Phase 2)
+    savePack: (name, id = null) => call('admin_save_pack', { p_name: name, p_id: id }),
+    listPacks: () => call('admin_list_packs'),
+    loadPack: (id) => call('admin_load_pack', { p_id: id }),
+    deletePack: (id) => call('admin_delete_pack', { p_id: id }),
   }
 }

@@ -572,6 +572,34 @@
   font-size: 14px;
 }
 
+/* ── 콘텐츠 팩 */
+.pack-save {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.pack-save .bc-input {
+  flex: 1;
+}
+.pack-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.pack-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--panel);
+}
+.pack-name {
+  flex: 1;
+  font-weight: 700;
+}
+
 .chips {
   display: flex;
   flex-wrap: wrap;

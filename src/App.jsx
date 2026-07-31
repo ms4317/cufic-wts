@@ -193,6 +193,7 @@ function Student({ theme, onToggleTheme }) {
     setBroadcasts(r.broadcasts)
     setFinancials(r.financials)
     setMacro(r.macro)
+    if (r.rawStocks) setRawStocks(r.rawStocks)
     setGame(r.game)
     setCash(r.cash)
     return r

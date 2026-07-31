@@ -132,19 +132,23 @@ export async function loadAll(teamCode, teamId) {
 
 /** 신호를 받았을 때 다시 가져오는 것들 (내 조 데이터 + 공개 데이터) */
 export async function refetchMine(teamCode, teamId) {
-  const [positions, trades, hints, snaps, board, game, cash, bcast, fin, macro] = await Promise.all([
-    select('positions', '*', (q) => q.eq('team_id', teamId)),
-    select('trades', '*', (q) => q.eq('team_id', teamId).order('created_at', { ascending: false })),
-    rpc('get_my_hints', { p_team_code: teamCode }),
-    select('round_snapshots', '*', (q) => q.eq('team_id', teamId).order('round')),
-    rpc('leaderboard'),
-    select('game_state', '*'),
-    rpc('team_cash', { p_team_id: teamId }),
-    select('broadcasts', '*', (q) => q.order('id', { ascending: false })),
-    select('financials', '*'),
-    select('macro', '*', (q) => q.order('year')),
-  ])
-  const failed = [positions, trades, hints, snaps, board, game, bcast, fin, macro].find((r) => !r.ok)
+  const [positions, trades, hints, snaps, board, game, cash, bcast, fin, macro, stocks] =
+    await Promise.all([
+      select('positions', '*', (q) => q.eq('team_id', teamId)),
+      select('trades', '*', (q) => q.eq('team_id', teamId).order('created_at', { ascending: false })),
+      rpc('get_my_hints', { p_team_code: teamCode }),
+      select('round_snapshots', '*', (q) => q.eq('team_id', teamId).order('round')),
+      rpc('leaderboard'),
+      select('game_state', '*'),
+      rpc('team_cash', { p_team_id: teamId }),
+      select('broadcasts', '*', (q) => q.order('id', { ascending: false })),
+      select('financials', '*'),
+      select('macro', '*', (q) => q.order('year')),
+      select('stocks', '*'), // 팩 전환으로 종목이 통째로 바뀔 수 있어 함께 갱신
+    ])
+  const failed = [positions, trades, hints, snaps, board, game, bcast, fin, macro, stocks].find(
+    (r) => !r.ok,
+  )
   if (failed) return { ok: false, error: failed.error ?? 'network' }
   return {
     ok: true,
@@ -156,6 +160,7 @@ export async function refetchMine(teamCode, teamId) {
     broadcasts: bcast.rows ?? [],
     financials: shapeFinancials(fin.rows),
     macro: shapeMacro(macro.rows),
+    rawStocks: stocks.rows,
     game: game.rows[0] ?? null,
     cash: Number(cash.value ?? 0),
   }

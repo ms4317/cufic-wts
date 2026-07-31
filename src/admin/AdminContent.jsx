@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import Modal from '../components/Modal'
 import { errorText } from '../supabase'
 import { FIN_METRICS, MACRO_METRICS } from '../data'
 
@@ -97,6 +98,56 @@ function FinRow({ stockId, year, row, onSave, onDelete, busy }) {
 export default function AdminContent({ actions, game, stocks, financials, macro, refresh, notify }) {
   const [busy, setBusy] = useState(false)
   const [sel, setSel] = useState('')
+  const [packs, setPacks] = useState([])
+  const [packName, setPackName] = useState('')
+  const [confirm, setConfirm] = useState(null) // {type:'load'|'delete', id, name}
+
+  const loadPacks = async () => {
+    const r = await actions.listPacks()
+    if (r.ok) setPacks(r.packs ?? [])
+  }
+  useEffect(() => {
+    loadPacks()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const saveNewPack = async () => {
+    const nm = packName.trim()
+    if (!nm) return
+    setBusy(true)
+    const r = await actions.savePack(nm)
+    setBusy(false)
+    if (!r.ok) return notify(errorText(r.error), 'down')
+    setPackName('')
+    notify(`'${nm}' 팩으로 저장했어요`, 'gold')
+    loadPacks()
+  }
+
+  const overwritePack = async (p) => {
+    setBusy(true)
+    const r = await actions.savePack(p.name, p.id)
+    setBusy(false)
+    if (!r.ok) return notify(errorText(r.error), 'down')
+    notify(`'${p.name}'에 현재 상태를 덮어썼어요`, 'gold')
+    loadPacks()
+  }
+
+  const runConfirm = async () => {
+    const c = confirm
+    setConfirm(null)
+    if (!c) return
+    setBusy(true)
+    const r = c.type === 'load' ? await actions.loadPack(c.id) : await actions.deletePack(c.id)
+    setBusy(false)
+    if (!r.ok) return notify(errorText(r.error), 'down')
+    if (c.type === 'load') {
+      notify(`'${c.name}' 팩을 불러왔어요 (게임 리셋됨)`, 'gold')
+    } else {
+      notify(`'${c.name}' 팩을 삭제했어요`, 'gold')
+      loadPacks()
+    }
+    await refresh()
+  }
 
   const years = useMemo(() => yearsOf(game), [game])
   const macroByYear = useMemo(
@@ -157,6 +208,60 @@ export default function AdminContent({ actions, game, stocks, financials, macro,
 
   return (
     <div className="apanel">
+      {/* ── 콘텐츠 팩 */}
+      <section className="acard">
+        <span className="acap">콘텐츠 팩 · 데이터 세트 저장·전환</span>
+        <p className="anote">
+          지금 DB의 콘텐츠(종목·가격·재무·시황·힌트) 전체를 <b>팩</b>으로 저장해 두고, 나중에 통째로
+          갈아끼울 수 있어요. <b>불러오기는 게임을 리셋</b>합니다(조는 유지).
+        </p>
+        <div className="pack-save">
+          <input
+            className="bc-input"
+            value={packName}
+            onChange={(e) => setPackName(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && saveNewPack()}
+            placeholder="예: 2025 데이터 (팩1)"
+            maxLength={60}
+          />
+          <button
+            className="act-btn buy bc-go"
+            disabled={busy || !packName.trim()}
+            onClick={saveNewPack}
+          >
+            현재 상태를 팩으로 저장
+          </button>
+        </div>
+        {packs.length === 0 ? (
+          <p className="aempty">저장된 팩이 없어요. 위에서 현재 데이터를 첫 팩으로 저장해 보세요.</p>
+        ) : (
+          <div className="pack-list">
+            {packs.map((p) => (
+              <div key={p.id} className="pack-row">
+                <span className="pack-name">{p.name}</span>
+                <button className="text-btn" disabled={busy} onClick={() => overwritePack(p)}>
+                  덮어쓰기
+                </button>
+                <button
+                  className="act-btn buy sm"
+                  disabled={busy}
+                  onClick={() => setConfirm({ type: 'load', id: p.id, name: p.name })}
+                >
+                  불러오기
+                </button>
+                <button
+                  className="text-btn danger tiny"
+                  disabled={busy}
+                  onClick={() => setConfirm({ type: 'delete', id: p.id, name: p.name })}
+                >
+                  삭제
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
       <p className="anote">
         재무제표·시황은 이제 DB에 있어요. 여기서 고치면 <b>재배포 없이</b> 학생 화면에 바로 반영됩니다.
         (⚠ 힌트의 호재·악재가 실제 등락과 맞는지 검증은 아직 자동으로 안 걸려요 — 신중히.)
@@ -217,6 +322,42 @@ export default function AdminContent({ actions, game, stocks, financials, macro,
           />
         ))}
       </section>
+
+      <Modal
+        open={!!confirm}
+        onClose={() => setConfirm(null)}
+        title={confirm?.type === 'load' ? '팩 불러오기' : '팩 삭제'}
+      >
+        <div className="confirm">
+          {confirm?.type === 'load' ? (
+            <>
+              <p className="big">
+                <b>'{confirm?.name}'</b> 팩을 불러옵니다
+              </p>
+              <p className="ask">
+                현재 종목·재무·시황·힌트가 이 팩으로 교체되고 <b>게임이 리셋</b>됩니다(진행 중 거래·보유·
+                순위 삭제, 조는 유지). 되돌릴 수 없습니다.
+              </p>
+            </>
+          ) : (
+            <p className="big">
+              <b>'{confirm?.name}'</b> 팩을 삭제할까요?
+            </p>
+          )}
+        </div>
+        <div className="mfoot">
+          <button className="cancel" onClick={() => setConfirm(null)}>
+            취소
+          </button>
+          <button
+            className={'act-btn ' + (confirm?.type === 'load' ? 'buy' : 'sell')}
+            disabled={busy}
+            onClick={runConfirm}
+          >
+            {confirm?.type === 'load' ? '불러오기' : '삭제'}
+          </button>
+        </div>
+      </Modal>
     </div>
   )
 }
