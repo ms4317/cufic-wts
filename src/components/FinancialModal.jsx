@@ -1,15 +1,15 @@
 import { Fragment, useState } from 'react'
 import Modal from './Modal'
 import { eok } from '../format'
-import { financials, FIN_METRICS, FIN_YEARS } from '../data'
+import { FIN_METRICS, FIN_YEARS } from '../data'
 
-export default function FinancialModal({ open, onClose, stock, round }) {
+export default function FinancialModal({ open, onClose, stock, round, financials }) {
   // 열려 있는 지표 설명. hover가 아니라 탭으로 여닫는다(터치 기기 대응).
   const [openMetric, setOpenMetric] = useState(null)
 
   if (!stock) return null
 
-  const data = financials[stock.code]
+  const data = financials?.[stock.code]
   // 스포일러 방지: 현재 라운드 연도보다 미래 데이터는 노출하지 않는다
   const years = FIN_YEARS.filter((y) => y <= round.year)
 

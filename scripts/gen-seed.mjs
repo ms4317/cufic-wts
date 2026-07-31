@@ -10,7 +10,7 @@
 // 시드는 마이그레이션 뒤에 적용된다(game_state.final_year 컬럼은 마이그레이션이 만든다).
 
 import { writeFileSync } from 'fs'
-import { PRINCIPAL, ROUNDS, FINAL_YEAR, stocks, initialHints } from '../src/data.js'
+import { PRINCIPAL, ROUNDS, FINAL_YEAR, stocks, initialHints, financials, MACRO } from '../src/data.js'
 
 const q = (s) => `'${String(s).replace(/'/g, "''")}'`
 const jsonb = (o) => `${q(JSON.stringify(o))}::jsonb`
@@ -36,6 +36,8 @@ w('delete from positions where true;')
 w('delete from hint_grants where true;')
 w('delete from broadcasts where true;')
 w('delete from hints where true;')
+w('delete from financials where true;')
+w('delete from macro where true;')
 w('delete from teams where true;')
 w('delete from stocks where true;')
 w('delete from game_state where true;')
@@ -63,6 +65,34 @@ w(
     .map(
       (s) =>
         `  (${q(s.code)}, ${q(s.name)}, ${q(s.desc ?? '')}, ${s.listedFromRound}, ${jsonb(s.priceByYear)}, ${s.displayOrder})`,
+    )
+    .join(',\n') + ';',
+)
+w()
+
+// ── financials (재무제표). 값이 없는 연도(미상장/폐지)는 행을 넣지 않는다.
+w('-- 재무제표. 미상장/폐지 연도는 행 없음(화면에서 "-").')
+const finRows = []
+for (const [code, years] of Object.entries(financials)) {
+  for (const [year, v] of Object.entries(years)) {
+    if (!v) continue
+    finRows.push(
+      `  (${q(code)}, ${year}, ${v.revenue}, ${v.opIncome}, ${v.netIncome}, ${v.debtRatio}, ${v.roe})`,
+    )
+  }
+}
+w('insert into financials (stock_id, year, revenue, op_income, net_income, debt_ratio, roe) values')
+w(finRows.join(',\n') + ';')
+w()
+
+// ── macro (시황)
+w('-- 시황(거시경제 지표 + 한 줄 요약).')
+w('insert into macro (year, summary, rate, gdp, unemployment, fx, cpi, oil) values')
+w(
+  Object.entries(MACRO)
+    .map(
+      ([year, m]) =>
+        `  (${year}, ${q(m.summary)}, ${m.rate}, ${m.gdp}, ${m.unemployment}, ${m.fx}, ${m.cpi}, ${m.oil})`,
     )
     .join(',\n') + ';',
 )

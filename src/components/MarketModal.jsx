@@ -1,18 +1,18 @@
 import { Fragment, useState } from 'react'
 import Modal from './Modal'
 import { num } from '../format'
-import { MACRO, MACRO_METRICS, FIN_YEARS } from '../data'
+import { MACRO_METRICS, FIN_YEARS } from '../data'
 
 /**
  * 시황판 — 연도별 거시경제 지표(금리·GDP·실업률·환율·물가·유가).
  * 재무제표처럼 현재 라운드 연도까지만 공개한다(미래 스포일러 차단).
  * 가격을 직접 움직이진 않지만, 학생이 재무제표·힌트와 함께 판단하는 '배경'이다.
  */
-export default function MarketModal({ open, onClose, round }) {
+export default function MarketModal({ open, onClose, round, macro }) {
   const [openMetric, setOpenMetric] = useState(null)
 
   const years = FIN_YEARS.filter((y) => y <= round.year)
-  const cur = MACRO[round.year]
+  const cur = macro?.[round.year]
   const fmt = (m, v) => (v == null ? '-' : m.unit === '%' ? v.toFixed(1) : num(v))
 
   return (
@@ -58,7 +58,7 @@ export default function MarketModal({ open, onClose, round }) {
                   </td>
                   {years.map((y) => (
                     <td key={y} className="num">
-                      {fmt(m, MACRO[y]?.[m.key])}
+                      {fmt(m, macro?.[y]?.[m.key])}
                     </td>
                   ))}
                 </tr>

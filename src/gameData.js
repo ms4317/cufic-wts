@@ -56,25 +56,61 @@ export function buildStocks(rawStocks, game, positions) {
     })
 }
 
+// DB 행 → 화면이 쓰는 모양. 재무제표: { [종목코드]: { [연도]: {revenue,opIncome,...} } }
+function shapeFinancials(rows) {
+  const out = {}
+  for (const r of rows ?? []) {
+    ;(out[r.stock_id] ??= {})[r.year] = {
+      revenue: Number(r.revenue),
+      opIncome: Number(r.op_income),
+      netIncome: Number(r.net_income),
+      debtRatio: Number(r.debt_ratio),
+      roe: Number(r.roe),
+    }
+  }
+  return out
+}
+// 시황: { [연도]: {summary, rate, gdp, ...} }
+function shapeMacro(rows) {
+  const out = {}
+  for (const r of rows ?? []) {
+    out[r.year] = {
+      summary: r.summary ?? '',
+      rate: Number(r.rate),
+      gdp: Number(r.gdp),
+      unemployment: Number(r.unemployment),
+      fx: Number(r.fx),
+      cpi: Number(r.cpi),
+      oil: Number(r.oil),
+    }
+  }
+  return out
+}
+
 /**
  * 로그인 후 한 번에 가져오는 초기 데이터. 병렬로 요청한다.
  * 실패하면 화면이 통째로 죽는 대신 {ok:false}를 돌려준다.
  */
 export async function loadAll(teamCode, teamId) {
-  const [game, stocks, positions, trades, hints, snaps, board, me, cash, bcast] = await Promise.all([
-    select('game_state', '*'),
-    select('stocks', '*'),
-    select('positions', '*', (q) => q.eq('team_id', teamId)),
-    select('trades', '*', (q) => q.eq('team_id', teamId).order('created_at', { ascending: false })),
-    rpc('get_my_hints', { p_team_code: teamCode }),
-    select('round_snapshots', '*', (q) => q.eq('team_id', teamId).order('round')),
-    rpc('leaderboard'),
-    select('public_teams', '*', (q) => q.eq('id', teamId)),
-    rpc('team_cash', { p_team_id: teamId }),
-    select('broadcasts', '*', (q) => q.order('id', { ascending: false })),
-  ])
+  const [game, stocks, positions, trades, hints, snaps, board, me, cash, bcast, fin, macro] =
+    await Promise.all([
+      select('game_state', '*'),
+      select('stocks', '*'),
+      select('positions', '*', (q) => q.eq('team_id', teamId)),
+      select('trades', '*', (q) => q.eq('team_id', teamId).order('created_at', { ascending: false })),
+      rpc('get_my_hints', { p_team_code: teamCode }),
+      select('round_snapshots', '*', (q) => q.eq('team_id', teamId).order('round')),
+      rpc('leaderboard'),
+      select('public_teams', '*', (q) => q.eq('id', teamId)),
+      rpc('team_cash', { p_team_id: teamId }),
+      select('broadcasts', '*', (q) => q.order('id', { ascending: false })),
+      select('financials', '*'),
+      select('macro', '*', (q) => q.order('year')),
+    ])
 
-  const failed = [game, stocks, positions, trades, hints, snaps, board, me, bcast].find((r) => !r.ok)
+  const failed = [game, stocks, positions, trades, hints, snaps, board, me, bcast, fin, macro].find(
+    (r) => !r.ok,
+  )
   if (failed) return { ok: false, error: failed.error ?? 'network' }
 
   return {
@@ -87,6 +123,8 @@ export async function loadAll(teamCode, teamId) {
     snapshots: snaps.rows,
     leaderboard: board.rows ?? [],
     broadcasts: bcast.rows ?? [],
+    financials: shapeFinancials(fin.rows),
+    macro: shapeMacro(macro.rows),
     seed: Number(me.rows[0]?.seed ?? 0), // 원금 — 조마다 다를 수 있다
     cash: Number(cash.value ?? 0),
   }
