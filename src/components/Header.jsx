@@ -23,6 +23,7 @@ export default function Header({
   onOpenBroadcasts,
   onOpenRanking,
   onOpenHints,
+  onOpenMarket,
   theme,
   onToggleTheme,
   onLogout,
@@ -80,6 +81,13 @@ export default function Header({
       <button className="badge hint-badge" onClick={onOpenHints} title="내 힌트 보기">
         내 힌트 {hintCount > 0 && <span className="hcount">{hintCount}</span>}
       </button>
+
+      {/* 시황판 — 거시경제 지표 (게임 시작 후) */}
+      {started && (
+        <button className="badge market-badge" onClick={onOpenMarket} title="시황판 보기">
+          📈 시황
+        </button>
+      )}
 
       {/* 속보 — 강사가 전체에 보낸 공통 힌트. 새 게 오면 종이 깜빡인다 */}
       {bellTotal > 0 && (

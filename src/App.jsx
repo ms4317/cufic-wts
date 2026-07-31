@@ -15,6 +15,7 @@ import OrderSheet from './components/OrderSheet'
 import HintModal from './components/HintModal'
 import BroadcastModal from './components/BroadcastModal'
 import EmergencyBroadcast from './components/EmergencyBroadcast'
+import MarketModal from './components/MarketModal'
 import MyModal from './components/MyModal'
 import FinancialModal from './components/FinancialModal'
 import RoundModal from './components/RoundModal'
@@ -53,6 +54,7 @@ function Student({ theme, onToggleTheme }) {
   const [board, setBoard] = useState([])
   const [broadcasts, setBroadcasts] = useState([]) // 전체 공통 속보
   const [alertBc, setAlertBc] = useState(null) // 새로 도착한 속보 → 재난문자 팝업
+  const [marketOpen, setMarketOpen] = useState(false) // 시황판(거시경제)
   const [seed, setSeed] = useState(0) // 내 조의 원금. 조마다 다를 수 있다.
 
   const [placing, setPlacing] = useState(false) // 즉시 체결 요청 중
@@ -399,6 +401,7 @@ function Student({ theme, onToggleTheme }) {
         onOpenBroadcasts={() => setBcOpen(true)}
         onOpenRanking={() => setRankOpen(true)}
         onOpenHints={() => setHintsOpen(true)}
+        onOpenMarket={() => setMarketOpen(true)}
         theme={theme}
         onToggleTheme={onToggleTheme}
         onLogout={handleLogout}
@@ -482,6 +485,11 @@ function Student({ theme, onToggleTheme }) {
         open={finOpen}
         onClose={() => setFinOpen(false)}
         stock={selected}
+        round={{ round: game.current_round, year }}
+      />
+      <MarketModal
+        open={marketOpen}
+        onClose={() => setMarketOpen(false)}
         round={{ round: game.current_round, year }}
       />
       <RoundModal

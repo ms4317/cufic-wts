@@ -11,6 +11,8 @@ import {
   PRINCIPAL,
   initialCash,
   initialHistory,
+  MACRO,
+  MACRO_METRICS,
 } from './data'
 
 // 데이터 정합성. 손으로 전수 대조하던 것을 테스트로 고정한다.
@@ -166,5 +168,26 @@ describe('시작 상태', () => {
 
   it('체결내역이 비어 있다', () => {
     expect(initialHistory).toEqual([])
+  })
+})
+
+describe('시황(거시경제)', () => {
+  it('모든 라운드 연도 + 최종 연도의 시황 자료가 있다', () => {
+    for (const y of FIN_YEARS) expect(MACRO[y], `${y}년 시황`).toBeTruthy()
+  })
+
+  it('각 연도에 6개 지표가 빠짐없이 숫자다', () => {
+    for (const y of FIN_YEARS) {
+      for (const m of MACRO_METRICS) {
+        expect(typeof MACRO[y]?.[m.key], `${y}년 ${m.key}`).toBe('number')
+      }
+    }
+  })
+
+  it('금리·실업률은 음수가 될 수 없다', () => {
+    for (const y of FIN_YEARS) {
+      expect(MACRO[y].rate).toBeGreaterThanOrEqual(0)
+      expect(MACRO[y].unemployment).toBeGreaterThanOrEqual(0)
+    }
   })
 })

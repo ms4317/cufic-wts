@@ -64,6 +64,17 @@ const HINTS = [
   { round: 5, grade: 'D', impact: 'down', headline: '보험을 들어야 할 때와 팔아야 할 때가 있다', related: ['S01'] },
 ]
 
+// 거시경제 시황(콘텐츠_초안). 연도별 지표 — 가격 스토리와 방향을 맞춘다.
+// 2020 코로나 급랭 → 2021 유동성 반등(성장주 급등) → 2022 인플레·금리인상(성장주 조정) → 2023 고금리 둔화 → 2024~ 정상화.
+const MACRO = {
+  2020: { summary: '코로나 충격으로 경기 급랭 — 초저금리·유가 폭락', rate: 0.5, gdp: -0.7, unemployment: 4.0, fx: 1180, cpi: 0.5, oil: 42 },
+  2021: { summary: '경기 반등·유동성 장세 — 성장주 급등', rate: 0.75, gdp: 4.1, unemployment: 3.7, fx: 1150, cpi: 2.5, oil: 68 },
+  2022: { summary: '인플레이션 급등, 금리 인상 시작 — 성장주 조정', rate: 3.25, gdp: 2.6, unemployment: 2.9, fx: 1300, cpi: 5.1, oil: 95 },
+  2023: { summary: '고금리 지속·경기 둔화 — 실적 옥석 가리기', rate: 3.5, gdp: 1.4, unemployment: 2.7, fx: 1310, cpi: 3.6, oil: 78 },
+  2024: { summary: '금리 인하 기대·완만한 회복', rate: 3.0, gdp: 2.0, unemployment: 2.8, fx: 1350, cpi: 2.3, oil: 80 },
+  2025: { summary: '금리 정상화·안정 국면', rate: 2.5, gdp: 1.8, unemployment: 3.0, fx: 1320, cpi: 2.0, oil: 72 },
+}
+
 const FIN_KEY = { revenue: 'revenue', op_income: 'opIncome', net_income: 'netIncome', debt_ratio: 'debtRatio', roe: 'roe' }
 
 const financials = {}
@@ -129,6 +140,18 @@ export const FIN_METRICS = [
 
 // 재무제표. null = 미상장/상장폐지 연도(화면에서 '-'). 단위: 금액=억원, 비율=%.
 export const financials = ${JSON.stringify(financials, null, 2)}
+
+// 거시경제 시황. 연도별 지표(현재 라운드 연도 초과분은 스포일러라 화면에서 가린다).
+export const MACRO = ${JSON.stringify(MACRO, null, 2)}
+
+export const MACRO_METRICS = [
+  { key: 'rate', label: '기준금리', unit: '%', desc: '중앙은행이 정하는 기준 이자율이에요. 높으면 대출·투자가 위축되고 빚 많은 회사·성장주에 불리해요.' },
+  { key: 'gdp', label: 'GDP 성장률', unit: '%', desc: '나라 경제가 1년간 얼마나 커졌는지예요. 높으면 경기가 좋아 소비·투자가 늘어요.' },
+  { key: 'unemployment', label: '실업률', unit: '%', desc: '일자리를 못 구한 사람의 비율이에요. 높으면 소비가 줄어 경기가 나빠요.' },
+  { key: 'fx', label: '환율', unit: '원/$', desc: '1달러를 사는 데 드는 원화예요. 오르면(원화 약세) 수출 기업엔 유리, 수입엔 불리해요.' },
+  { key: 'cpi', label: '물가상승률', unit: '%', desc: '물건 값이 1년간 얼마나 올랐는지예요. 너무 높으면 금리를 올려 잡으려 해요.' },
+  { key: 'oil', label: '국제유가', unit: '$', desc: '원유 1배럴 가격(달러)이에요. 오르면 항공·운송·제조 비용이 커져요.' },
+]
 `
 
 writeFileSync(new URL('../src/data.js', import.meta.url), out, 'utf8')
