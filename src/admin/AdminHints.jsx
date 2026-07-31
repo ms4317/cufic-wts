@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import Modal from '../components/Modal'
 import { errorText } from '../supabase'
 import { num } from '../format'
+import { hintMismatches } from '../dataCheck'
 
 const GRADES = ['S', 'A', 'B', 'C', 'D']
 const IMPACTS = [
@@ -161,6 +162,11 @@ export default function AdminHints({ actions, game, stocks, teams, hints, refres
                         : '전체 시장'}
                     </span>
                     <span className="granted">지급 {h.granted_to.length}조</span>
+                    {hintMismatches(h, stocks, game).length > 0 && (
+                      <span className="mismatch" title="호재/악재 태그가 관련 종목의 다음 해 실제 등락과 어긋나요">
+                        ⚠ 등락 불일치
+                      </span>
+                    )}
                   </div>
                 </div>
                 <div className="hint-acts">
