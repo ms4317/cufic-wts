@@ -10,7 +10,7 @@ import { num, signed, pct, dirOf } from '../format'
  * @param {number|null} prevEquity  직전 라운드를 떠날 때의 평가금액. 이번 전환으로
  *   내 자산이 얼마나 움직였는지 보여주는 기준. 없으면(첫 전환 등) 원금 대비로 대체.
  */
-export default function RoundModal({ round, account, stocks, prevEquity, onClose }) {
+export default function RoundModal({ round, account, stocks, prevEquity, rank, prevRank, teamCount, onClose }) {
   // 시장 전체가 아니라 '내가 들고 있는' 종목의 등락을 보여준다 —
   // 안 산 종목이 올랐다는 정보는 이 순간 학생에게 의미가 없다.
   const { best, worst } = useMemo(() => {
@@ -40,6 +40,24 @@ export default function RoundModal({ round, account, stocks, prevEquity, onClose
             {signed(delta)} ({pct(deltaPct)})
           </span>
         </div>
+
+        {rank != null && (
+          <div className="rankbox">
+            <span className="k">내 순위</span>
+            <span className="v num">
+              {rank}위{teamCount ? ` / ${teamCount}조` : ''}
+            </span>
+            {prevRank == null ? null : prevRank !== rank ? (
+              <span className={'d ' + (rank < prevRank ? 'up' : 'down')}>
+                {rank < prevRank
+                  ? `▲ ${prevRank - rank}계단 상승`
+                  : `▼ ${rank - prevRank}계단 하락`}
+              </span>
+            ) : (
+              <span className="d flat">순위 유지</span>
+            )}
+          </div>
+        )}
 
         {best ? (
           <div className="movers">

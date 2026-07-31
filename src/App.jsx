@@ -14,6 +14,7 @@ import Chart from './components/Chart'
 import OrderSheet from './components/OrderSheet'
 import HintModal from './components/HintModal'
 import BroadcastModal from './components/BroadcastModal'
+import EmergencyBroadcast from './components/EmergencyBroadcast'
 import MyModal from './components/MyModal'
 import FinancialModal from './components/FinancialModal'
 import RoundModal from './components/RoundModal'
@@ -51,6 +52,7 @@ function Student({ theme, onToggleTheme }) {
   const [snapshots, setSnapshots] = useState([])
   const [board, setBoard] = useState([])
   const [broadcasts, setBroadcasts] = useState([]) // 전체 공통 속보
+  const [alertBc, setAlertBc] = useState(null) // 새로 도착한 속보 → 재난문자 팝업
   const [seed, setSeed] = useState(0) // 내 조의 원금. 조마다 다를 수 있다.
 
   const [placing, setPlacing] = useState(false) // 즉시 체결 요청 중
@@ -115,7 +117,10 @@ function Student({ theme, onToggleTheme }) {
   // 안 읽은 속보 개수 — 종 버튼 깜빡임·배지용
   const unreadBc = broadcasts.reduce((n, b) => n + (Number(b.id) > seenBc ? 1 : 0), 0)
 
-  const myRank = board.find((b) => b.team_id === team?.id)?.rank ?? null
+  const myRow = board.find((b) => b.team_id === team?.id)
+  const myRank = myRow?.rank ?? null
+  // 자산이 원금의 20% 이하로 쪼그라들면 파산 위기 안내
+  const bankrupt = started && !ended && seed > 0 && acct.equity <= seed * 0.2
 
   // 수익률 차트 — 서버 스냅샷 기반
   const rounds = useMemo(() => {
@@ -246,8 +251,8 @@ function Student({ theme, onToggleTheme }) {
       } else if (sig.kind === 'timer_started') {
         pushToast('거래 시간이 시작됐어요', 'up')
       } else if (sig.kind === 'broadcast') {
-        // 새 속보 도착 → 종이 깜빡인다. 회수(deleted) 신호면 목록만 조용히 갱신.
-        if (!sig.payload?.deleted) pushToast('📢 속보가 도착했어요', 'gold', () => setBcOpen(true))
+        // 새 속보 도착 → 재난문자처럼 팝업으로 먼저 띄운다. 회수(deleted) 신호면 조용히 갱신만.
+        if (!sig.payload?.deleted && fresh.broadcasts?.length) setAlertBc(fresh.broadcasts[0])
       } else if (sig.kind === 'game_reset') {
         pushToast('대회가 초기화되었어요', 'gold')
       } else if (sig.kind === 'game_ended') {
@@ -292,6 +297,22 @@ function Student({ theme, onToggleTheme }) {
     authLogout()
     setTeam(null)
     setMyOpen(false)
+  }, [])
+
+  // 재난문자 팝업 닫기 → 그 속보는 읽음 처리(종은 그만 깜빡이되 목록엔 남는다)
+  const dismissAlert = useCallback(() => {
+    setAlertBc((bc) => {
+      const id = Number(bc?.id ?? 0)
+      if (id) {
+        setSeenBc((prev) => Math.max(prev, id))
+        try {
+          localStorage.setItem('wts-seen-bc', String(id))
+        } catch {
+          /* 무시 */
+        }
+      }
+      return null
+    })
   }, [])
 
   const actions = useMemo(
@@ -386,6 +407,11 @@ function Student({ theme, onToggleTheme }) {
       {!started && (
         <div className="notstarted">아직 대회가 시작되지 않았어요. 강사 선생님을 기다려 주세요.</div>
       )}
+      {bankrupt && (
+        <div className="bankrupt-warn">
+          💸 파산 위기! 자산이 원금의 20% 아래로 줄었어요. 힌트와 재무제표를 다시 보고 신중히 골라봐요 — 아직 기회는 있어요!
+        </div>
+      )}
 
       <div className="app">
         <StockList
@@ -462,6 +488,9 @@ function Student({ theme, onToggleTheme }) {
         round={roundSummary}
         account={acct}
         stocks={stocks}
+        rank={myRow?.rank ?? null}
+        prevRank={myRow?.prev_rank ?? null}
+        teamCount={board.length}
         prevEquity={
           roundSummary
             ? Number(snapshots.find((s) => s.round === roundSummary.round - 1)?.equity ?? seed)
@@ -477,6 +506,7 @@ function Student({ theme, onToggleTheme }) {
         finalYear={game.final_year}
       />
 
+      <EmergencyBroadcast broadcast={alertBc} onClose={dismissAlert} />
       <Toasts toasts={toasts} onDismiss={dismissToast} />
     </>
   )

@@ -1932,3 +1932,105 @@ td {
     padding: 12px;
   }
 }
+
+/* ===== 파산 위기 배너 ===== */
+.bankrupt-warn {
+  flex: 0 0 auto;
+  padding: 9px 16px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--down);
+  background: var(--down-soft);
+  border-bottom: 1px solid color-mix(in srgb, var(--down) 30%, transparent);
+}
+
+/* ===== 긴급 속보(재난문자) 팝업 ===== */
+.alert-card {
+  width: min(560px, 92vw);
+  background: var(--panel);
+  border: 2px solid var(--gold);
+  border-radius: var(--r-lg);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+  animation: alert-pop 0.22s ease-out;
+}
+@keyframes alert-pop {
+  from {
+    transform: scale(0.94) translateY(-10px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+.alert-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 20px;
+  font-size: 17px;
+  font-weight: 800;
+  color: #1a1206;
+  background: var(--gold);
+}
+.alert-icon {
+  font-size: 20px;
+}
+.alert-body {
+  padding: 22px 22px 6px;
+  font-size: 18px;
+  line-height: 1.5;
+  font-weight: 600;
+  color: var(--text);
+}
+.alert-ok {
+  display: block;
+  width: calc(100% - 40px);
+  margin: 14px 20px 20px;
+  padding: 13px;
+  border: none;
+  border-radius: var(--r-md);
+  background: var(--gold);
+  color: #1a1206;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.alert-ok:hover {
+  filter: brightness(1.05);
+}
+
+/* ===== 라운드 요약 순위 박스 ===== */
+.rankbox {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 8px 12px;
+  margin-top: 10px;
+  padding: 12px 14px;
+  border-radius: var(--r-md);
+  background: var(--panel-2);
+}
+.rankbox .k {
+  color: var(--dim);
+  font-size: 13px;
+}
+.rankbox .v {
+  font-size: 18px;
+  font-weight: 800;
+}
+.rankbox .d {
+  font-size: 13px;
+  font-weight: 700;
+}
+.rankbox .d.up {
+  color: var(--up);
+}
+.rankbox .d.down {
+  color: var(--down);
+}
+.rankbox .d.flat {
+  color: var(--muted);
+}
