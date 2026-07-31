@@ -9,6 +9,7 @@ import AdminHints from './AdminHints'
 import AdminTeams from './AdminTeams'
 import AdminStocks from './AdminStocks'
 import AdminContent from './AdminContent'
+import AdminDatasets from './AdminDatasets'
 import AdminBoard from './AdminBoard'
 
 const TABS = [
@@ -17,6 +18,7 @@ const TABS = [
   { key: 'teams', label: '조 관리' },
   { key: 'stocks', label: '종목·가격' },
   { key: 'content', label: '재무·시황' },
+  { key: 'datasets', label: '데이터셋' },
   { key: 'board', label: '리더보드' },
 ]
 
@@ -205,6 +207,7 @@ export default function Admin({ theme, onToggleTheme }) {
           {tab === 'teams' && <AdminTeams {...shared} />}
           {tab === 'stocks' && <AdminStocks {...shared} />}
           {tab === 'content' && <AdminContent {...shared} />}
+          {tab === 'datasets' && <AdminDatasets {...shared} />}
           {tab === 'board' && <AdminBoard {...shared} />}
         </main>
       </div>

@@ -75,6 +75,8 @@ export const ERROR_TEXT = {
   unauthorized: '관리자 비밀번호가 맞지 않습니다',
   game_already_started: '대회가 시작된 뒤에는 바꿀 수 없습니다',
   code_exists: '이미 있는 참가 코드입니다',
+  invalid_payload: '데이터셋 파일 형식이 올바르지 않아요',
+  not_found: '찾을 수 없어요',
 }
 
 export const errorText = (code) => ERROR_TEXT[code] ?? '문제가 생겼어요. 다시 시도해 주세요'

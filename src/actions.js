@@ -127,10 +127,14 @@ export function makeAdminActions(getSecret) {
         p_duration_minutes: c.durationMinutes,
       }),
 
-    // 콘텐츠 팩 (B, Phase 2)
-    savePack: (name, id = null) => call('admin_save_pack', { p_name: name, p_id: id }),
-    listPacks: () => call('admin_list_packs'),
-    loadPack: (id) => call('admin_load_pack', { p_id: id }),
-    deletePack: (id) => call('admin_delete_pack', { p_id: id }),
+    // 데이터셋(시나리오 팩)
+    saveDataset: (name, description, id = null) =>
+      call('admin_save_dataset', { p_name: name, p_description: description ?? '', p_id: id }),
+    listDatasets: () => call('admin_list_datasets'),
+    getDataset: (id) => call('admin_get_dataset', { p_id: id }),
+    importDataset: (name, description, payload) =>
+      call('admin_import_dataset', { p_name: name, p_description: description ?? '', p_payload: payload }),
+    loadDataset: (id) => call('admin_load_dataset', { p_id: id }),
+    deleteDataset: (id) => call('admin_delete_dataset', { p_id: id }),
   }
 }
