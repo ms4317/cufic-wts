@@ -6,6 +6,18 @@ import DrawLayer from './DrawLayer'
 
 const PAD = { t: 18, r: 66, b: 18, l: 14 }
 
+// y축 눈금을 깔끔한 라운드 숫자로 (1,511 대신 1,500·2,000 …). 자릿수에 맞춰 간격을 고른다.
+const niceTicks = (min, max, count = 5) => {
+  const range = max - min || 1
+  const raw = range / (count - 1)
+  const mag = Math.pow(10, Math.floor(Math.log10(raw)))
+  const n = raw / mag
+  const step = (n < 1.5 ? 1 : n < 3 ? 2 : n < 7 ? 5 : 10) * mag
+  const out = []
+  for (let v = Math.ceil(min / step) * step; v <= max + step * 0.001; v += step) out.push(v)
+  return out
+}
+
 // 그림판 도구: 커서 · 펜 · 추세선 · 지우개
 const TOOLS = [
   { key: 'cursor', title: '커서', icon: <path d="M4 2l7 18 2.5-7L20 11z" fill="currentColor" /> },
@@ -72,7 +84,7 @@ export default function Chart({ stock, onOpenFinancial, strokes, onStrokesChange
       x: (i) => PAD.l + step * (i + 0.5),
       y: (v) => PAD.t + (1 - (v - min) / (max - min)) * plotH,
       bodyW: Math.max(3, step * 0.58),
-      ticks: Array.from({ length: 5 }, (_, i) => min + ((max - min) * i) / 4),
+      ticks: niceTicks(min, max, 5),
     }
   }, [candles, w, h])
 

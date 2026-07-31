@@ -14,6 +14,11 @@ const FOCUSABLE =
  */
 export default function Modal({ open, onClose, title, wide, children }) {
   const boxRef = useRef(null)
+  // onClose는 부모에서 매 렌더 새 함수로 온다. 이펙트 의존성에 넣으면 타이머 등으로
+  // 부모가 리렌더될 때마다 이펙트가 재실행돼 first.focus()가 모달을 맨 위로 스크롤시킨다.
+  // → 의존성은 [open]만, 최신 onClose는 ref로 참조한다.
+  const onCloseRef = useRef(onClose)
+  onCloseRef.current = onClose
 
   useEffect(() => {
     if (!open) return
@@ -23,13 +28,13 @@ export default function Modal({ open, onClose, title, wide, children }) {
 
     const items = () => [...(boxRef.current?.querySelectorAll(FOCUSABLE) ?? [])]
 
-    // 모달 안에 포커스를 넣어야 Tab이 여기서부터 돈다
+    // 모달 안에 포커스를 넣어야 Tab이 여기서부터 돈다 (열릴 때 한 번만)
     const first = items()[0]
     if (first && !boxRef.current.contains(document.activeElement)) first.focus()
 
     const onKey = (e) => {
       if (e.key === 'Escape') {
-        onClose()
+        onCloseRef.current()
         return
       }
       if (e.key !== 'Tab') return
@@ -63,7 +68,7 @@ export default function Modal({ open, onClose, title, wide, children }) {
       document.body.style.overflow = prevOverflow
       restoreTo?.focus?.()
     }
-  }, [open, onClose])
+  }, [open])
 
   if (!open) return null
 

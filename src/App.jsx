@@ -371,6 +371,7 @@ function Student({ theme, onToggleTheme }) {
         hintCount={hints.length}
         tradingOpen={tradingOpen}
         remainingMs={remainingMs}
+        durationMs={(game?.round_duration_seconds ?? 600) * 1000}
         started={started}
         bellTotal={broadcasts.length}
         bellCount={unreadBc}

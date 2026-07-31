@@ -11,8 +11,9 @@ export const dirOf = (n) => (n > 0 ? 'up' : n < 0 ? 'down' : 'flat')
 // 보합 표시용 기호
 export const arrowOf = (n) => (n > 0 ? '▲' : n < 0 ? '▼' : '–')
 
-// 억원 단위 재무 수치. 음수는 회계 관례대로 △ 표기.
-export const eok = (n) => (n < 0 ? '△' + num(Math.abs(n)) : num(n))
+// 억원 단위 재무 수치. 음수는 마이너스(−)로 표시한다 —
+// 회계 관례의 △(삼각형)은 청소년이 '증가'로 오해하기 쉬워, 명확한 부호로 통일했다.
+export const eok = (n) => num(n)
 
 // 현재 시각 HH:MM:SS
 export const nowTime = () =>

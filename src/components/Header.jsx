@@ -16,6 +16,7 @@ export default function Header({
   hintCount = 0,
   tradingOpen = false,
   remainingMs = 0,
+  durationMs = 0,
   started = false,
   bellTotal = 0,
   bellCount = 0,
@@ -27,6 +28,8 @@ export default function Header({
   onLogout,
 }) {
   const dir = dirOf(account.pnl)
+  // 남은 시간 비율 (로딩바). 매초 remainingMs가 줄며 바가 함께 줄어든다.
+  const fillPct = durationMs > 0 ? Math.max(0, Math.min(100, (remainingMs / durationMs) * 100)) : 0
 
   return (
     <header>
@@ -52,8 +55,13 @@ export default function Header({
         <span className={'badge timer' + (tradingOpen ? ' live' : ' idle')}>
           {tradingOpen ? (
             <>
-              <span className="pulse" />
-              거래 {mmss(remainingMs)}
+              <span className="trow">
+                <span className="pulse" />
+                거래 <b className="tclock num">{mmss(remainingMs)}</b>
+              </span>
+              <span className="tbar">
+                <i style={{ width: fillPct + '%' }} />
+              </span>
             </>
           ) : (
             '거래 대기'

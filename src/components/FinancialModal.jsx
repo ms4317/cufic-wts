@@ -24,6 +24,8 @@ export default function FinancialModal({ open, onClose, stock, round }) {
 
       <p className="fin-note">
         단위: 매출액 · 영업이익 · 당기순이익 = 억원 / 부채비율 · ROE = % · {round.year}년까지 공시된 자료예요
+        <br />
+        <span className="down">파란 숫자(−)</span>는 적자(손해 본 것)예요.
       </p>
 
       {!data ? (
