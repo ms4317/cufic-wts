@@ -36,7 +36,6 @@ export default function Header({
     <header>
       <div className="logo">
         <span className="brand-logo" role="img" aria-label="CUFIC WTS" />
-        Cufic WTS
       </div>
 
       {/* 로그인한 팀 */}

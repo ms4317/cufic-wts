@@ -200,7 +200,6 @@ export default function Admin({ theme, onToggleTheme }) {
       <header>
         <div className="logo">
           <span className="brand-logo" role="img" aria-label="CUFIC WTS" />
-          Cufic WTS
         </div>
         <span className="badge round">관리자</span>
         {game && (

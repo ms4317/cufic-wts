@@ -52,10 +52,7 @@ export default function StockList({ stocks, selectedCode, onSelect, onOpenMy }) 
             >
               <div>
                 <div className="nm">{s.name}</div>
-                <div className="code">
-                  {s.code}
-                  {s.holding > 0 && ` · ${s.holding}주 보유`}
-                </div>
+                {s.holding > 0 && <div className="code">{s.holding}주 보유</div>}
               </div>
               <div className="pr">
                 {s.halted ? (

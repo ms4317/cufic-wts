@@ -96,9 +96,7 @@ export default function Chart({ stock, onOpenFinancial, strokes, onStrokesChange
     <main className="col chart">
       <div className="top">
         <span className="name">{stock.name}</span>
-        <span className="code2">
-          {stock.code} · {stock.market}
-        </span>
+        <span className="code2">{stock.market}</span>
         {stock.halted ? (
           <span className="halted-tag big">거래정지</span>
         ) : (

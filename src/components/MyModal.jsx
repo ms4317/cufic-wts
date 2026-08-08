@@ -202,7 +202,6 @@ export default function MyModal({ open, onClose, account, realized, stocks, hist
                   <td>
                     {s.name}
                     {s.halted && <span className="delist-tag">⚠ 상장폐지</span>}
-                    <div className="sub">{s.code}</div>
                   </td>
                   <td className="num">{num(s.holding)}</td>
                   <td className="num">{num(s.avgPrice)}</td>
