@@ -198,9 +198,10 @@ export default function MyModal({ open, onClose, account, realized, stocks, hist
               const p = positionPnl(s)
               const d = dirOf(p.pnl)
               return (
-                <tr key={s.code}>
+                <tr key={s.code} className={s.halted ? 'delisted-row' : ''}>
                   <td>
                     {s.name}
+                    {s.halted && <span className="delist-tag">⚠ 상장폐지</span>}
                     <div className="sub">{s.code}</div>
                   </td>
                   <td className="num">{num(s.holding)}</td>

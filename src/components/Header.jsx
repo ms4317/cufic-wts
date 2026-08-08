@@ -53,7 +53,13 @@ export default function Header({
 
       {/* 거래 타이머 — 열려 있으면 카운트다운, 아니면 대기 (종료 후엔 숨김) */}
       {started && !ended && (
-        <span className={'badge timer' + (tradingOpen ? ' live' : ' idle')}>
+        <span
+          className={
+            'badge timer' +
+            (tradingOpen ? ' live' : ' idle') +
+            (tradingOpen && remainingMs <= 30000 ? ' urgent' : tradingOpen && remainingMs <= 60000 ? ' warn' : '')
+          }
+        >
           {tradingOpen ? (
             <>
               <span className="trow">

@@ -160,13 +160,15 @@ export default function OrderSheet({
                 {held.map((s) => (
                   <button
                     key={s.code}
-                    className={'hold-row' + (s.code === stock.code ? ' on' : '')}
+                    className={'hold-row' + (s.code === stock.code ? ' on' : '') + (s.halted ? ' delisted' : '')}
                     onClick={() => onSelectStock?.(s.code)}
-                    title={`${s.name} 주문하기`}
+                    title={s.halted ? `${s.name} — 상장폐지(전액 손실)` : `${s.name} 주문하기`}
                   >
                     <span className="hnm">{s.name}</span>
                     <span className="hq num">{num(s.holding)}주</span>
-                    <span className="hval num">₩ {num(s.holding * s.price)}</span>
+                    <span className="hval num">
+                      {s.halted ? '⚠ 상장폐지' : `₩ ${num(s.holding * s.price)}`}
+                    </span>
                   </button>
                 ))}
               </div>

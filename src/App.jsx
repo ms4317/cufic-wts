@@ -95,6 +95,7 @@ function Student({ theme, onToggleTheme }) {
     () =>
       board.map((b) => ({
         rank: Number(b.rank),
+        prevRank: b.prev_rank != null ? Number(b.prev_rank) : null,
         name: b.name,
         equity: Number(b.equity),
         pnl: Number(b.pnl),
@@ -204,6 +205,19 @@ function Student({ theme, onToggleTheme }) {
     const id = setInterval(() => setNowTs(Date.now()), 1000)
     return () => clearInterval(id)
   }, [])
+
+  // 매매 마감 30초 전 알림 (라운드마다 한 번만). 타이머가 다시 열리면 초기화된다.
+  const warned30 = useRef(false)
+  useEffect(() => {
+    if (tradingOpen && remainingMs > 0 && remainingMs <= 30000) {
+      if (!warned30.current) {
+        warned30.current = true
+        pushToast('매매 마감 30초 전!', 'down')
+      }
+    } else if (!tradingOpen || remainingMs > 30000) {
+      warned30.current = false
+    }
+  }, [remainingMs, tradingOpen, pushToast])
 
   // 속보 팝업이 열려 있으면(그리고 목록이 갱신되면) 전부 읽음 처리 → 깜빡임 멈춤
   useEffect(() => {

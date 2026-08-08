@@ -13,11 +13,13 @@ import { num, signed, pct, dirOf } from '../format'
 export default function RoundModal({ round, account, stocks, prevEquity, rank, prevRank, teamCount, onClose }) {
   // 시장 전체가 아니라 '내가 들고 있는' 종목의 등락을 보여준다 —
   // 안 산 종목이 올랐다는 정보는 이 순간 학생에게 의미가 없다.
-  const { best, worst } = useMemo(() => {
+  const { best, worst, delisted } = useMemo(() => {
     const mine = stocks.filter((s) => s.holding > 0 && !s.halted)
-    if (!mine.length) return { best: null, worst: null }
+    // 보유 중인데 가격 0이 된 종목 = 상장폐지(전액 손실)
+    const delisted = stocks.filter((s) => s.holding > 0 && s.halted)
+    if (!mine.length) return { best: null, worst: null, delisted }
     const sorted = [...mine].sort((a, b) => b.chg - a.chg)
-    return { best: sorted[0], worst: sorted.length > 1 ? sorted[sorted.length - 1] : null }
+    return { best: sorted[0], worst: sorted.length > 1 ? sorted[sorted.length - 1] : null, delisted }
   }, [stocks])
 
   if (!round) return null
@@ -45,17 +47,22 @@ export default function RoundModal({ round, account, stocks, prevEquity, rank, p
           <div className="rankbox">
             <span className="k">내 순위</span>
             <span className="v num">
-              {rank}위{teamCount ? ` / ${teamCount}조` : ''}
+              {prevRank != null && prevRank !== rank ? `${prevRank}위 → ${rank}위` : `${rank}위`}
+              {teamCount ? <span className="of"> / {teamCount}조</span> : null}
             </span>
             {prevRank == null ? null : prevRank !== rank ? (
               <span className={'d ' + (rank < prevRank ? 'up' : 'down')}>
-                {rank < prevRank
-                  ? `▲ ${prevRank - rank}계단 상승`
-                  : `▼ ${rank - prevRank}계단 하락`}
+                {rank < prevRank ? `▲${prevRank - rank}` : `▼${rank - prevRank}`}
               </span>
             ) : (
-              <span className="d flat">순위 유지</span>
+              <span className="d flat">유지</span>
             )}
+          </div>
+        )}
+
+        {delisted.length > 0 && (
+          <div className="delist-warn">
+            ⚠ 보유하신 <b>{delisted.map((s) => s.name).join(', ')}</b>이(가) <b>상장폐지</b>되었어요 — 전액 손실.
           </div>
         )}
 

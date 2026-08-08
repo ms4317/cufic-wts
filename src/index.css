@@ -278,6 +278,45 @@ button.badge.rank:hover {
   color: var(--dim);
   border-color: var(--line);
 }
+/* 마감 임박 — .live 뒤에 두어 색을 덮는다. 60초↓ 앰버, 30초↓ 빠른 깜빡임.
+   상승·하락(빨강·파랑)은 가격 방향 전용이라, 시간 경고엔 --gold(중립 경보)를 쓴다. */
+.badge.timer.warn {
+  background: var(--gold-soft);
+  color: var(--gold);
+  border-color: color-mix(in srgb, var(--gold) 40%, transparent);
+}
+.badge.timer.warn .tbar {
+  background: color-mix(in srgb, var(--gold) 20%, transparent);
+}
+.badge.timer.warn .tbar > i {
+  background: var(--gold);
+}
+.badge.timer.urgent {
+  background: var(--gold-soft);
+  color: var(--gold);
+  border-color: color-mix(in srgb, var(--gold) 60%, transparent);
+  animation: timer-urgent 0.9s ease-in-out infinite;
+}
+.badge.timer.urgent .tbar {
+  background: color-mix(in srgb, var(--gold) 22%, transparent);
+}
+.badge.timer.urgent .tbar > i {
+  background: var(--gold);
+}
+@keyframes timer-urgent {
+  0%,
+  100% {
+    background: var(--gold-soft);
+  }
+  50% {
+    background: color-mix(in srgb, var(--gold) 32%, var(--gold-soft));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .badge.timer.urgent {
+    animation: none;
+  }
+}
 .pulse {
   width: 6px;
   height: 6px;
@@ -1161,6 +1200,31 @@ tr.me-row td {
   background: var(--gold);
   color: var(--gold-soft);
 }
+/* 순위 변동 (최종 정산 표·요약) — 직전 라운드 대비 오르내림 */
+.rk-move {
+  margin-left: 5px;
+  font-size: 11px;
+  font-weight: 800;
+}
+.rk-move.up {
+  color: var(--up);
+}
+.rk-move.down {
+  color: var(--down);
+}
+/* 상장폐지 배지 (MY 보유종목 표) */
+.delist-tag {
+  display: inline-block;
+  margin-left: 6px;
+  font-size: 10.5px;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 5px;
+  background: var(--down-soft);
+  border: 1px solid color-mix(in srgb, var(--down) 45%, transparent);
+  color: var(--down);
+  white-space: nowrap;
+}
 
 /* ===== 모달 (공통) ===== */
 .dim {
@@ -2033,4 +2097,23 @@ td {
 }
 .rankbox .d.flat {
   color: var(--muted);
+}
+.rankbox .of {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--dim);
+}
+/* 라운드/최종 요약의 상장폐지 보유 경고 */
+.delist-warn {
+  margin-top: 10px;
+  padding: 11px 14px;
+  border-radius: var(--r-md);
+  background: var(--down-soft);
+  border: 1px solid color-mix(in srgb, var(--down) 40%, transparent);
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.delist-warn b {
+  color: var(--down);
 }

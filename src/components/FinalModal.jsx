@@ -19,7 +19,14 @@ export default function FinalModal({ open, onClose, account, rows, finalYear }) 
       <div className="sumbar">
         <div className="cell">
           <span className="k">내 최종 순위</span>
-          <span className="v num">{me ? `${me.rank}위` : '-'}</span>
+          <span className="v num">
+            {me ? `${me.rank}위` : '-'}
+            {me?.prevRank != null && me.prevRank !== me.rank && (
+              <span className={'rk-move ' + (me.rank < me.prevRank ? 'up' : 'down')}>
+                {me.rank < me.prevRank ? `▲${me.prevRank - me.rank}` : `▼${me.rank - me.prevRank}`}
+              </span>
+            )}
+          </span>
         </div>
         <div className="cell">
           <span className="k">최종 자산</span>
@@ -49,7 +56,14 @@ export default function FinalModal({ open, onClose, account, rows, finalYear }) 
           <tbody>
             {rows.map((t) => (
               <tr key={t.name} className={t.me ? 'me-row' : ''}>
-                <td className="num">{t.rank}</td>
+                <td className="num">
+                  {t.rank}
+                  {t.prevRank != null && t.prevRank !== t.rank && (
+                    <span className={'rk-move ' + (t.rank < t.prevRank ? 'up' : 'down')}>
+                      {t.rank < t.prevRank ? `▲${t.prevRank - t.rank}` : `▼${t.rank - t.prevRank}`}
+                    </span>
+                  )}
+                </td>
                 <td>
                   {t.name}
                   {t.me && <span className="me-tag">내 조</span>}
