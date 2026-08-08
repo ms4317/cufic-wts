@@ -185,8 +185,31 @@ export default function AdminProgress({
     await refresh()
   }
 
+  // 다음 할 일 — 상태 기반으로 지금 눌러야 할 버튼 하나를 강조
+  let nextAction = null
+  if (notStarted)
+    nextAction = { label: '대회 시작', msg: '학생 입장 확인 후 시작하세요', run: () => setConfirm('advance') }
+  else if (!endsAt)
+    nextAction = { label: '타이머 시작', msg: '타이머를 시작해야 매매가 열려요', run: startTimerNow }
+  else if (timerRunning) nextAction = null // 진행 중엔 타이머 카드가 주인공
+  else if (isLast)
+    nextAction = { label: '대회 종료', msg: '마지막 라운드예요. 종료하면 최종 정산됩니다', run: () => setConfirm('end') }
+  else
+    nextAction = { label: '다음 연도로', msg: '정산하면 순위가 갱신되고 힌트가 나갑니다', run: () => setConfirm('advance') }
+
   return (
     <div className="apanel">
+      {nextAction && (
+        <section className="acard next-action">
+          <div className="na-info">
+            <span className="na-label">다음 할 일</span>
+            <span className="na-msg">{nextAction.msg}</span>
+          </div>
+          <button className="act-btn buy na-btn" disabled={busy} onClick={nextAction.run}>
+            {nextAction.label}
+          </button>
+        </section>
+      )}
       <section className="acard big">
         <span className="acap">현재 라운드</span>
         <div className="round-big">
@@ -330,6 +353,11 @@ export default function AdminProgress({
         </section>
       )}
 
+      {/* ── 여기부터 대회 준비 영역 */}
+      <div className="group-sep">
+        <span>대회 준비</span>
+      </div>
+
       {/* 게임 설정 — 시작 전에만 */}
       {notStarted && (
         <section className="acard">
@@ -427,16 +455,16 @@ export default function AdminProgress({
         </button>
       </section>
 
-      <section className="acard danger">
-        <span className="acap">게임 리셋</span>
+      <details className="acard danger reset-card">
+        <summary className="acap">게임 리셋 (펼쳐서 실행)</summary>
         <p className="anote">
-          모든 조의 예수금이 초기 자본으로 돌아가고 보유·체결내역·주문서·힌트 지급이 전부 사라집니다.
-          종목과 힌트 자체는 남습니다.
+          모든 조의 예수금이 초기 자본으로 돌아가고 보유·체결내역·힌트 지급이 전부 사라집니다. 종목과
+          힌트 등 콘텐츠는 남습니다.
         </p>
         <button className="text-btn danger" disabled={busy} onClick={() => setConfirm('reset')}>
           게임 리셋
         </button>
-      </section>
+      </details>
 
       {/* 라운드 진행 확인 */}
       <Modal open={confirm === 'advance'} onClose={() => setConfirm(null)} title="확인">

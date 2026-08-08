@@ -14,6 +14,17 @@ export default function AdminTeams({ actions, game, teams, refresh, notify }) {
   const started = (game?.current_round ?? 0) > 0
   const defaultSeed = Number(game?.default_seed ?? 0)
 
+  // 접속 표시 — 최근 로그인 시각 기반. 2시간 안이면 "접속"(초록), 오래됐으면 시각만, 없으면 미접속.
+  const loginStatus = (t) => {
+    if (!t.last_login_at) return { txt: '미접속', cls: 'off' }
+    const mins = (Date.now() - new Date(t.last_login_at).getTime()) / 60000
+    const time = new Date(t.last_login_at).toLocaleTimeString('ko-KR', {
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+    return mins < 120 ? { txt: '접속 · ' + time, cls: 'on' } : { txt: time, cls: 'old' }
+  }
+
   const add = async () => {
     setBusy(true)
     const r = await actions.createTeam(
@@ -78,6 +89,7 @@ export default function AdminTeams({ actions, game, teams, refresh, notify }) {
                   <th>수익률</th>
                   <th>거래</th>
                   <th>힌트</th>
+                  <th>접속</th>
                   <th></th>
                 </tr>
               </thead>
@@ -129,6 +141,9 @@ export default function AdminTeams({ actions, game, teams, refresh, notify }) {
                         )}
                       </td>
                       <td className="num">{t.hint_count}</td>
+                      <td>
+                        <span className={'conn ' + loginStatus(t).cls}>{loginStatus(t).txt}</span>
+                      </td>
                       <td>
                         <button className="text-btn danger tiny" onClick={() => setConfirmDel(t)}>
                           삭제

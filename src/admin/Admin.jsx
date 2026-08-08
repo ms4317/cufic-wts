@@ -12,15 +12,37 @@ import AdminContent from './AdminContent'
 import AdminDatasets from './AdminDatasets'
 import AdminBoard from './AdminBoard'
 
-const TABS = [
-  { key: 'progress', label: '진행' },
-  { key: 'hints', label: '힌트' },
-  { key: 'teams', label: '조 관리' },
-  { key: 'stocks', label: '종목·가격' },
-  { key: 'content', label: '재무·시황' },
-  { key: 'datasets', label: '데이터셋' },
-  { key: 'board', label: '리더보드' },
+// 탭을 두 그룹으로. 준비 그룹은 제작 흐름 순서(데이터셋이 시작점 → 가격 → 재무·시황 → 힌트 → 조).
+const TAB_GROUPS = [
+  {
+    label: '대회 운영',
+    tabs: [
+      { key: 'progress', label: '진행' },
+      { key: 'board', label: '리더보드' },
+    ],
+  },
+  {
+    label: '게임 준비',
+    tabs: [
+      { key: 'datasets', label: '데이터셋' },
+      { key: 'stocks', label: '종목·가격' },
+      { key: 'content', label: '재무·시황' },
+      { key: 'hints', label: '힌트' },
+      { key: 'teams', label: '조 관리' },
+    ],
+  },
 ]
+
+// 탭 상단 한 줄 도움말
+const TAB_HELP = {
+  progress: '대회 진행 — 라운드 넘기기·타이머·속보',
+  board: '조별 순위 — 프로젝터용 큰 글씨 모드',
+  datasets: '게임 데이터 한 벌의 저장·불러오기. 제작의 시작과 끝',
+  stocks: '종목과 연도별 가격 — 게임의 뼈대',
+  content: '종목별 재무제표와 연도별 거시 지표',
+  hints: '라운드별 힌트 작성과 지급',
+  teams: '참가 조와 코드',
+}
 
 const SECRET_KEY = 'wts-admin' // 세션 동안만 기억한다 (sessionStorage)
 
@@ -199,14 +221,24 @@ export default function Admin({ theme, onToggleTheme }) {
 
       <div className="admin-body">
         <nav className="admin-tabs">
-          {TABS.map((t) => (
-            <button key={t.key} className={tab === t.key ? 'on' : ''} onClick={() => setTab(t.key)}>
-              {t.label}
-            </button>
+          {TAB_GROUPS.map((g) => (
+            <div key={g.label} className="tab-group">
+              <span className="tab-group-label">{g.label}</span>
+              {g.tabs.map((t) => (
+                <button
+                  key={t.key}
+                  className={tab === t.key ? 'on' : ''}
+                  onClick={() => setTab(t.key)}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
           ))}
         </nav>
 
         <main className="admin-main">
+          {TAB_HELP[tab] && <p className="tab-help">{TAB_HELP[tab]}</p>}
           {tab === 'progress' && <AdminProgress {...shared} />}
           {tab === 'hints' && <AdminHints {...shared} />}
           {tab === 'teams' && <AdminTeams {...shared} />}

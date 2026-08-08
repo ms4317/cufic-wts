@@ -711,6 +711,111 @@
   border-color: var(--gold);
 }
 
+/* ── 탭 그룹 (사이드바) */
+.tab-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.tab-group + .tab-group {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+.tab-group-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: var(--dim);
+  padding: 0 0 4px 4px;
+}
+/* 탭 상단 한 줄 도움말 */
+.tab-help {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 0 0 12px;
+  padding: 8px 12px;
+  background: var(--panel-2);
+  border-radius: var(--r-sm);
+}
+/* 진행 탭 "다음 할 일" */
+.next-action {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border: 1px solid var(--gold);
+  background: color-mix(in srgb, var(--gold) 10%, transparent);
+}
+.na-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.na-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--gold);
+}
+.na-msg {
+  font-size: 14px;
+  font-weight: 600;
+}
+.next-action .na-btn {
+  width: auto;
+  flex: 0 0 auto;
+  padding: 12px 26px;
+  font-size: 16px;
+}
+/* 진행 탭 내부 구분선 */
+.group-sep {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 8px 0;
+  color: var(--dim);
+  font-size: 12px;
+  font-weight: 700;
+}
+.group-sep::before,
+.group-sep::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+/* 게임 리셋 접기 */
+.reset-card > summary {
+  cursor: pointer;
+  list-style: none;
+}
+.reset-card > summary::-webkit-details-marker {
+  display: none;
+}
+.reset-card > summary::after {
+  content: ' ▾';
+  color: var(--dim);
+}
+.reset-card[open] > summary::after {
+  content: ' ▴';
+}
+/* 접속 표시 (조 관리) */
+.conn {
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.conn.on {
+  color: var(--up);
+}
+.conn.old {
+  color: var(--muted);
+}
+.conn.off {
+  color: var(--dim);
+}
+
 /* ── 게임 설정 편집 */
 .cfg-form {
   display: flex;
