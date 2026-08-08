@@ -35,7 +35,7 @@ export default function Header({
   return (
     <header>
       <div className="logo">
-        <span className="dot" />
+        <span className="brand-logo" role="img" aria-label="CUFIC WTS" />
         Cufic WTS
       </div>
 

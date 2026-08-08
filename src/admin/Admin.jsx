@@ -163,7 +163,7 @@ export default function Admin({ theme, onToggleTheme }) {
       <div className="login">
         <ThemeToggle theme={theme} onToggle={onToggleTheme} className="theme-fab" />
         <div className="card">
-          <div className="mark" />
+          <span className="brand-logo" role="img" aria-label="CUFIC WTS" />
           <h1>관리자</h1>
           <p className="sub2">CUFIC WTS · 대회 운영</p>
           <form onSubmit={doLogin}>
@@ -199,7 +199,7 @@ export default function Admin({ theme, onToggleTheme }) {
     <div className="admin">
       <header>
         <div className="logo">
-          <span className="dot" />
+          <span className="brand-logo" role="img" aria-label="CUFIC WTS" />
           Cufic WTS
         </div>
         <span className="badge round">관리자</span>

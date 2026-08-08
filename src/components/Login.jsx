@@ -20,7 +20,7 @@ export default function Login({ onSubmit, theme, onToggleTheme }) {
       <ThemeToggle theme={theme} onToggle={onToggleTheme} className="theme-fab" />
 
       <div className="card">
-        <div className="mark" />
+        <span className="brand-logo" role="img" aria-label="CUFIC WTS" />
         <h1>CUFIC WTS</h1>
         <p className="sub2">스마트 주식 교실 · 모의투자 시스템</p>
 

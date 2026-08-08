@@ -130,11 +130,20 @@ header {
   letter-spacing: -0.3px;
   font-size: 16px;
 }
-.logo .dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 3px;
-  background: linear-gradient(135deg, var(--up), var(--gold));
+/* CUFIC 로고 마크 — 배경 투명 PNG. 원본은 검정 글자라 다크 테마(어두운 배경)에서
+   안 보이므로, 다크 전용(검정→밝은색 리컬러) 변형으로 교체한다.
+   data-theme는 index.html에서 항상 명시적으로 설정되므로 CSS 스왑이 안전하다. */
+.brand-logo {
+  display: block;
+  aspect-ratio: 214 / 160;
+  background: center / contain no-repeat url('./assets/cufic-logo.png');
+  flex: none;
+}
+[data-theme='dark'] .brand-logo {
+  background-image: url('./assets/cufic-logo-dark.png');
+}
+.logo .brand-logo {
+  height: 24px;
 }
 .badge {
   font-size: 11.5px;
@@ -1672,13 +1681,9 @@ td {
   max-width: 380px;
   text-align: center;
 }
-.login .mark {
-  width: 54px;
-  height: 54px;
-  border-radius: 16px;
-  background: linear-gradient(135deg, var(--up), var(--gold));
+.login .brand-logo {
+  height: 64px;
   margin: 0 auto 22px;
-  box-shadow: var(--shadow);
 }
 .login h1 {
   font-size: 27px;
