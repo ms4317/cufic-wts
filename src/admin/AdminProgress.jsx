@@ -35,11 +35,21 @@ export default function AdminProgress({
   const [bcText, setBcText] = useState('') // 속보 입력
   const [issues, setIssues] = useState(null) // [데이터 점검] 결과
   const [cfg, setCfg] = useState(null) // 게임 설정 편집 상태
+  const [dsList, setDsList] = useState([]) // 저장된 데이터셋 목록 (시작 전 선택용)
+  const [dsTarget, setDsTarget] = useState(null) // 바꾸려는 데이터셋 {id, name}
 
   // 카운트다운 1초 틱
   useEffect(() => {
     const id = setInterval(() => setNowTs(Date.now()), 1000)
     return () => clearInterval(id)
+  }, [])
+
+  // 데이터셋 목록 (진행 탭에서 시작 전에 고를 수 있게)
+  useEffect(() => {
+    actions.listDatasets().then((r) => {
+      if (r.ok) setDsList(r.datasets ?? [])
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   if (!game) return null
@@ -49,6 +59,10 @@ export default function AdminProgress({
   const isLast = cur >= total
   const notStarted = cur === 0
   const nextYear = game.round_year_map?.[String(cur + 1)]
+
+  // 시작 전 데이터셋 선택 (game.active_dataset_id = 지금 사용 중인 한 벌)
+  const activeDsId = game.active_dataset_id ?? null
+  const activeDs = dsList.find((d) => d.id === activeDsId) ?? null
 
   // 거래 타이머 상태 (서버 round_ends_at 기준)
   const endsAt = game.round_ends_at ? new Date(game.round_ends_at).getTime() : null
@@ -142,6 +156,30 @@ export default function AdminProgress({
     await refresh()
   }
 
+  // 데이터셋 바꾸기 — 드롭다운에서 다른 걸 고르면 확인 후 불러온다(게임 리셋, 조 유지)
+  const askSwitchDs = (idRaw) => {
+    const id = Number(idRaw) // select 값은 문자열, 데이터셋 id는 숫자
+    if (!id || id === Number(activeDsId)) return
+    const d = dsList.find((x) => Number(x.id) === id)
+    if (!d) return
+    setDsTarget({ id: d.id, name: d.name })
+    setConfirm('switchDs')
+  }
+  const doSwitchDs = async () => {
+    if (!dsTarget) return
+    const t = dsTarget
+    setBusy(true)
+    const r = await actions.loadDataset(t.id)
+    setBusy(false)
+    setConfirm(null)
+    setDsTarget(null)
+    if (!r.ok) return notify(errorText(r.error), 'down')
+    notify(`'${t.name}' 데이터셋으로 세팅했어요`, 'gold')
+    const lr = await actions.listDatasets()
+    if (lr.ok) setDsList(lr.datasets ?? [])
+    await refresh()
+  }
+
   const runCheck = () => setIssues(checkContent(game, stocks, hints, financials, macro))
 
   // ── 게임 설정 편집 (시작 전에만)
@@ -199,6 +237,39 @@ export default function AdminProgress({
 
   return (
     <div className="apanel">
+      {/* 시작 전: 이번 게임에 쓸 데이터셋 선택 → 아래 [대회 시작]으로 진행 */}
+      {notStarted && (
+        <section className="acard ds-pick">
+          <span className="acap">이번 게임 데이터셋</span>
+          <p className="anote">
+            불러올 데이터 한 벌을 고르세요. 고른 내용으로 게임이 세팅됩니다 (조는 유지 · 저장 안 한 편집은
+            사라짐). 만들기·백업은 <b>[데이터셋]</b> 탭에서.
+          </p>
+          <div className="ds-pick-row">
+            <select
+              className="ds-pick-sel"
+              value={activeDsId ?? ''}
+              disabled={busy || dsList.length === 0}
+              onChange={(e) => askSwitchDs(e.target.value)}
+            >
+              {dsList.length === 0 ? (
+                <option value="">저장된 데이터셋이 없어요 — [데이터셋] 탭에서 먼저 저장</option>
+              ) : (
+                <>
+                  {activeDsId == null && <option value="">데이터셋 선택…</option>}
+                  {dsList.map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.name}
+                    </option>
+                  ))}
+                </>
+              )}
+            </select>
+            {activeDs?.description && <span className="ds-pick-desc">{activeDs.description}</span>}
+          </div>
+        </section>
+      )}
+
       {nextAction && (
         <section className="acard next-action">
           <div className="na-info">
@@ -547,6 +618,39 @@ export default function AdminProgress({
             onClick={() => run(actions.resetGame, '게임이 초기화되었습니다')}
           >
             초기화
+          </button>
+        </div>
+      </Modal>
+
+      {/* 데이터셋 바꾸기 확인 */}
+      <Modal
+        open={confirm === 'switchDs'}
+        onClose={() => {
+          setConfirm(null)
+          setDsTarget(null)
+        }}
+        title="데이터셋 바꾸기"
+      >
+        <div className="confirm">
+          <p className="big">
+            <b>'{dsTarget?.name}'</b> 데이터셋으로 세팅합니다
+          </p>
+          <p className="ask">
+            지금 콘텐츠가 이 데이터셋으로 바뀝니다. 조는 유지되고, <b>저장하지 않은 편집은 사라져요.</b>
+          </p>
+        </div>
+        <div className="mfoot">
+          <button
+            className="cancel"
+            onClick={() => {
+              setConfirm(null)
+              setDsTarget(null)
+            }}
+          >
+            취소
+          </button>
+          <button className="act-btn buy" disabled={busy} onClick={doSwitchDs}>
+            {busy ? '세팅 중…' : '이 데이터셋으로'}
           </button>
         </div>
       </Modal>
