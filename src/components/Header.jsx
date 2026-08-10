@@ -47,7 +47,11 @@ export default function Header({
       {/* 현재 라운드 (종료 후엔 최종 정산) */}
       <span className="badge round">
         <span className="pulse" />
-        {ended ? `🏁 최종 · ${round.year}년` : `ROUND ${round.round} · ${round.year}년`}
+        {ended
+          ? `🏁 최종 · ${round.year}년`
+          : round.round === 0
+            ? '시작 전 · 대기 중'
+            : `ROUND ${round.round} · ${round.year}년`}
       </span>
 
       {/* 거래 타이머 — 열려 있으면 카운트다운, 아니면 대기 (종료 후엔 숨김) */}
