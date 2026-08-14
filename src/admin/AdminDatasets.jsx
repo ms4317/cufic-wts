@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import Modal from '../components/Modal'
 import { errorText } from '../supabase'
+import { buildTemplateZip, readUploadFiles, csvFilesToPayload } from './datasetCsv'
 
 /**
  * 데이터셋(시나리오) — 저장·전환·백업.
@@ -13,6 +14,8 @@ export default function AdminDatasets({ actions, game, refresh, notify }) {
   const [desc, setDesc] = useState('')
   const [busy, setBusy] = useState(false)
   const [confirm, setConfirm] = useState(null) // {type:'load'|'delete', id, name}
+  const [csvReport, setCsvReport] = useState(null) // { payload, errors }
+  const [csvName, setCsvName] = useState('') // CSV로 만들 새 데이터셋 이름
 
   const started = (game?.current_round ?? 0) > 0
   const activeId = game?.active_dataset_id ?? null
@@ -85,6 +88,51 @@ export default function AdminDatasets({ actions, game, refresh, notify }) {
     loadDatasets()
   }
 
+  // CSV 템플릿(zip) 다운로드 — UTF-8 BOM 5개 파일
+  const downloadTemplate = () => {
+    const blob = new Blob([buildTemplateZip()], { type: 'application/zip' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'cufic_dataset_template.zip'
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  // CSV 업로드(zip 또는 CSV 5개) → 검증 → 리포트 모달
+  const onCsvUpload = async (e) => {
+    const fl = e.target.files
+    if (!fl?.length) return
+    const picked = Array.from(fl) // FileList는 value='' 시 비워지므로 먼저 복사
+    e.target.value = ''
+    setBusy(true)
+    let files
+    try {
+      files = await readUploadFiles(picked)
+    } catch {
+      setBusy(false)
+      return notify('zip 파일을 읽을 수 없어요', 'down')
+    }
+    const { payload, errors } = csvFilesToPayload(files)
+    setBusy(false)
+    setCsvName('')
+    setCsvReport({ payload, errors })
+  }
+
+  // 검증 통과분을 새 데이터셋으로 생성(기존 덮어쓰기 아님)
+  const createFromCsv = async () => {
+    const nm = csvName.trim()
+    if (!nm || !csvReport?.payload) return
+    setBusy(true)
+    const r = await actions.importDataset(nm, 'CSV로 가져온 데이터셋', csvReport.payload)
+    setBusy(false)
+    if (!r.ok) return notify(errorText(r.error), 'down')
+    setCsvReport(null)
+    setCsvName('')
+    notify(`'${nm}' CSV로 만들었어요`, 'gold')
+    loadDatasets()
+  }
+
   const runConfirm = async () => {
     const c = confirm
     setConfirm(null)
@@ -143,6 +191,13 @@ export default function AdminDatasets({ actions, game, refresh, notify }) {
           <label className="text-btn file-btn">
             📁 파일 가져오기 (.json)
             <input type="file" accept="application/json,.json" onChange={onImport} hidden />
+          </label>
+          <button className="text-btn" onClick={downloadTemplate}>
+            📄 CSV 템플릿 (.zip)
+          </button>
+          <label className="text-btn file-btn">
+            📤 CSV 업로드 (zip·csv)
+            <input type="file" accept=".zip,.csv,text/csv,application/zip" multiple onChange={onCsvUpload} hidden />
           </label>
         </div>
 
@@ -223,6 +278,50 @@ export default function AdminDatasets({ actions, game, refresh, notify }) {
           >
             {confirm?.type === 'load' ? '편집 시작' : '삭제'}
           </button>
+        </div>
+      </Modal>
+
+      {/* CSV 업로드 검사 결과 */}
+      <Modal open={!!csvReport} onClose={() => setCsvReport(null)} title="CSV 검사 결과" wide>
+        {csvReport?.errors?.length > 0 ? (
+          <>
+            <p className="awarn">
+              문제 {csvReport.errors.length}건 — 파일을 고쳐서 다시 올려주세요.
+            </p>
+            <ul className="issue-list">
+              {csvReport.errors.map((e, i) => (
+                <li key={i} className="issue error">
+                  <span className="ilv">
+                    {e.file}
+                    {e.line ? ` ${e.line}행` : ''}
+                  </span>
+                  {e.msg}
+                </li>
+              ))}
+            </ul>
+          </>
+        ) : (
+          <>
+            <p className="aok">검사 통과 ✅ — 새 데이터셋으로 만들 이름을 정하세요.</p>
+            <input
+              className="bc-input"
+              value={csvName}
+              onChange={(e) => setCsvName(e.target.value)}
+              placeholder="예: CSV로 만든 2026 시나리오"
+              maxLength={60}
+              autoFocus
+            />
+          </>
+        )}
+        <div className="mfoot">
+          <button className="cancel" onClick={() => setCsvReport(null)}>
+            닫기
+          </button>
+          {csvReport?.payload && (
+            <button className="act-btn prime" disabled={busy || !csvName.trim()} onClick={createFromCsv}>
+              새 데이터셋으로 생성
+            </button>
+          )}
         </div>
       </Modal>
     </div>
