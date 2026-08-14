@@ -125,6 +125,7 @@ export function makeAdminActions(getSecret) {
         p_final_year: c.finalYear,
         p_default_seed: c.defaultSeed,
         p_duration_minutes: c.durationMinutes,
+        p_join_mode: c.joinMode ?? null,
       }),
 
     // 데이터셋(시나리오 팩)

@@ -195,6 +195,7 @@ export default function AdminProgress({
       finalYear: game.final_year ?? '',
       defaultSeed: game.default_seed ?? 100000000,
       durationMinutes: Math.round((game.round_duration_seconds ?? 600) / 60),
+      joinMode: game.join_mode ?? 'code',
     })
   const setCfgYear = (r, v) => setCfg((c) => ({ ...c, years: { ...c.years, [r]: v } }))
   const setTotal = (n) => {
@@ -215,6 +216,7 @@ export default function AdminProgress({
       finalYear: Number(cfg.finalYear),
       defaultSeed: Number(cfg.defaultSeed),
       durationMinutes: Number(cfg.durationMinutes),
+      joinMode: cfg.joinMode,
     })
     setBusy(false)
     if (!res.ok) return notify(errorText(res.error), 'down')
@@ -438,7 +440,8 @@ export default function AdminProgress({
               <p className="anote">
                 라운드 {game.total_rounds}개 · 연도 {Object.values(game.round_year_map ?? {}).join('·')} ·
                 최종 {game.final_year} · 기본 시드 ₩{num(game.default_seed)} · 타이머{' '}
-                {Math.round((game.round_duration_seconds ?? 600) / 60)}분
+                {Math.round((game.round_duration_seconds ?? 600) / 60)}분 · 입장{' '}
+                {game.join_mode === 'open' ? '자율(닉네임)' : '코드'}
               </p>
               <button className="text-btn" onClick={startCfg}>
                 설정 편집
@@ -501,6 +504,26 @@ export default function AdminProgress({
                     onChange={(e) => setCfg({ ...cfg, durationMinutes: e.target.value })}
                   />
                 </div>
+              </div>
+              <div className="frow col">
+                <label>입장 방식</label>
+                <div className="tabs mini">
+                  <button
+                    className={cfg.joinMode === 'code' ? 'on' : ''}
+                    onClick={() => setCfg({ ...cfg, joinMode: 'code' })}
+                  >
+                    코드 (강사가 조·코드 배부)
+                  </button>
+                  <button
+                    className={cfg.joinMode === 'open' ? 'on' : ''}
+                    onClick={() => setCfg({ ...cfg, joinMode: 'open' })}
+                  >
+                    자율 (학생이 닉네임으로 입장)
+                  </button>
+                </div>
+                <span className="anote">
+                  자율: 학생이 닉네임을 정하면 그 자리에서 조가 생기고 재접속용 PIN이 발급돼요. 새 입장은 시작 전에만.
+                </span>
               </div>
               <div className="arow">
                 <button className="text-btn" onClick={() => setCfg(null)}>

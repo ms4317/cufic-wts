@@ -1,7 +1,42 @@
-import { rpc } from './supabase'
+import { rpc, select } from './supabase'
 
 // 조별 코드 로그인. 검증은 서버(login_team RPC)가 한다.
 const TEAM_KEY = 'wts-team'
+
+/** 입장 방식 조회('code' | 'open'). 로그인 전 화면 분기용. game_state는 공개 읽기. */
+export async function getJoinMode() {
+  const r = await select('game_state', 'join_mode', (q) => q.eq('id', 1))
+  if (r.ok && r.rows[0]?.join_mode) return r.rows[0].join_mode
+  return 'code'
+}
+
+/**
+ * 자율 입장(open 모드) — 닉네임(+PIN)으로 조 생성/재접속.
+ * @returns 신규: {ok, team, pin, created} · 재접속: {ok, team} · PIN 필요: {ok:false, error:'need_pin'}
+ */
+export async function join(name, pin) {
+  const nm = String(name || '').trim()
+  if (nm.length < 2 || nm.length > 12) {
+    return { ok: false, error: '닉네임은 2~12자로 입력해 주세요.' }
+  }
+  const r = await rpc('join_team', { p_name: nm, p_pin: pin ?? null })
+  if (!r.ok) {
+    const MSG = {
+      join_disabled: '지금은 자율 입장을 받지 않아요.',
+      bad_name: '닉네임은 2~12자로 입력해 주세요.',
+      need_pin: '이미 있는 닉네임이에요. PIN을 입력해 주세요.',
+      wrong_pin: 'PIN이 틀렸어요. 다시 확인해 주세요.',
+      join_closed: '대회가 시작돼 새 입장은 마감됐어요. 기존 닉네임+PIN으로만 들어올 수 있어요.',
+    }
+    return { ok: false, error: MSG[r.error] || '연결이 불안정해요. 다시 시도해 주세요.', code: r.error }
+  }
+  try {
+    localStorage.setItem(TEAM_KEY, r.code)
+  } catch {
+    // 저장 실패해도 세션 내 입장은 허용
+  }
+  return { ok: true, team: { id: r.team_id, code: r.code, name: r.name }, pin: r.pin, created: !!r.created }
+}
 
 export function loadTeam() {
   try {

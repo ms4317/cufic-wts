@@ -13,6 +13,7 @@ export default function AdminTeams({ actions, game, teams, refresh, notify }) {
 
   const started = (game?.current_round ?? 0) > 0
   const defaultSeed = Number(game?.default_seed ?? 0)
+  const openMode = game?.join_mode === 'open' // 자율 입장일 때만 PIN 열 노출
 
   // 접속 표시 — 최근 로그인 시각 기반. 2시간 안이면 "접속"(초록), 오래됐으면 시각만, 없으면 미접속.
   const loginStatus = (t) => {
@@ -89,6 +90,7 @@ export default function AdminTeams({ actions, game, teams, refresh, notify }) {
                   <th>수익률</th>
                   <th>거래</th>
                   <th>힌트</th>
+                  {openMode && <th>PIN</th>}
                   <th>접속</th>
                   <th></th>
                 </tr>
@@ -141,6 +143,7 @@ export default function AdminTeams({ actions, game, teams, refresh, notify }) {
                         )}
                       </td>
                       <td className="num">{t.hint_count}</td>
+                      {openMode && <td className="num pin-cell">{t.pin || '—'}</td>}
                       <td>
                         <span className={'conn ' + loginStatus(t).cls}>{loginStatus(t).txt}</span>
                       </td>

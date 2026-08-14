@@ -3,7 +3,14 @@ import { deriveAccount } from './account'
 import { makeActions } from './actions'
 import { buildStocks, loadAll, refetchMine, subscribeSignals, yearOf } from './gameData'
 import { useTheme } from './theme'
-import { loadTeam, login as authLogin, logout as authLogout, restore } from './auth'
+import {
+  loadTeam,
+  login as authLogin,
+  join as authJoin,
+  getJoinMode,
+  logout as authLogout,
+  restore,
+} from './auth'
 import { errorText } from './supabase'
 
 import Login from './components/Login'
@@ -43,6 +50,7 @@ function Student({ theme, onToggleTheme }) {
   const [booting, setBooting] = useState(true) // 저장된 코드로 재로그인 시도 중
   const [loading, setLoading] = useState(false)
   const [loadError, setLoadError] = useState(null)
+  const [joinMode, setJoinMode] = useState('code') // 'code' | 'open' (로그인 전 화면 분기)
 
   const [game, setGame] = useState(null)
   const [rawStocks, setRawStocks] = useState([])
@@ -235,6 +243,7 @@ function Student({ theme, onToggleTheme }) {
   useEffect(() => {
     let alive = true
     ;(async () => {
+      getJoinMode().then((m) => alive && setJoinMode(m)) // 로그인 화면 분기용(공개 조회)
       if (!loadTeam()) {
         setBooting(false)
         return
@@ -316,6 +325,16 @@ function Student({ theme, onToggleTheme }) {
     [load],
   )
 
+  // 자율 입장(open): Login이 닉네임→PIN 흐름을 관리하고, 확정 시 commitTeam으로 입장한다.
+  const handleJoin = useCallback((name, pin) => authJoin(name, pin), [])
+  const commitTeam = useCallback(
+    async (t) => {
+      setTeam(t)
+      await load(t)
+    },
+    [load],
+  )
+
   const handleLogout = useCallback(() => {
     authLogout()
     setTeam(null)
@@ -374,7 +393,14 @@ function Student({ theme, onToggleTheme }) {
     return (
       <>
         <RotateNotice />
-        <Login onSubmit={handleLogin} theme={theme} onToggleTheme={onToggleTheme} />
+        <Login
+          mode={joinMode}
+          onSubmit={handleLogin}
+          onJoin={handleJoin}
+          onCommit={commitTeam}
+          theme={theme}
+          onToggleTheme={onToggleTheme}
+        />
       </>
     )
   }

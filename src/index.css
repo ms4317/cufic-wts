@@ -1760,6 +1760,56 @@ td {
   top: 20px;
   right: 20px;
 }
+/* ── 자율 입장(open) ── */
+.login .join-back {
+  font-size: 14px;
+  color: var(--muted);
+  margin-bottom: 14px;
+}
+.login .join-back b {
+  color: var(--text);
+}
+.login .join-made {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  text-align: center;
+}
+.login .jm-hi {
+  font-size: 16px;
+}
+.login .jm-hi b {
+  color: var(--up);
+}
+.login .jm-pin {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 18px;
+  border-radius: var(--r-md);
+  background: var(--gold-soft);
+  border: 1px solid color-mix(in srgb, var(--gold) 45%, transparent);
+}
+.login .jm-pin-cap {
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  color: var(--gold);
+  font-weight: 700;
+}
+.login .jm-pin-val {
+  font-size: 40px;
+  font-weight: 800;
+  letter-spacing: 0.32em;
+  color: var(--gold);
+}
+.login .jm-note {
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--muted);
+}
+.login .jm-note b {
+  color: var(--text);
+}
 
 /* ===== 그림판 오버레이 ===== */
 .draw-layer {

@@ -859,6 +859,10 @@
 .conn.off {
   color: var(--dim);
 }
+.pin-cell {
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
 
 /* ── 게임 설정 편집 */
 .cfg-form {
