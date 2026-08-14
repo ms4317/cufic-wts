@@ -473,6 +473,7 @@ function Student({ theme, onToggleTheme }) {
         <Chart
           stock={selected}
           onOpenFinancial={() => setFinOpen(true)}
+          onOpenMarket={started ? () => setMarketOpen(true) : undefined}
           strokes={drawings[selected.code] ?? []}
           onStrokesChange={setStrokes}
         />
@@ -545,6 +546,7 @@ function Student({ theme, onToggleTheme }) {
         round={roundSummary}
         account={acct}
         stocks={stocks}
+        rows={rankRows}
         rank={myRow?.rank ?? null}
         prevRank={myRow?.prev_rank ?? null}
         teamCount={board.length}

@@ -10,7 +10,7 @@ import { num, signed, pct, dirOf } from '../format'
  * @param {number|null} prevEquity  직전 라운드를 떠날 때의 평가금액. 이번 전환으로
  *   내 자산이 얼마나 움직였는지 보여주는 기준. 없으면(첫 전환 등) 원금 대비로 대체.
  */
-export default function RoundModal({ round, account, stocks, prevEquity, rank, prevRank, teamCount, onClose }) {
+export default function RoundModal({ round, account, stocks, rows = [], prevEquity, rank, prevRank, teamCount, onClose }) {
   // 시장 전체가 아니라 '내가 들고 있는' 종목의 등락을 보여준다 —
   // 안 산 종목이 올랐다는 정보는 이 순간 학생에게 의미가 없다.
   const { best, worst, delisted } = useMemo(() => {
@@ -29,7 +29,7 @@ export default function RoundModal({ round, account, stocks, prevEquity, rank, p
   const deltaPct = changed ? (prevEquity ? (delta / prevEquity) * 100 : 0) : account.pnlPct
 
   return (
-    <Modal open onClose={onClose} title={`ROUND ${round.round}`}>
+    <Modal open onClose={onClose} title={`ROUND ${round.round}`} wide>
       <div className="rsum">
         <p className="year">{round.year}년이 되었습니다</p>
         <p className="sub">주가가 새로 바뀌었어요. 내 자산이 어떻게 됐는지 확인해 보세요.</p>
@@ -66,24 +66,45 @@ export default function RoundModal({ round, account, stocks, prevEquity, rank, p
           </div>
         )}
 
-        {best ? (
-          <div className="movers">
-            <div className="mover">
-              <span className="cap">내 종목 중 최고 상승</span>
-              <span className="nm">{best.name}</span>
-              <span className={'ch num ' + dirOf(best.chg)}>{pct(best.chg)}</span>
-            </div>
-            {worst && (
-              <div className="mover">
-                <span className="cap">내 종목 중 최대 하락</span>
-                <span className="nm">{worst.name}</span>
-                <span className={'ch num ' + dirOf(worst.chg)}>{pct(worst.chg)}</span>
-              </div>
-            )}
+        {/* 전체 조 순위 — 이 라운드 정산 결과 */}
+        {rows.length > 0 && (
+          <div className="round-board">
+            <span className="rb-cap">전체 순위</span>
+            <table>
+              <thead>
+                <tr>
+                  <th>순위</th>
+                  <th>조</th>
+                  <th>평가금액</th>
+                  <th>수익률</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((t) => (
+                  <tr key={t.name} className={t.me ? 'me-row' : ''}>
+                    <td className="num">{t.rank}</td>
+                    <td>
+                      {t.name}
+                      {t.me && <span className="me-tag">내 조</span>}
+                    </td>
+                    <td className="num">₩ {num(t.equity)}</td>
+                    <td className={'num ' + dirOf(t.pnl)}>{pct(t.pnlPct)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        ) : (
-          <p className="nohold">
-            아직 보유한 종목이 없어요. 뉴스와 재무제표를 보고 종목을 골라보세요.
+        )}
+
+        {best && (
+          <p className="rb-mine">
+            내 종목 중 <b>{best.name}</b> <span className={'num ' + dirOf(best.chg)}>{pct(best.chg)}</span>
+            {worst && worst !== best && (
+              <>
+                {' · '}
+                <b>{worst.name}</b> <span className={'num ' + dirOf(worst.chg)}>{pct(worst.chg)}</span>
+              </>
+            )}
           </p>
         )}
       </div>

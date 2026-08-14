@@ -54,7 +54,7 @@ const TOOLS = [
   },
 ]
 
-export default function Chart({ stock, onOpenFinancial, strokes, onStrokesChange }) {
+export default function Chart({ stock, onOpenFinancial, onOpenMarket, strokes, onStrokesChange }) {
   const [tool, setTool] = useState('cursor')
   const [tf, setTf] = useState('W')
   const [plotRef, { w, h }] = useSize()
@@ -109,15 +109,22 @@ export default function Chart({ stock, onOpenFinancial, strokes, onStrokesChange
             </span>
           </>
         )}
-        <button className="fin" onClick={onOpenFinancial}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M3 3v18h18" />
-            <rect x="7" y="10" width="3" height="7" />
-            <rect x="12" y="6" width="3" height="11" />
-            <rect x="17" y="13" width="3" height="4" />
-          </svg>
-          재무제표
-        </button>
+        <div className="chart-tools">
+          {onOpenMarket && (
+            <button className="fin" onClick={onOpenMarket} title="시황판 보기">
+              📈 시황
+            </button>
+          )}
+          <button className="fin" onClick={onOpenFinancial}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M3 3v18h18" />
+              <rect x="7" y="10" width="3" height="7" />
+              <rect x="12" y="6" width="3" height="11" />
+              <rect x="17" y="13" width="3" height="4" />
+            </svg>
+            재무제표
+          </button>
+        </div>
       </div>
 
       <div className="draw">
