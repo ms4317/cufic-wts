@@ -225,17 +225,22 @@ export default function AdminProgress({
     await refresh()
   }
 
-  // 다음 할 일 — 상태 기반으로 지금 눌러야 할 버튼 하나를 강조
+  // 다음 할 일 — 상태 기반으로 지금 눌러야 할 버튼 하나를 강조.
+  // id는 현재 라운드 카드와의 버튼 중복을 막는 데 쓴다(같은 버튼은 한 곳에서만).
   let nextAction = null
   if (notStarted)
-    nextAction = { label: '대회 시작', msg: '학생 입장 확인 후 시작하세요', run: () => setConfirm('advance') }
+    nextAction = { id: 'advance', label: '대회 시작', msg: '학생 입장 확인 후 시작하세요', run: () => setConfirm('advance') }
   else if (!endsAt)
-    nextAction = { label: '타이머 시작', msg: '타이머를 시작해야 매매가 열려요', run: startTimerNow }
+    nextAction = { id: 'timer', label: '타이머 시작', msg: '타이머를 시작해야 매매가 열려요', run: startTimerNow }
   else if (timerRunning) nextAction = null // 진행 중엔 타이머 카드가 주인공
   else if (isLast)
-    nextAction = { label: '대회 종료', msg: '마지막 라운드예요. 종료하면 최종 정산됩니다', run: () => setConfirm('end') }
+    nextAction = { id: 'end', label: '대회 종료', msg: '마지막 라운드예요. 종료하면 최종 정산됩니다', run: () => setConfirm('end') }
   else
-    nextAction = { label: '다음 연도로', msg: '정산하면 순위가 갱신되고 힌트가 나갑니다', run: () => setConfirm('advance') }
+    nextAction = { id: 'advance', label: '다음 연도로', msg: '정산하면 순위가 갱신되고 힌트가 나갑니다', run: () => setConfirm('advance') }
+
+  // 현재 라운드 카드의 큰 버튼은 '다음 할 일'이 같은 버튼을 이미 보이면 숨긴다(출처 한 곳).
+  const roundCardActionId = isLast ? 'end' : 'advance'
+  const showRoundBtn = !(nextAction && nextAction.id === roundCardActionId)
 
   return (
     <div className="apanel">
@@ -278,7 +283,7 @@ export default function AdminProgress({
             <span className="na-label">다음 할 일</span>
             <span className="na-msg">{nextAction.msg}</span>
           </div>
-          <button className="act-btn buy na-btn" disabled={busy} onClick={nextAction.run}>
+          <button className="act-btn prime na-btn" disabled={busy} onClick={nextAction.run}>
             {nextAction.label}
           </button>
         </section>
@@ -303,17 +308,19 @@ export default function AdminProgress({
           )}
         </div>
 
-        <div className="arow">
-          {!isLast ? (
-            <button className="act-btn buy" disabled={busy} onClick={() => setConfirm('advance')}>
-              {notStarted ? '대회 시작 (ROUND 1 열기)' : '다음 연도로 넘어가기 (순위 갱신)'}
-            </button>
-          ) : (
-            <button className="act-btn sell" disabled={busy} onClick={() => setConfirm('end')}>
-              대회 종료
-            </button>
-          )}
-        </div>
+        {showRoundBtn && (
+          <div className="arow">
+            {!isLast ? (
+              <button className="act-btn prime" disabled={busy} onClick={() => setConfirm('advance')}>
+                {notStarted ? '대회 시작 (ROUND 1 열기)' : '다음 연도로 넘어가기 (순위 갱신)'}
+              </button>
+            ) : (
+              <button className="act-btn danger" disabled={busy} onClick={() => setConfirm('end')}>
+                대회 종료
+              </button>
+            )}
+          </div>
+        )}
 
         {!notStarted && !isLast && (
           <p className="anote">
@@ -358,7 +365,7 @@ export default function AdminProgress({
             </div>
           )}
           <div className="arow">
-            <button className="act-btn buy" disabled={busy} onClick={startTimerNow}>
+            <button className="act-btn prime" disabled={busy} onClick={startTimerNow}>
               {timerRunning ? '타이머 다시 시작 (10분)' : '타이머 시작 (10분)'}
             </button>
           </div>
@@ -378,7 +385,7 @@ export default function AdminProgress({
             placeholder="예: 미국 금리 동결 발표 — 성장주 반등 기대"
             maxLength={120}
           />
-          <button className="act-btn buy bc-go" disabled={busy || !bcText.trim()} onClick={sendBc}>
+          <button className="act-btn prime bc-go" disabled={busy || !bcText.trim()} onClick={sendBc}>
             전체 발송
           </button>
         </div>
@@ -529,7 +536,7 @@ export default function AdminProgress({
                 <button className="text-btn" onClick={() => setCfg(null)}>
                   취소
                 </button>
-                <button className="act-btn buy" disabled={busy} onClick={saveCfg}>
+                <button className="act-btn prime" disabled={busy} onClick={saveCfg}>
                   설정 저장
                 </button>
               </div>
@@ -544,7 +551,7 @@ export default function AdminProgress({
         <p className="anote">
           힌트 호재/악재↔실제 등락 · 힌트 누락 · 가격 공백 등 콘텐츠 정합성을 검사해요.
         </p>
-        <button className="act-btn buy" disabled={busy} onClick={runCheck}>
+        <button className="act-btn neutral" disabled={busy} onClick={runCheck}>
           데이터 점검 실행
         </button>
       </section>
@@ -588,7 +595,7 @@ export default function AdminProgress({
           <button className="cancel" onClick={() => setConfirm(null)}>
             취소
           </button>
-          <button className="act-btn buy" disabled={busy} onClick={doAdvance}>
+          <button className="act-btn prime" disabled={busy} onClick={doAdvance}>
             {busy ? '진행 중…' : '진행'}
           </button>
         </div>
@@ -605,7 +612,7 @@ export default function AdminProgress({
             취소
           </button>
           <button
-            className="act-btn sell"
+            className="act-btn danger"
             disabled={busy}
             onClick={() => run(actions.endGame, '대회가 종료되었습니다')}
           >
@@ -636,7 +643,7 @@ export default function AdminProgress({
             취소
           </button>
           <button
-            className="act-btn sell"
+            className="act-btn danger"
             disabled={busy || resetText !== 'RESET'}
             onClick={() => run(actions.resetGame, '게임이 초기화되었습니다')}
           >
@@ -672,7 +679,7 @@ export default function AdminProgress({
           >
             취소
           </button>
-          <button className="act-btn buy" disabled={busy} onClick={doSwitchDs}>
+          <button className="act-btn prime" disabled={busy} onClick={doSwitchDs}>
             {busy ? '세팅 중…' : '이 데이터셋으로'}
           </button>
         </div>
@@ -695,7 +702,7 @@ export default function AdminProgress({
           </ul>
         )}
         <div className="mfoot">
-          <button className="act-btn buy" onClick={() => setIssues(null)}>
+          <button className="act-btn neutral" onClick={() => setIssues(null)}>
             닫기
           </button>
         </div>

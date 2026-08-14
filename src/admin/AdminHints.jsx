@@ -39,7 +39,11 @@ export default function AdminHints({ actions, game, stocks, teams, hints, refres
     () => Object.keys(game?.round_year_map ?? {}).map(Number).sort((a, b) => a - b),
     [game],
   )
-  const shown = hints.filter((h) => h.round === filterRound)
+  // 힌트 풀은 항상 S→A→B→C→D 순으로 고정 정렬
+  const shown = hints
+    .filter((h) => h.round === filterRound)
+    .slice()
+    .sort((a, b) => GRADES.indexOf(a.grade) - GRADES.indexOf(b.grade))
 
   // 하위권 = 평가금액이 낮은 조
   const ranked = useMemo(

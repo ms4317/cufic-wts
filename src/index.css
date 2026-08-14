@@ -19,6 +19,7 @@
   --down-soft: #152a44;
   --gold: #e8b45c;
   --gold-soft: #2e2617;
+  --ok: #43c463; /* 접속/온라인 상태 (가격 방향과 무관한 의미색) */
 
   --shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
   --shadow-lg: 0 18px 50px rgba(0, 0, 0, 0.6);
@@ -39,6 +40,7 @@
   --down-soft: #e9f1fc;
   --gold: #c8922e;
   --gold-soft: #faf3e3;
+  --ok: #2f9e44; /* 접속/온라인 상태 */
 
   --shadow: 0 2px 10px rgba(26, 34, 51, 0.08);
   --shadow-lg: 0 18px 50px rgba(26, 34, 51, 0.18);
@@ -52,6 +54,7 @@
   --r-md: 12px;
   --r-sm: 8px;
   --ink: #fff; /* 컬러 버튼 위 글자 */
+  --on-gold: #241a06; /* 골드(강조) 버튼 위 글자 — 두 테마 공통 */
 }
 
 * {

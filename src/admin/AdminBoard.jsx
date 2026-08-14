@@ -5,6 +5,9 @@ import { num, signed, pct, dirOf } from '../format'
 export default function AdminBoard({ game, board }) {
   const [big, setBig] = useState(false)
 
+  // 단독 1위일 때만 골드 강조. 공동 1위(동률)면 아무도 강조하지 않는다.
+  const soleFirst = board.filter((t) => Number(t.rank) === 1).length === 1
+
   const rankMove = (t) => {
     if (t.prev_rank == null) return null
     const d = Number(t.prev_rank) - Number(t.rank)
@@ -36,7 +39,10 @@ export default function AdminBoard({ game, board }) {
             {board.map((t) => {
               const mv = rankMove(t)
               return (
-                <div key={t.team_id} className={'lb-row rank' + t.rank}>
+                <div
+                  key={t.team_id}
+                  className={'lb-row' + (Number(t.rank) === 1 && soleFirst ? ' rank1' : '')}
+                >
                   <span className="lb-rank">{t.rank}</span>
                   <span className="lb-name">{t.name}</span>
                   {mv && <span className={'lb-move ' + mv.cls}>{mv.txt}</span>}

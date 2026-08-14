@@ -203,7 +203,7 @@ export default function Admin({ theme, onToggleTheme }) {
         </div>
         <span className="badge round">관리자</span>
         {game && (
-          <span className="badge">
+          <span className="badge muted">
             {game.current_round === 0
               ? '시작 전 · 대기 중'
               : `ROUND ${game.current_round} · ${game.round_year_map?.[String(game.current_round)]}년`}

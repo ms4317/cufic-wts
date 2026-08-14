@@ -9,14 +9,13 @@ export default function AdminStocks({ actions, game, stocks, refresh, notify }) 
   const [confirmDel, setConfirmDel] = useState(null)
   const [busy, setBusy] = useState(false)
 
-  // 라운드 연도 + 그 직전 연도(기준선)까지 보여준다
+  // 게임에 실제 등장하는 연도만 = 라운드 연도 + 최종 정산 연도 (유령 열 없음)
+  const finalYear = Number(game?.final_year) || null
   const years = useMemo(() => {
-    const rs = Object.values(game?.round_year_map ?? {}).map(Number)
-    if (!rs.length) return []
-    const min = Math.min(...rs)
-    const max = Math.max(...rs)
-    return Array.from({ length: max - min + 2 }, (_, i) => min - 1 + i)
-  }, [game])
+    const set = new Set(Object.values(game?.round_year_map ?? {}).map(Number).filter(Boolean))
+    if (finalYear) set.add(finalYear)
+    return [...set].sort((a, b) => a - b)
+  }, [game, finalYear])
 
   const save = async (s) => {
     setBusy(true)
@@ -79,7 +78,10 @@ export default function AdminStocks({ actions, game, stocks, refresh, notify }) 
                 <th>종목</th>
                 <th>소개</th>
                 {years.map((y) => (
-                  <th key={y}>{y}</th>
+                  <th key={y}>
+                    {y}
+                    {y === finalYear && <div className="sub">최종 정산</div>}
+                  </th>
                 ))}
                 <th></th>
               </tr>

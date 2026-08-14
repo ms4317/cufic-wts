@@ -23,7 +23,7 @@ export default function AdminTeams({ actions, game, teams, refresh, notify }) {
       hour: '2-digit',
       minute: '2-digit',
     })
-    return mins < 120 ? { txt: '접속 · ' + time, cls: 'on' } : { txt: time, cls: 'old' }
+    return mins < 10 ? { txt: '접속 · ' + time, cls: 'on' } : { txt: '이전 접속 ' + time, cls: 'old' }
   }
 
   const add = async () => {
