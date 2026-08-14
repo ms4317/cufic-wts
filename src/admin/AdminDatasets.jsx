@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import Modal from '../components/Modal'
 import { errorText } from '../supabase'
-import { buildTemplateZip, readUploadFiles, csvFilesToPayload } from './datasetCsv'
+// datasetXlsx(SheetJS 포함)은 무거워 클릭 시 동적 import 한다(학생 번들 미영향)
 
 /**
  * 데이터셋(시나리오) — 저장·전환·백업.
@@ -14,8 +14,8 @@ export default function AdminDatasets({ actions, game, refresh, notify }) {
   const [desc, setDesc] = useState('')
   const [busy, setBusy] = useState(false)
   const [confirm, setConfirm] = useState(null) // {type:'load'|'delete', id, name}
-  const [csvReport, setCsvReport] = useState(null) // { payload, errors }
-  const [csvName, setCsvName] = useState('') // CSV로 만들 새 데이터셋 이름
+  const [xlsxReport, setXlsxReport] = useState(null) // { payload, errors, warnings }
+  const [newName, setNewName] = useState('') // 엑셀로 만들 새 데이터셋 이름
 
   const started = (game?.current_round ?? 0) > 0
   const activeId = game?.active_dataset_id ?? null
@@ -88,49 +88,58 @@ export default function AdminDatasets({ actions, game, refresh, notify }) {
     loadDatasets()
   }
 
-  // CSV 템플릿(zip) 다운로드 — UTF-8 BOM 5개 파일
-  const downloadTemplate = () => {
-    const blob = new Blob([buildTemplateZip()], { type: 'application/zip' })
+  // 엑셀 업로드(.xlsx) → 시트 5개 파싱·검증 → 리포트 모달
+  const onXlsxUpload = async (e) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    setBusy(true)
+    try {
+      const buf = await file.arrayBuffer()
+      const { parseWorkbook } = await import('./datasetXlsx')
+      const { payload, errors, warnings } = parseWorkbook(buf)
+      setNewName(file.name.replace(/\.xlsx$/i, ''))
+      setXlsxReport({ payload, errors, warnings })
+    } catch (err) {
+      notify('엑셀 파일을 읽을 수 없어요', 'down')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  // 검증 통과분을 새 데이터셋으로 생성(에러 없으면 경고가 있어도 가능, 기존 덮어쓰기 아님)
+  const createFromXlsx = async () => {
+    const nm = newName.trim()
+    if (!nm || !xlsxReport?.payload) return
+    setBusy(true)
+    const r = await actions.importDataset(nm, '엑셀 양식으로 가져온 데이터셋', xlsxReport.payload)
+    setBusy(false)
+    if (!r.ok) return notify(errorText(r.error), 'down')
+    setXlsxReport(null)
+    setNewName('')
+    notify(`'${nm}' 엑셀로 만들었어요`, 'gold')
+    loadDatasets()
+  }
+
+  // 데이터셋을 공식 양식(.xlsx)으로 내보내기
+  const exportXlsx = async (d) => {
+    setBusy(true)
+    const r = await actions.getDataset(d.id)
+    if (!r.ok) {
+      setBusy(false)
+      return notify(errorText(r.error), 'down')
+    }
+    const { buildWorkbook } = await import('./datasetXlsx')
+    setBusy(false)
+    const blob = new Blob([buildWorkbook(r.payload)], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = 'cufic_dataset_template.zip'
+    a.download = `${d.name}.xlsx`
     a.click()
     URL.revokeObjectURL(url)
-  }
-
-  // CSV 업로드(zip 또는 CSV 5개) → 검증 → 리포트 모달
-  const onCsvUpload = async (e) => {
-    const fl = e.target.files
-    if (!fl?.length) return
-    const picked = Array.from(fl) // FileList는 value='' 시 비워지므로 먼저 복사
-    e.target.value = ''
-    setBusy(true)
-    let files
-    try {
-      files = await readUploadFiles(picked)
-    } catch {
-      setBusy(false)
-      return notify('zip 파일을 읽을 수 없어요', 'down')
-    }
-    const { payload, errors } = csvFilesToPayload(files)
-    setBusy(false)
-    setCsvName('')
-    setCsvReport({ payload, errors })
-  }
-
-  // 검증 통과분을 새 데이터셋으로 생성(기존 덮어쓰기 아님)
-  const createFromCsv = async () => {
-    const nm = csvName.trim()
-    if (!nm || !csvReport?.payload) return
-    setBusy(true)
-    const r = await actions.importDataset(nm, 'CSV로 가져온 데이터셋', csvReport.payload)
-    setBusy(false)
-    if (!r.ok) return notify(errorText(r.error), 'down')
-    setCsvReport(null)
-    setCsvName('')
-    notify(`'${nm}' CSV로 만들었어요`, 'gold')
-    loadDatasets()
   }
 
   const runConfirm = async () => {
@@ -189,17 +198,23 @@ export default function AdminDatasets({ actions, game, refresh, notify }) {
         </div>
         <div className="ds-import">
           <label className="text-btn file-btn">
+            📊 엑셀 업로드 (.xlsx)
+            <input
+              type="file"
+              accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+              onChange={onXlsxUpload}
+              hidden
+            />
+          </label>
+          <label className="text-btn file-btn">
             📁 파일 가져오기 (.json)
             <input type="file" accept="application/json,.json" onChange={onImport} hidden />
           </label>
-          <button className="text-btn" onClick={downloadTemplate}>
-            📄 CSV 템플릿 (.zip)
-          </button>
-          <label className="text-btn file-btn">
-            📤 CSV 업로드 (zip·csv)
-            <input type="file" accept=".zip,.csv,text/csv,application/zip" multiple onChange={onCsvUpload} hidden />
-          </label>
         </div>
+        <p className="anote">
+          공식 엑셀 양식으로 데이터를 만들려면 아래 목록에서 데이터셋의 <b>[엑셀]</b>을 눌러 내려받아 고친 뒤,
+          위 <b>[📊 엑셀 업로드]</b>로 올리면 검사 후 새 데이터셋이 됩니다.
+        </p>
 
         {started && (
           <p className="awarn">
@@ -228,8 +243,11 @@ export default function AdminDatasets({ actions, game, refresh, notify }) {
                   >
                     편집
                   </button>
+                  <button className="text-btn" disabled={busy} onClick={() => exportXlsx(d)}>
+                    엑셀
+                  </button>
                   <button className="text-btn" disabled={busy} onClick={() => exportDs(d)}>
-                    내보내기
+                    JSON
                   </button>
                   <button
                     className="text-btn danger tiny"
@@ -281,44 +299,53 @@ export default function AdminDatasets({ actions, game, refresh, notify }) {
         </div>
       </Modal>
 
-      {/* CSV 업로드 검사 결과 */}
-      <Modal open={!!csvReport} onClose={() => setCsvReport(null)} title="CSV 검사 결과" wide>
-        {csvReport?.errors?.length > 0 ? (
-          <>
-            <p className="awarn">
-              문제 {csvReport.errors.length}건 — 파일을 고쳐서 다시 올려주세요.
-            </p>
-            <ul className="issue-list">
-              {csvReport.errors.map((e, i) => (
-                <li key={i} className="issue error">
-                  <span className="ilv">
-                    {e.file}
-                    {e.line ? ` ${e.line}행` : ''}
-                  </span>
-                  {e.msg}
-                </li>
-              ))}
-            </ul>
-          </>
+      {/* 엑셀 업로드 검사 결과 */}
+      <Modal open={!!xlsxReport} onClose={() => setXlsxReport(null)} title="엑셀 검사 결과" wide>
+        {xlsxReport?.errors?.length > 0 ? (
+          <p className="awarn">문제 {xlsxReport.errors.length}건 — 고쳐서 다시 올려주세요.</p>
         ) : (
-          <>
-            <p className="aok">검사 통과 ✅ — 새 데이터셋으로 만들 이름을 정하세요.</p>
-            <input
-              className="bc-input"
-              value={csvName}
-              onChange={(e) => setCsvName(e.target.value)}
-              placeholder="예: CSV로 만든 2026 시나리오"
-              maxLength={60}
-              autoFocus
-            />
-          </>
+          <p className="aok">
+            검사 통과 ✅{xlsxReport?.warnings?.length ? ` (경고 ${xlsxReport.warnings.length}건은 확인만)` : ''} — 새 데이터셋으로 만들 이름을 정하세요.
+          </p>
+        )}
+        {(xlsxReport?.errors?.length > 0 || xlsxReport?.warnings?.length > 0) && (
+          <ul className="issue-list">
+            {(xlsxReport?.errors ?? []).map((e, i) => (
+              <li key={'e' + i} className="issue error">
+                <span className="ilv">
+                  {e.sheet}
+                  {e.row ? ` ${e.row}행` : ''}
+                </span>
+                {e.msg}
+              </li>
+            ))}
+            {(xlsxReport?.warnings ?? []).map((w, i) => (
+              <li key={'w' + i} className="issue warn">
+                <span className="ilv">
+                  {w.sheet}
+                  {w.row ? ` ${w.row}행` : ''}
+                </span>
+                {w.msg}
+              </li>
+            ))}
+          </ul>
+        )}
+        {xlsxReport?.payload && (
+          <input
+            className="bc-input"
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            placeholder="새 데이터셋 이름 (예: 2026 시나리오)"
+            maxLength={60}
+            autoFocus
+          />
         )}
         <div className="mfoot">
-          <button className="cancel" onClick={() => setCsvReport(null)}>
+          <button className="cancel" onClick={() => setXlsxReport(null)}>
             닫기
           </button>
-          {csvReport?.payload && (
-            <button className="act-btn prime" disabled={busy || !csvName.trim()} onClick={createFromCsv}>
+          {xlsxReport?.payload && (
+            <button className="act-btn prime" disabled={busy || !newName.trim()} onClick={createFromXlsx}>
               새 데이터셋으로 생성
             </button>
           )}
