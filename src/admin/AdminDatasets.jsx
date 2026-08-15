@@ -209,7 +209,19 @@ export default function AdminDatasets({ actions, game, refresh, notify, dirty, o
             + 새 데이터셋으로 저장
           </button>
         </div>
+        {/* 받기: 편집 중 데이터셋을 양식(.xlsx)·데이터(.json)로 바로 다운로드 */}
         <div className="ds-import">
+          <span className="ds-import-label">받기</span>
+          <button className="text-btn" disabled={busy || !active} onClick={() => exportXlsx(active)}>
+            📊 양식 다운로드 (.xlsx)
+          </button>
+          <button className="text-btn" disabled={busy || !active} onClick={() => exportDs(active)}>
+            📁 데이터 다운로드 (.json)
+          </button>
+        </div>
+        {/* 올리기 */}
+        <div className="ds-import">
+          <span className="ds-import-label">올리기</span>
           <label className="text-btn file-btn">
             📊 엑셀 업로드 (.xlsx)
             <input
@@ -220,13 +232,13 @@ export default function AdminDatasets({ actions, game, refresh, notify, dirty, o
             />
           </label>
           <label className="text-btn file-btn">
-            📁 파일 가져오기 (.json)
+            📁 JSON 가져오기
             <input type="file" accept="application/json,.json" onChange={onImport} hidden />
           </label>
         </div>
         <p className="anote">
-          공식 엑셀 양식으로 데이터를 만들려면 아래 목록에서 데이터셋의 <b>[엑셀]</b>을 눌러 내려받아 고친 뒤,
-          위 <b>[📊 엑셀 업로드]</b>로 올리면 검사 후 새 데이터셋이 됩니다.
+          <b>[양식 다운로드]</b>로 지금 편집 중인 데이터셋을 엑셀로 받아 고친 뒤, <b>[📊 엑셀 업로드]</b>로 올리면
+          검사 후 새 데이터셋이 됩니다. (목록 각 행의 [엑셀]/[JSON]으로 특정 데이터셋만 받을 수도 있어요.)
         </p>
 
         {started && (

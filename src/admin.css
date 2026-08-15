@@ -716,7 +716,18 @@
   min-width: 140px;
 }
 .ds-import {
-  margin-bottom: 12px;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.ds-import-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--dim);
+  min-width: 34px;
 }
 .file-btn {
   cursor: pointer;
