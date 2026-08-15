@@ -1,7 +1,8 @@
 import { Fragment, useState } from 'react'
 import Modal from './Modal'
 import { num } from '../format'
-import { MACRO_METRICS, FIN_YEARS } from '../data'
+import { FIN_YEARS } from '../data'
+import { MACRO_METRICS } from '../metrics'
 
 /**
  * 시황판 — 연도별 거시경제 지표(금리·GDP·실업률·환율·물가·유가).

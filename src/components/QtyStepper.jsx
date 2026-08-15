@@ -14,7 +14,7 @@ import { num } from '../format'
  * @param {string} label    필드 아래 표시될 이름 ("매수 수량" 등)
  * @param {string} maxLabel 100% 버튼 이름 ("최대" 또는 "전량")
  */
-export default function QtyStepper({ value, onChange, max, label, maxLabel = '최대' }) {
+export default function QtyStepper({ value, onChange, max, label, maxLabel = '최대', disabled = false }) {
   const inputRef = useRef(null)
   const [draft, setDraft] = useState(null) // null이면 비편집 상태
 
@@ -69,8 +69,8 @@ export default function QtyStepper({ value, onChange, max, label, maxLabel = '�
   }
 
   return (
-    <div className="stepper">
-      <button onClick={() => step(-1)} disabled={value <= 0} aria-label={`${label} 1 감소`}>
+    <div className={'stepper' + (disabled ? ' locked' : '')}>
+      <button onClick={() => step(-1)} disabled={disabled || value <= 0} aria-label={`${label} 1 감소`}>
         −
       </button>
 
@@ -81,6 +81,7 @@ export default function QtyStepper({ value, onChange, max, label, maxLabel = '�
           type="text"
           inputMode="numeric"
           autoComplete="off"
+          disabled={disabled}
           // 편집 중엔 원문, 아니면 천단위 구분자를 넣어 보여준다
           value={draft ?? num(value)}
           onChange={(e) => setDraft(e.target.value.replace(/\D/g, '').slice(0, 7))}
@@ -95,7 +96,7 @@ export default function QtyStepper({ value, onChange, max, label, maxLabel = '�
         <span>{label}</span>
       </div>
 
-      <button onClick={() => step(1)} disabled={value >= max} aria-label={`${label} 1 증가`}>
+      <button onClick={() => step(1)} disabled={disabled || value >= max} aria-label={`${label} 1 증가`}>
         +
       </button>
     </div>
@@ -105,14 +106,15 @@ export default function QtyStepper({ value, onChange, max, label, maxLabel = '�
 // 비율 버튼. 시드가 1억이면 최대 1,000주가 넘어서 −/+로는 감당이 안 된다.
 const RATIOS = [0.1, 0.25, 0.5, 1]
 
-export function QtyRatios({ max, onPick, maxLabel = '최대' }) {
+export function QtyRatios({ max, onPick, maxLabel = '최대', disabled = false, onBlocked }) {
+  const blocked = max <= 0 // 잠금은 아니지만 살/팔 수량이 0 (예수금 부족 등)
   return (
-    <div className="ratios">
+    <div className={'ratios' + (disabled ? ' locked' : '')}>
       {RATIOS.map((r) => (
         <button
           key={r}
-          onClick={() => onPick(r === 1 ? max : Math.floor(max * r))}
-          disabled={max <= 0}
+          onClick={() => (blocked ? onBlocked?.() : onPick(r === 1 ? max : Math.floor(max * r)))}
+          disabled={disabled}
         >
           {r === 1 ? maxLabel : `${r * 100}%`}
         </button>

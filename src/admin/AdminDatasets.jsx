@@ -8,7 +8,7 @@ import { errorText } from '../supabase'
  * "지금 편집 중인 데이터셋"(game.active_dataset_id)을 보여주고, 다른 탭에서 콘텐츠를 고친 뒤
  * [저장]을 누르면 그 데이터셋에 반영된다. [편집]으로 다른 데이터셋으로 전환(불러오기, 게임 리셋).
  */
-export default function AdminDatasets({ actions, game, refresh, notify }) {
+export default function AdminDatasets({ actions, game, refresh, notify, dirty, onSaved }) {
   const [datasets, setDatasets] = useState([])
   const [name, setName] = useState('')
   const [desc, setDesc] = useState('')
@@ -38,6 +38,7 @@ export default function AdminDatasets({ actions, game, refresh, notify }) {
     setBusy(false)
     if (!r.ok) return notify(errorText(r.error), 'down')
     notify(`'${active.name}'에 저장했어요`, 'gold')
+    onSaved?.()
     loadDatasets()
     await refresh()
   }
@@ -53,6 +54,7 @@ export default function AdminDatasets({ actions, game, refresh, notify }) {
     setName('')
     setDesc('')
     notify(`'${nm}' 새 데이터셋으로 저장했어요`, 'gold')
+    onSaved?.()
     loadDatasets()
     await refresh()
   }
@@ -97,9 +99,9 @@ export default function AdminDatasets({ actions, game, refresh, notify }) {
     try {
       const buf = await file.arrayBuffer()
       const { parseWorkbook } = await import('./datasetXlsx')
-      const { payload, errors, warnings } = parseWorkbook(buf)
+      const { payload, errors, warnings, infos } = parseWorkbook(buf)
       setNewName(file.name.replace(/\.xlsx$/i, ''))
-      setXlsxReport({ payload, errors, warnings })
+      setXlsxReport({ payload, errors, warnings, infos })
     } catch (err) {
       notify('엑셀 파일을 읽을 수 없어요', 'down')
     } finally {
@@ -146,12 +148,15 @@ export default function AdminDatasets({ actions, game, refresh, notify }) {
     const c = confirm
     setConfirm(null)
     if (!c) return
+    if (c.type === 'overwrite') return saveActive() // 덮어쓰기 확인 후 저장
     setBusy(true)
     const r = c.type === 'load' ? await actions.loadDataset(c.id) : await actions.deleteDataset(c.id)
     setBusy(false)
     if (!r.ok) return notify(errorText(r.error), 'down')
-    if (c.type === 'load') notify(`'${c.name}' 편집을 시작해요`, 'gold')
-    else notify(`'${c.name}' 삭제했어요`, 'gold')
+    if (c.type === 'load') {
+      notify(`'${c.name}' 편집을 시작해요`, 'gold')
+      onSaved?.() // 불러오면 라이브 = 그 데이터셋 → dirty 해제
+    } else notify(`'${c.name}' 삭제했어요`, 'gold')
     loadDatasets()
     await refresh()
   }
@@ -162,16 +167,24 @@ export default function AdminDatasets({ actions, game, refresh, notify }) {
         <span className="acap">데이터셋 · 시나리오 저장·전환·백업</span>
 
         {/* 지금 편집 중 */}
-        <div className="ds-active">
+        <div className={'ds-active' + (dirty ? ' dirty' : '')}>
           <div className="ds-active-info">
             <span className="ds-active-label">지금 편집 중</span>
-            <span className="ds-active-name">{active ? active.name : '(아직 저장 안 함)'}</span>
+            <span className="ds-active-name">
+              {active ? active.name : '(아직 저장 안 함)'}
+              {dirty && <span className="ds-dirty">● 저장 안 된 변경</span>}
+            </span>
             <span className="anote ds-active-hint">
-              다른 탭에서 콘텐츠(종목·가격·재무·시황·힌트·게임설정)를 고친 뒤 여기 [저장]을 누르면 이
-              데이터셋에 반영돼요.
+              {dirty
+                ? '다른 탭에서 콘텐츠를 고쳤어요. [저장]을 눌러야 이 데이터셋에 반영됩니다 — 저장 전 [편집]으로 전환하면 사라져요.'
+                : '다른 탭에서 콘텐츠(종목·가격·재무·시황·힌트·게임설정)를 고친 뒤 여기 [저장]을 누르면 이 데이터셋에 반영돼요.'}
             </span>
           </div>
-          <button className="act-btn buy" disabled={busy || !active} onClick={saveActive}>
+          <button
+            className="act-btn prime"
+            disabled={busy || !active}
+            onClick={() => setConfirm({ type: 'overwrite', id: active.id, name: active.name })}
+          >
             💾 저장
           </button>
         </div>
@@ -266,7 +279,13 @@ export default function AdminDatasets({ actions, game, refresh, notify }) {
       <Modal
         open={!!confirm}
         onClose={() => setConfirm(null)}
-        title={confirm?.type === 'load' ? '데이터셋 편집 전환' : '데이터셋 삭제'}
+        title={
+          confirm?.type === 'load'
+            ? '데이터셋 편집 전환'
+            : confirm?.type === 'overwrite'
+              ? '데이터셋 덮어쓰기'
+              : '데이터셋 삭제'
+        }
       >
         <div className="confirm">
           {confirm?.type === 'load' ? (
@@ -277,6 +296,16 @@ export default function AdminDatasets({ actions, game, refresh, notify }) {
               <p className="ask">
                 지금 콘텐츠가 이 데이터셋으로 <b>바뀌고 게임이 리셋</b>됩니다(조는 유지). <b>저장하지 않은
                 변경은 사라져요.</b>
+              </p>
+            </>
+          ) : confirm?.type === 'overwrite' ? (
+            <>
+              <p className="big">
+                <b>'{confirm?.name}'</b>에 덮어씁니다
+              </p>
+              <p className="ask">
+                이 데이터셋의 저장 내용이 <b>지금 콘텐츠로 교체</b>됩니다(원래 내용은 사라짐).
+                따로 남기려면 대신 [+ 새 데이터셋으로 저장]을 쓰세요.
               </p>
             </>
           ) : (
@@ -290,11 +319,11 @@ export default function AdminDatasets({ actions, game, refresh, notify }) {
             취소
           </button>
           <button
-            className={'act-btn ' + (confirm?.type === 'load' ? 'buy' : 'sell')}
+            className={'act-btn ' + (confirm?.type === 'delete' ? 'danger' : 'prime')}
             disabled={busy}
             onClick={runConfirm}
           >
-            {confirm?.type === 'load' ? '편집 시작' : '삭제'}
+            {confirm?.type === 'load' ? '편집 시작' : confirm?.type === 'overwrite' ? '덮어쓰기' : '삭제'}
           </button>
         </div>
       </Modal>
@@ -302,13 +331,17 @@ export default function AdminDatasets({ actions, game, refresh, notify }) {
       {/* 엑셀 업로드 검사 결과 */}
       <Modal open={!!xlsxReport} onClose={() => setXlsxReport(null)} title="엑셀 검사 결과" wide>
         {xlsxReport?.errors?.length > 0 ? (
-          <p className="awarn">문제 {xlsxReport.errors.length}건 — 고쳐서 다시 올려주세요.</p>
+          <p className="awarn">문제(에러) {xlsxReport.errors.length}건 — 고쳐서 다시 올려주세요.</p>
         ) : (
           <p className="aok">
-            검사 통과 ✅{xlsxReport?.warnings?.length ? ` (경고 ${xlsxReport.warnings.length}건은 확인만)` : ''} — 새 데이터셋으로 만들 이름을 정하세요.
+            검사 통과 ✅
+            {xlsxReport?.warnings?.length ? ` · 경고 ${xlsxReport.warnings.length}` : ''}
+            {xlsxReport?.infos?.length ? ` · 참고 ${xlsxReport.infos.length}` : ''} — 새 데이터셋으로 만들 이름을 정하세요.
           </p>
         )}
-        {(xlsxReport?.errors?.length > 0 || xlsxReport?.warnings?.length > 0) && (
+        {(xlsxReport?.errors?.length > 0 ||
+          xlsxReport?.warnings?.length > 0 ||
+          xlsxReport?.infos?.length > 0) && (
           <ul className="issue-list">
             {(xlsxReport?.errors ?? []).map((e, i) => (
               <li key={'e' + i} className="issue error">
@@ -326,6 +359,15 @@ export default function AdminDatasets({ actions, game, refresh, notify }) {
                   {w.row ? ` ${w.row}행` : ''}
                 </span>
                 {w.msg}
+              </li>
+            ))}
+            {(xlsxReport?.infos ?? []).map((f, i) => (
+              <li key={'i' + i} className="issue info">
+                <span className="ilv">
+                  {f.sheet}
+                  {f.row ? ` ${f.row}행` : ''}
+                </span>
+                {f.msg}
               </li>
             ))}
           </ul>

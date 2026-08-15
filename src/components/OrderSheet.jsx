@@ -24,6 +24,7 @@ export default function OrderSheet({
   ended,
   stocks,
   hasTraded,
+  onNotify,
 }) {
   // 수량은 이 종목에 한정된 임시값. App이 key={종목코드}로 리마운트하므로 종목을 바꾸면 0으로 초기화된다.
   const [buyQty, setBuyQty] = useState(0)
@@ -39,6 +40,8 @@ export default function OrderSheet({
 
   const canBuy = tradingOpen && !stock.halted && !placing && buyQty > 0 && buyQty <= buyable
   const canSell = tradingOpen && !stock.halted && !placing && sellQty > 0 && sellQty <= sellable
+  // 거래 대기(타이머 밖)·거래정지면 매수·매도 입력 전체를 완전히 잠근다(양쪽 동일 시각)
+  const locked = !tradingOpen || stock.halted
 
   const submit = async (side, qty) => {
     await onOrder(side, qty)
@@ -78,8 +81,14 @@ export default function OrderSheet({
             <span className="t up">매수</span>
             <span className="avail">최대 {num(buyable)}주</span>
           </div>
-          <QtyRatios max={buyable} onPick={setBuyQty} maxLabel="최대" />
-          <QtyStepper value={buyQty} onChange={setBuyQty} max={buyable} label="매수 수량" />
+          <QtyRatios
+            max={buyable}
+            onPick={setBuyQty}
+            maxLabel="최대"
+            disabled={locked}
+            onBlocked={() => onNotify?.('주문가능 금액으로 살 수 있는 수량이 없어요', 'down')}
+          />
+          <QtyStepper value={buyQty} onChange={setBuyQty} max={buyable} label="매수 수량" disabled={locked} />
           <div className="est">
             <span>예상 매수금액</span>
             <span className="num">₩ {num(buyQty * stock.price)}</span>
@@ -111,13 +120,20 @@ export default function OrderSheet({
             </div>
           )}
 
-          <QtyRatios max={sellable} onPick={setSellQty} maxLabel="전량" />
+          <QtyRatios
+            max={sellable}
+            onPick={setSellQty}
+            maxLabel="전량"
+            disabled={locked}
+            onBlocked={() => onNotify?.('팔 수 있는 보유 주식이 없어요', 'down')}
+          />
           <QtyStepper
             value={sellQty}
             onChange={setSellQty}
             max={sellable}
             label="매도 수량"
             maxLabel="전량"
+            disabled={locked}
           />
           <div className="est">
             <span>예상 매도금액</span>
@@ -141,7 +157,7 @@ export default function OrderSheet({
             <div className="cap">
               <span className="t">보유종목</span>
               <span className="avail">
-                {held.length > 0 ? `평가 ₩ ${num(holdingsValue)}` : `${held.length}개`}
+                {held.length > 0 ? `보유주식 평가 ₩ ${num(holdingsValue)}` : `${held.length}개`}
               </span>
             </div>
 

@@ -57,6 +57,7 @@ export default function Admin({ theme, onToggleTheme }) {
   const [authed, setAuthed] = useState(false)
   const [checking, setChecking] = useState(true)
   const [tab, setTab] = useState('progress')
+  const [dirty, setDirty] = useState(false) // 콘텐츠 편집 후 데이터셋에 저장 안 함
   const [toasts, pushToast, dismissToast] = useToasts()
 
   const [game, setGame] = useState(null)
@@ -115,10 +116,13 @@ export default function Admin({ theme, onToggleTheme }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // 실시간: 다른 곳에서 바뀌면 갱신
+  // 실시간: 다른 곳에서 바뀌면 갱신 + 콘텐츠 편집이면 dirty 표시
   useEffect(() => {
     if (!authed) return
-    return subscribeSignals(() => refresh())
+    return subscribeSignals((sig) => {
+      if (['content_changed', 'hints_changed', 'stocks_changed'].includes(sig?.kind)) setDirty(true)
+      refresh()
+    })
   }, [authed, refresh])
 
   const doLogin = async (e) => {
@@ -193,6 +197,8 @@ export default function Admin({ theme, onToggleTheme }) {
     macro,
     refresh,
     notify: pushToast,
+    dirty,
+    onSaved: () => setDirty(false),
   }
 
   return (

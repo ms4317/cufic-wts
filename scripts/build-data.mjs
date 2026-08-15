@@ -130,28 +130,14 @@ export const stocks = ${JSON.stringify(stocks, null, 2)}
 // impact: up=호재(빨강) / down=악재(파랑) / flat=중립(회색). related는 종목 code.
 export const initialHints = ${JSON.stringify(HINTS, null, 2)}
 
-export const FIN_METRICS = [
-  { key: 'revenue', label: '매출액', unit: '억원', desc: '회사가 물건이나 서비스를 팔아서 벌어들인 돈 전체예요.' },
-  { key: 'opIncome', label: '영업이익', unit: '억원', desc: '매출액에서 재료비·인건비 같은 비용을 뺀, 본업으로 남긴 이익이에요.' },
-  { key: 'netIncome', label: '당기순이익', unit: '억원', desc: '이자와 세금까지 전부 내고 최종적으로 남은 이익이에요.' },
-  { key: 'debtRatio', label: '부채비율', unit: '%', desc: '내 돈에 비해 빚이 얼마나 많은지예요. 낮을수록 안정적이고, 보통 200%보다 낮으면 양호하다고 봐요.' },
-  { key: 'roe', label: 'ROE', unit: '%', desc: '내 돈으로 얼마나 잘 벌었는지 보여주는 지표예요. 높을수록 장사를 잘한 거예요.' },
-]
+// 재무·시황 지표 정의는 src/metrics.js 단일 소스 (교보재팀이 지표를 바꾸면 거기만 수정)
+export { FIN_METRICS, MACRO_METRICS } from './metrics.js'
 
 // 재무제표. null = 미상장/상장폐지 연도(화면에서 '-'). 단위: 금액=억원, 비율=%.
 export const financials = ${JSON.stringify(financials, null, 2)}
 
 // 거시경제 시황. 연도별 지표(현재 라운드 연도 초과분은 스포일러라 화면에서 가린다).
 export const MACRO = ${JSON.stringify(MACRO, null, 2)}
-
-export const MACRO_METRICS = [
-  { key: 'rate', label: '기준금리', unit: '%', desc: '중앙은행이 정하는 기준 이자율이에요. 높으면 대출·투자가 위축되고 빚 많은 회사·성장주에 불리해요.' },
-  { key: 'gdp', label: 'GDP 성장률', unit: '%', desc: '나라 경제가 1년간 얼마나 커졌는지예요. 높으면 경기가 좋아 소비·투자가 늘어요.' },
-  { key: 'unemployment', label: '실업률', unit: '%', desc: '일자리를 못 구한 사람의 비율이에요. 높으면 소비가 줄어 경기가 나빠요.' },
-  { key: 'fx', label: '환율', unit: '원/$', desc: '1달러를 사는 데 드는 원화예요. 오르면(원화 약세) 수출 기업엔 유리, 수입엔 불리해요.' },
-  { key: 'cpi', label: '물가상승률', unit: '%', desc: '물건 값이 1년간 얼마나 올랐는지예요. 너무 높으면 금리를 올려 잡으려 해요.' },
-  { key: 'oil', label: '국제유가', unit: '$', desc: '원유 1배럴 가격(달러)이에요. 오르면 항공·운송·제조 비용이 커져요.' },
-]
 `
 
 writeFileSync(new URL('../src/data.js', import.meta.url), out, 'utf8')

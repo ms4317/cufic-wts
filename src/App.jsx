@@ -489,6 +489,7 @@ function Student({ theme, onToggleTheme }) {
           started={started}
           ended={ended}
           hasTraded={trades.length > 0}
+          onNotify={pushToast}
         />
       </div>
 

@@ -38,7 +38,7 @@ export default function RoundModal({ round, account, stocks, rows = [], prevEqui
           <span className="k">내 평가금액</span>
           <span className="v num">₩ {num(account.equity)}</span>
           <span className={'d num ' + dirOf(delta)}>
-            {changed ? '이번 라운드 ' : '원금 대비 '}
+            {changed ? '이번 라운드 변동 ' : '원금 대비 '}
             {signed(delta)} ({pct(deltaPct)})
           </span>
         </div>
@@ -110,7 +110,7 @@ export default function RoundModal({ round, account, stocks, rows = [], prevEqui
       </div>
 
       <div className="mfoot">
-        <button className="act-btn buy" onClick={onClose} autoFocus>
+        <button className="act-btn prime" onClick={onClose} autoFocus>
           확인
         </button>
       </div>

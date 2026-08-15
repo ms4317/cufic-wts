@@ -758,6 +758,11 @@ button.badge.rank:hover {
   gap: 5px;
   margin-bottom: 4px;
 }
+/* 거래 대기·정지 시 매수·매도 입력을 동일하게 잠근 시각 */
+.ratios.locked,
+.stepper.locked {
+  opacity: 0.5;
+}
 .ratios button {
   height: 26px;
   border-radius: var(--r-sm);

@@ -77,7 +77,7 @@ export default function FinalModal({ open, onClose, account, rows, finalYear }) 
       )}
 
       <div className="mfoot">
-        <button className="act-btn buy" onClick={onClose} autoFocus>
+        <button className="act-btn prime" onClick={onClose} autoFocus>
           확인
         </button>
       </div>

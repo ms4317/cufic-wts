@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { errorText } from '../supabase'
-import { FIN_METRICS, MACRO_METRICS } from '../data'
+import { FIN_METRICS, MACRO_METRICS } from '../metrics'
 
 // 게임에 등장하는 연도 = 라운드 연도 + 최종 연도
 const yearsOf = (game) => {

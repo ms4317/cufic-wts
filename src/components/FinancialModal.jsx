@@ -1,7 +1,8 @@
 import { Fragment, useState } from 'react'
 import Modal from './Modal'
 import { eok } from '../format'
-import { FIN_METRICS, FIN_YEARS } from '../data'
+import { FIN_YEARS } from '../data'
+import { FIN_METRICS } from '../metrics'
 
 export default function FinancialModal({ open, onClose, stock, round, financials }) {
   // 열려 있는 지표 설명. hover가 아니라 탭으로 여닫는다(터치 기기 대응).
