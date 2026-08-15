@@ -1,14 +1,15 @@
 # 현황 스냅샷 (STATUS)
 
-> **갱신: 2026-08-09** · 게임 모델 **v3**(즉시 체결 + 라운드 타이머) + **콘텐츠 전면 DB 이관(B)** + **배포** 기준.
+> **갱신: 2026-08-15** · 게임 모델 **v3**(즉시 체결 + 라운드 타이머) + **콘텐츠 전면 DB 이관(B)** + **데이터셋 엑셀 왕복** + **자율 입장** + **배포** 기준.
 > 이 문서는 "지금 이 순간 무엇이 있고 무엇이 없나"의 완전한 스냅샷이다. 외부 검수·내년 인수인계용.
 > 판단의 *이유*는 [DECISIONS.md](DECISIONS.md), 게임 *규칙*은 [GAME_RULES.md](GAME_RULES.md),
-> *화면*은 [SCREENS.md](SCREENS.md), *데이터 교체*는 [DATA_GUIDE.md](DATA_GUIDE.md),
-> *대회 운영*은 [OPERATIONS.md](OPERATIONS.md), 강사·제작 매뉴얼은 [MANUAL_ADMIN.md](MANUAL_ADMIN.md)·[MANUAL_CONTENT.md](MANUAL_CONTENT.md)를 본다.
+> *화면*은 [SCREENS.md](SCREENS.md), *데이터 교체*는 [DATA_GUIDE.md](DATA_GUIDE.md)·[MANUAL_CONTENT.md](MANUAL_CONTENT.md),
+> *대회 운영*은 [OPERATIONS.md](OPERATIONS.md), 강사 매뉴얼은 [MANUAL_ADMIN.md](MANUAL_ADMIN.md)를 본다.
 
 한 줄 요약: **전 과정(로그인→매매→라운드 전환→자동 힌트→최종 정산)이 실측으로 돌고, Vercel에 배포돼
-원격 플레이테스트까지 마쳤다. 콘텐츠(재무·시황·힌트·주가)는 이제 전부 DB에 있고 관리자 화면에서
-데이터셋 단위로 만들고 전환한다. 남은 건 실기기 검증·대회 전 초기화 리허설·(선택) 인과 엔진이다.**
+원격 플레이테스트까지 마쳤다. 콘텐츠(재무·시황·힌트·주가)는 전부 DB에 있고, 관리자 화면에서 **엑셀 양식으로
+통째로** 또는 각 탭에서 직접 만들어 데이터셋 단위로 저장·전환한다. 학생은 참가 코드 또는 **닉네임+PIN(자율 입장)**으로
+들어온다. 남은 건 실기기 검증·대회 전 초기화 리허설·(선택) 인과 엔진이다.**
 
 ---
 
@@ -17,18 +18,23 @@
 ### ✅ 완료 (동작 확인됨)
 
 **백엔드 (Supabase, 프로젝트 `cufic_wts` / `zhwidhvoxcoljffvqhol`, 서울)**
-- 마이그레이션 **27개**(0001~0027) 전부 remote 적용. 스키마 재현 가능(대시보드 수동 편집 없음).
+- 마이그레이션 **29개**(0001~0029) 전부 remote 적용. 스키마 재현 가능(대시보드 수동 편집 없음).
 - **즉시 체결 + 라운드 타이머** — `place_order`가 그 자리에서 체결, `now() < round_ends_at`을 서버가 강제.
-- **게임 루프** — `advance_round`(연도 넘기기) → `start_round_timer`(거래 창 열기, 분 단위) → 자동 마감. 진행 중 `adjust_round_timer`로 ±조정(0019).
+- **게임 루프** — `advance_round`(연도 넘기기) → `start_round_timer`(거래 창 열기) → 자동 마감. 진행 중 `adjust_round_timer`로 ±조정(0019).
 - **자동 힌트 차등 지급(라운드로빈, 0025)** — R2부터 `distribute_round_hints`가 힌트 풀을 등급순 정렬 후
   **꼴찌부터 라운드로빈**으로 전부 배분(하위권일수록 좋은 힌트 + 더 많이). 수동 지급 보조.
 - **콘텐츠 전면 DB화(B)** — 재무제표(`financials`)·거시 시황(`macro`)이 DB에 있고 관리자 화면에서 직접 편집.
   학생용 `get_financials`/`get_macro`는 **현재 라운드 연도까지만** 반환(미래 스포일러 차단).
-- **데이터셋(시나리오)** — `datasets` 테이블 + 저장·불러오기·가져오기/내보내기(.json). `game_state.active_dataset_id`가
+- **데이터셋(시나리오)** — `datasets` 테이블 + 저장·불러오기·가져오기/내보내기. `game_state.active_dataset_id`가
   "지금 사용 중인 한 벌"을 가리킨다. 불러오기는 게임 리셋을 동반(조 유지), 진행 중엔 잠금.
-- **최종 정산** — `admin_end_game`이 `final_year`(2025) 가격을 공개하고 스냅샷. R5·최종 두 지점 모두 기록(0017).
+- **데이터셋 엑셀 왕복** — 공식 양식(.xlsx) 다운로드/업로드로 콘텐츠 한 벌을 통째로 편집. 업로드는 3단계 리포트(오류·경고·정보)
+  후 **항상 새 데이터셋 생성**(덮어쓰기 아님). JSON 가져오기/내보내기도 지원. `src/admin/datasetXlsx.js`(SheetJS 동적 로드).
+- **자율 입장(open, 0028)** — `game_state.join_mode`(`code`|`open`)로 전환. open이면 학생이 **닉네임+4자리 PIN**으로 입장(`join_team`),
+  기존 닉네임은 PIN 재접속, 새 조는 시작 전(R0)만. code면 기존 참가 코드 방식. 시작 전에만 방식 변경 가능.
+- **최종 정산** — `admin_end_game`이 `final_year`(2025) 가격을 공개하고 스냅샷. 떠나는 라운드·최종 두 지점 모두 기록(0017).
 - **공통 속보** — `broadcasts` 전원 공개, 실시간 신호.
-- **조 접속 추적(0027)** — `login_team` 성공 시 `teams.last_login_at` 기록, `admin_teams_status`가 함께 반환.
+- **조 접속 추적(0027)** — `login_team`/`join_team` 성공 시 `teams.last_login_at` 기록, `admin_teams_status`가 함께 반환(최근 10분 = 접속).
+- **리더보드 동률 결정론(0029)** — 평가금액 동률이면 조 생성순(`created_at`)으로 안정 정렬.
 - **실시간** — `signals` 테이블 + Realtime. 신호 수신 → 각자 RPC 재조회.
 - **관리자 보호** — 관리자 RPC 전부 `p_admin_secret` + `private.verify_admin`. 비밀은 `private` 스키마, fail-closed.
 
@@ -39,7 +45,7 @@
   일시정지를 막는다. 저장소 시크릿(`SUPABASE_URL`·`SUPABASE_ANON_KEY`) 설정 완료, 수동 실행 **성공 확인**.
 
 **학생 화면**
-- 참가 코드 로그인(서버 검증) · 새로고침 자동 재로그인 · 로딩/실패/오프라인 처리.
+- **입장 2방식** — 참가 코드(서버 검증) 또는 **닉네임+PIN(자율 입장)**. 자율 입장은 새 닉네임이면 PIN 발급, 기존 닉네임이면 PIN 재접속. 새로고침 자동 재로그인 · 로딩/실패/오프라인 처리.
 - 즉시 매수·매도(비율 버튼·수량 스테퍼) · 거래 타이머 카운트다운 · 타이머 밖 버튼 잠금.
 - **거래 마감 임박 알림** — 헤더 타이머 배지 60초↓ 앰버 · 30초↓ 깜빡임 + 30초 전 토스트(1회).
 - **상장폐지 보유 경고** — 주문 패널 보유행·MY 보유표·라운드 요약에 "⚠ 상장폐지 · 전액 손실" 표시.
@@ -53,13 +59,13 @@
 
 **관리자 화면 (`/?admin=1`) — 탭 2그룹 재구성**
 - **[대회 운영]** 진행 · 리더보드 / **[게임 준비]** 데이터셋 · 종목·가격 · 재무·시황 · 힌트 · 조 관리. 탭마다 한 줄 도움말.
-- **진행** — 시작 전 **데이터셋 선택칸** → **다음 할 일** 배너 → 연도 넘기기 · 타이머 시작(10분·±1분) · 대회 종료 · 속보 · 거래 현황 · (대회 준비) 게임 설정·데이터 점검·게임 리셋(RESET 입력).
-- **데이터셋** — 지금 편집 중 표시 + [저장]/[새 데이터셋]/[편집]/[내보내기]/[삭제]/[파일 가져오기].
+- **진행** — 시작 전 **데이터셋 선택칸** → **다음 할 일** 배너 → 연도 넘기기 · 타이머 시작(10분·±1분) · 대회 종료 · 속보 · 거래 현황 · (대회 준비) 게임 설정(시드·라운드·**입장 방식**)·데이터 점검·게임 리셋(RESET 입력).
+- **데이터셋** — 지금 편집 중 + **미저장 변경(●) 배지** · [💾 저장](덮어쓰기 확인)/[+ 새 데이터셋]. **받기**: [빈 양식 .xlsx]·[양식 다운로드(예시 채움 .xlsx)]·[데이터 다운로드 .json]. **올리기**: [엑셀 업로드](3단계 리포트→새 데이터셋)·[JSON 가져오기]. 목록 행마다 [편집]/[엑셀]/[JSON]/[삭제].
 - **종목·가격** — 종목 CRUD + 연도별 인라인 편집(0=거래정지·소급 안 됨 경고).
-- **재무·시황** — 연도별 시황 6지표 + 종목별 재무 5지표(저장/비움).
+- **재무·시황** — 연도별 시황 6지표 + 종목별 재무 5지표(저장/비움). 지표 정의는 `src/metrics.js` 단일 소스.
 - **힌트** — 풀 CRUD · 조별 수동 지급/취소 · 자동 배분 미리보기(호재/악재↔등락 불일치 경고).
-- **조 관리** — 추가/삭제 · 시드[시작 전만] · 예수금/평가/수익률/거래/힌트 + **접속 열**(최근 로그인 초록).
-- **리더보드** — 순위·프로젝터용 큰 글씨.
+- **조 관리** — 추가/삭제 · 시드[시작 전만] · 예수금/평가/수익률/거래/힌트 + **접속 열**(최근 10분 초록) + PIN(자율 입장 모드만).
+- **리더보드** — 순위·순위 변동 ▲▼·단독 1위 골드·프로젝터용 큰 글씨 · **[대회 결과 내보내기 CSV]**(순위·라운드별 스냅샷·거래 로그 3구획, UTF-8 BOM).
 
 **데이터 / 품질**
 - 2025 기반 초안 데이터(**18종목 · 5라운드 2020~2024 · 최종 2025**). `src/data.js`는 이제 "초기 템플릿"(데이터셋 시딩용 생성물).
@@ -97,12 +103,13 @@
 | `format.js` | 숫자·부호·방향 포맷(`num`,`signed`,`pct`,`dirOf`,`arrowOf`,`eok`,`nowTime`). 한국 증시 색 관례 |
 | `gameData.js` | 서버 상태→화면 가공. `yearOf`,`buildStocks`,`loadAll`,`refetchMine`,`subscribeSignals`(재무·시황·데이터셋 신호 포함) |
 | `supabase.js` | Supabase 클라이언트 + `rpc`/`select` 래퍼(`{ok,error}`) + 거부 사유→한국어(`errorText`) |
-| `auth.js` | 참가 코드 로그인(`login_team`), localStorage 저장, 자동 재로그인(`restore`), `logout` |
+| `auth.js` | 입장(`login_team`=코드 / `join_team`=자율 입장 닉네임·PIN), localStorage 저장, 자동 재로그인(`restore`), `logout` |
 | `theme.js` | 다크/라이트 테마 훅(`useTheme`). `<html data-theme>` + localStorage |
 | `useSize.js` | `ResizeObserver`로 엘리먼트 실측 크기 추적(SVG viewBox 정합) |
 | `actions.js` | 상태 변경 동작. 학생 `makeActions`(placeOrder), 관리자 `makeAdminActions`(매 호출 `p_admin_secret`. 콘텐츠·데이터셋 포함) |
 | `dataCheck.js` | 콘텐츠 정합성 검사(`checkContent`·`hintMismatches`). 관리자 [데이터 점검]이 사용 |
 | `distribute.js` | 힌트 라운드로빈 배분 로직(`sortPool`·`rankWorstFirst`·`assignRoundRobin`·`distribute`). 미리보기가 사용 |
+| `metrics.js` | **재무·시황 지표 정의 단일 소스**(`FIN_METRICS` 5·`MACRO_METRICS` 6, key/db/xlsx/label/unit). 모달·편집·엑셀 파서가 참조. `data.js`가 재수출 |
 | `data.js` | **자동 생성**. 데이터셋 초기 템플릿 + 재무제표 모달·정합성 테스트의 공통 원천(종목·가격·힌트·재무·시황·상수) |
 | `index.css` | 학생 화면 스타일 + 테마 CSS 변수(다크/라이트). 색 하드코딩 금지 |
 | `admin.css` | 관리자 화면·보유목록·부팅/로딩/에러 스타일 |
@@ -145,13 +152,14 @@
 | 파일 | 역할 |
 |---|---|
 | `Admin.jsx` | 관리자 셸(비밀번호 로그인·sessionStorage·실시간 구독·탭 2그룹 네비·탭 도움말) |
-| `AdminProgress.jsx` | 진행 탭(데이터셋 선택[시작 전]·다음 할 일·연도 넘기기·타이머 ±1분·대회 종료·리셋·속보·거래 현황·게임 설정·데이터 점검) |
-| `AdminBoard.jsx` | 리더보드 탭(순위·등락·수익률·프로젝터용 큰 글씨) |
-| `AdminDatasets.jsx` | 데이터셋 탭(저장/새로/편집 전환/내보내기/삭제/파일 가져오기) |
+| `AdminProgress.jsx` | 진행 탭(데이터셋 선택[시작 전]·다음 할 일·연도 넘기기·타이머 시작[10분 고정]·±1분·대회 종료·리셋·속보·거래 현황·게임 설정[입장 방식 포함]·데이터 점검) |
+| `AdminBoard.jsx` | 리더보드 탭(순위·순위 변동·단독 1위 골드·큰 글씨 + **대회 결과 CSV 내보내기**) |
+| `AdminDatasets.jsx` | 데이터셋 탭(미저장 배지·저장/새로·엑셀·JSON 받기/올리기·편집 전환·삭제·검사 리포트 모달) |
+| `datasetXlsx.js` | 엑셀 왕복(`parseWorkbook`·`buildWorkbook`·`buildBlankWorkbook`). % 등락률 파싱, 3단계 리포트. SheetJS 동적 로드 |
 | `AdminStocks.jsx` | 종목·가격 탭(종목 CRUD·연도별 인라인 편집·0=거래정지·소급 안 됨 경고) |
 | `AdminContent.jsx` | 재무·시황 탭(연도별 시황 6지표 + 종목별 재무 5지표. 저장 시 학생 화면 즉시 반영) |
 | `AdminHints.jsx` | 힌트 탭(풀 CRUD·조별 수동 지급/취소·자동 배분 미리보기·힌트 편집기) |
-| `AdminTeams.jsx` | 조 관리 탭(추가/삭제·시드[시작 전만]·예수금/평가/수익률/거래·힌트·**접속 열**) |
+| `AdminTeams.jsx` | 조 관리 탭(추가/삭제·시드[시작 전만]·예수금/평가/수익률/거래·힌트·**접속 열**[최근 10분]·PIN[자율 입장]) |
 
 ### `scripts/` · `.github/`
 | 파일 | 역할 |
@@ -164,7 +172,7 @@
 ### `supabase/`
 | 파일 | 역할 |
 |---|---|
-| `migrations/*.sql` | 스키마·RPC 이력 **27개**(0001~0027, 아래 §3) |
+| `migrations/*.sql` | 스키마·RPC 이력 **29개**(0001~0029, 아래 §3) |
 | `seed.sql` | **자동 생성**. game_state·stocks(18)·hints·검증용 조 재삽입 |
 | `config.toml` | Supabase CLI 설정(project_id, 포트, seed 지정) |
 
@@ -177,22 +185,22 @@
 | `.env.example` | 환경변수 템플릿(`.env`는 커밋 금지, 실제 비밀) |
 | `seed_stocks_2025.json` · `seed_financials_2025.json` | 종목·가격·재무 원천(build-data 입력) |
 | `CLAUDE.md` · `README.md` | 개발 규칙·아키텍처 · 개요·실행·세팅 |
-| `docs/` | DECISIONS · ROADMAP · GAME_RULES · DATA_GUIDE · SCREENS · OPERATIONS · MANUAL_ADMIN · MANUAL_CONTENT · function_btn |
+| `docs/` | DECISIONS · ROADMAP · GAME_RULES · DATA_GUIDE · SCREENS · OPERATIONS · MANUAL_ADMIN · MANUAL_CONTENT |
 
 ---
 
 ## 3. DB 현황
 
-### 3.1 테이블 (27개 마이그레이션 적용 후 현재 — public 13개 + private.config + public_teams 뷰)
+### 3.1 테이블 (29개 마이그레이션 적용 후 현재 — public 13개 + private.config + public_teams 뷰)
 
 | 테이블 | 핵심 컬럼(의미) |
 |---|---|
-| `game_state` (단일 행 id=1) | `current_round`(0=시작전, total+1=종료), `total_rounds`(5), `round_year_map`(라운드→연도), `default_seed`, `is_locked`, `round_ends_at`(거래 마감 시각), `round_duration_seconds`(기본 600), `final_year`(2025), `is_ended`, **`active_dataset_id`**(지금 쓰는 데이터셋) |
+| `game_state` (단일 행 id=1) | `current_round`(0=시작전, total+1=종료), `total_rounds`(5), `round_year_map`(라운드→연도), `default_seed`, `is_locked`, `round_ends_at`(거래 마감 시각), `round_duration_seconds`(기본 600, 대기 안내·데이터셋용), `final_year`(2025), `is_ended`, **`active_dataset_id`**(지금 쓰는 데이터셋), **`join_mode`**(`code`\|`open`, 기본 code) |
 | `stocks` | `id`(PK), `name`(unique), `description`, `sector`, `listed_from_round`(신규상장), `prices`(연도→가격, 0/없음=거래정지), `display_order` |
 | `financials` (PK stock+year) | 연도별 재무. `revenue`·`op_income`·`net_income`(억원, 적자 음수)·`debt_ratio`·`roe`(%) |
 | `macro` (PK year) | 연도별 거시. `summary`(한 줄)·`rate`·`gdp`·`unemployment`·`fx`·`cpi`·`oil` |
 | `datasets` | `id`(PK), `name`, `description`, `payload`(jsonb 콘텐츠 한 벌), `created_at` |
-| `teams` | `id`(uuid), `code`(unique, 로그인 신원), `name`, `seed`, `cash`, **`last_login_at`**(접속 추적) |
+| `teams` | `id`(uuid), `code`(unique, 로그인 신원), `name`, `seed`, `cash`, **`last_login_at`**(접속 추적), **`pin`**(자율 입장 4자리) |
 | `positions` (PK team+stock) | `quantity`(보유), `avg_price`(가중평균단가). 전량 매도 시 행 삭제 |
 | `trades` | `side`(buy/sell), `price`, `quantity`, `round`, `realized_pnl`(매도만), `created_at` |
 | `round_snapshots` (PK team+round) | `equity`(그 라운드 떠날 때 평가금액). 종료 스냅샷 round=total+1 |
@@ -211,10 +219,11 @@
 | 함수 | 요약 |
 |---|---|
 | `login_team(p_code)` | 참가 코드 검증 + `last_login_at` 기록. 목록은 안 줌 |
+| `join_team(p_nickname, p_pin)` | **자율 입장(open 모드).** 새 닉네임=조 생성(R0만) + PIN 발급, 기존 닉네임=PIN 재접속. `last_login_at` 기록 |
 | `place_order(p_team_code, p_stock_id, p_side, p_quantity)` | **즉시 체결.** 타이머 안에서만(밖이면 `round_closed`), 예수금·보유 검증 |
 | `current_price(p_stock_id)` | 현재 라운드 가격(없으면 `final_year` 폴백, 0=거래정지). `security definer`(0018 복원) |
 | `team_equity`/`team_cash(p_team_id)` | 평가금액 / 예수금 |
-| `leaderboard()` | rank·equity·pnl·pnl_pct·**prev_rank**(직전 스냅샷 대비 등락) |
+| `leaderboard()` | rank·equity·pnl·pnl_pct·**prev_rank**(직전 스냅샷 대비 등락). 동률은 `created_at`으로 안정 정렬(0029) |
 | `get_my_hints(p_team_code)` | 내 조 지급 힌트만 |
 | `get_financials()` / `get_macro()` | 재무·시황. **현재 라운드 연도까지만** 반환(스포일러 차단) |
 
@@ -222,10 +231,11 @@
 | 함수 | 설명 |
 |---|---|
 | `advance_round(secret)` | 연도 넘기기. 스냅샷 → 새 가격 공개 → `distribute_round_hints` 자동 배분(라운드로빈) |
-| `start_round_timer(secret, p_minutes)` / `adjust_round_timer(secret, p_seconds)` | 거래 창 열기(분 갱신) / 진행 중 ±조정 |
+| `start_round_timer(secret, p_minutes)` / `adjust_round_timer(secret, p_seconds)` | 거래 창 열기 / 진행 중 ±조정. **UI는 항상 10분 전송**(§6 불일치 참고) |
 | `admin_end_game(secret)` | 대회 종료. 최종(2025) 스냅샷, `is_ended=true` |
 | `reset_game(secret)` | snapshots/trades/positions/hint_grants/broadcasts 삭제, cash=seed, round=0(조·콘텐츠 유지) |
-| `admin_teams_status(secret)` | 조별 seed/cash/equity/pnl + 이번 라운드 거래 수 + 힌트 수 + **last_login_at** |
+| `admin_update_game_config(secret, ...)` | 게임 설정(시드·총 라운드·**`p_join_mode`** 등). 시작 전에만 변경 |
+| `admin_teams_status(secret)` | 조별 seed/cash/equity/pnl + 이번 라운드 거래 수 + 힌트 수 + **last_login_at** + **pin** |
 | `admin_create_team`/`admin_delete_team`/`admin_set_team_seed` | 조 CRUD(시드 변경은 `current_round>0`이면 거부) |
 | `admin_upsert_stock`/`admin_delete_stock` | 종목 CRUD(코드·이름·소개·**업종·상장 라운드**·연도별 가격·순서. 0023에서 파라미터 확장) |
 | `admin_upsert_macro`/`admin_list_macro` | 시황 편집/전체 조회 |
@@ -250,7 +260,7 @@
 
 ## 4. 검증 현황
 
-### 자동 테스트 — **Vitest 76개 / 6파일 전부 통과** (`npm test`, 2026-08-09 확인)
+### 자동 테스트 — **Vitest 76개 / 6파일 전부 통과** (`npm test`, 2026-08-15 재확인)
 - `account.test.js` — 평가금액 파생, 거래정지 −100%, 0 나눗셈 방지.
 - `chart.test.js` — 차트 방향 = 실제 등락(회귀), 신규상장 시작점, 결정론성.
 - `draw.test.js` — 지우개 선분 판정(회귀).
@@ -276,9 +286,22 @@
 
 ## 5. 미커밋 변경 / git ↔ DB 정합
 
-- **작업 트리: 깨끗함** — 미커밋 변경 없음. 최신 커밋 **`2f328dc`**(main, GitHub push 완료).
-- **마이그레이션 0001~0027 전부 remote 적용됨** — git과 스키마 일치.
-- **라이브 DB 현재 상태(2026-08-09 기준)** — `current_round=0`(시작 전), `active_dataset_id=2`("기본 데이터셋 (2025)"),
-  조 **TEAM_1~5**(플레이테스트용, 시드 1억). *(대회 전 `reset_game` + 실제 조 생성 + 검증/플레이테스트 조 정리 필요 → OPERATIONS.)*
+- **작업 트리** — 문서 갱신 커밋 진행 중. 직전 코드 커밋 **`79df416`**(main, GitHub push 완료).
+- **마이그레이션 0001~0029 전부 remote 적용됨** — git과 스키마 일치.
+- **라이브 DB 현재 상태(2026-08-15 기준)** — `current_round=0`(시작 전), `active_dataset_id=2`("기본 데이터셋"),
+  `join_mode=code`, 18종목, 조 **TEAM_1~5**(플레이테스트용, 시드 1억). *(대회 전 `reset_game` + 실제 조 생성 + 검증/플레이테스트 조 정리 필요 → OPERATIONS.)*
 - **관리자 비밀** — DB `private.config`와 `.env`가 현재 개발 기본값으로 일치(약함, 강화 대기).
 - **배포** — Vercel(main 자동), Keep-Alive Actions 시크릿 설정·가동. 도메인 https://cufic-wts.vercel.app.
+
+---
+
+## 6. 발견된 불일치 / 정리 필요 (문서화 시점 확인)
+
+> 문서 전수 점검 중 코드에서 확인한, "규칙 문서와 실제 코드가 어긋나는" 지점. 기능은 동작하나 정리가 필요하다.
+
+1. **타이머 시작 길이가 UI에서 10분 하드코딩** — [AdminProgress.jsx](../src/admin/AdminProgress.jsx)의 `startTimer(10)`.
+   `start_round_timer` RPC는 `p_minutes`를 받고 `game_state.round_duration_seconds`(게임 설정·데이터셋의 "타이머" 값)도 있으나,
+   **[타이머 시작] 버튼은 그 값을 무시하고 항상 10분을 보낸다.** 설정값은 대기 안내 문구·엑셀 내보내기에만 쓰인다.
+   → CLAUDE.md의 "관리자가 [타이머 시작] 때 분 단위로 조정" 서술과 어긋남. **설정값을 실제로 쓰게 배선하든지, 설정 항목을 지우든지 택1 필요.**
+2. **`AdminTeams.jsx` 주석의 "2시간"은 stale** — 코드는 `mins < 10`(최근 10분 접속=초록). 주석만 오래됐고 동작은 10분. 주석 정리 필요.
+3. **`sheet_saved` 신호는 레거시** — 주문서 경로 삭제 후 남은 무해한 신호. 구독부는 무시. 다음 스키마 정리 때 제거 후보.

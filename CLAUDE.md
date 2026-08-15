@@ -41,8 +41,12 @@ select private.set_admin_secret('원하는_비밀');
 
 - **즉시 체결 + 라운드 타이머.** 매수·매도를 누르면 서버(`place_order`)가 그 자리에서 체결한다
   (예수금·보유 즉시 반영). 단 거래는 **관리자가 [타이머 시작]을 눌러 연 동안에만** 가능하다 —
-  `round_ends_at`이 지나면 서버가 거부(`round_closed`)하고 화면 버튼도 잠긴다. 타이머 길이는
-  `round_duration_seconds`(기본 600초=10분) — 관리자가 [타이머 시작] 때 분 단위로 조정. 하드코딩 금지.
+  `round_ends_at`이 지나면 서버가 거부(`round_closed`)하고 화면 버튼도 잠긴다. `start_round_timer(p_minutes)`가
+  마감 시각을 세우고, 진행 중 `adjust_round_timer`로 ±조정한다.
+  - ⚠ **현재 [타이머 시작] UI는 10분을 고정 전송한다**(`AdminProgress.jsx`의 `startTimer(10)`).
+    `round_duration_seconds`(게임 설정·데이터셋의 "타이머" 값)는 **대기 안내 문구·엑셀 내보내기에만** 쓰이고
+    시작 버튼엔 배선돼 있지 않다. **설정값을 실제로 쓰게 잇거나 설정 항목을 지워 정리할 것**(→ STATUS §6).
+    새 코드에서 타이머 상수를 더 늘리지 말 것.
   - **게임 루프.** 관리자가 **[연도 넘기기]**(`advance_round`)를 누르면 그 라운드 평가금액을
     스냅샷하고 다음 연도 가격이 공개된다 → 보유가 재평가돼 **순위가 바뀐다** → 관리자가 순위를
     확인하고 **[타이머 시작]**(`start_round_timer`)으로 거래를 연다. 10분 뒤 자동 마감 → 다시 [연도 넘기기].
@@ -58,14 +62,22 @@ select private.set_admin_secret('원하는_비밀');
     대체 + 관리자 경고. 로직은 `distribute_round_hints()`, `advance_round`가 호출.
 - **리더보드는 연도가 넘어갈 때만 바뀐다.** 라운드 중엔 전 거래가 같은 가격이라 평가금액이
   안 변한다 — 순위는 [연도 넘기기]로 가격이 바뀔 때만 움직인다. 거래별 실시간 순위 갱신은 없다.
-- **5라운드 + 최종 정산.** R1~R5가 각각 한 해(현재 데이터 2020~2024). 마지막 [대회 종료]
-  (`admin_end_game`)가 `final_year`(2025) 가격을 공개해 최종 평가금액을 스냅샷한다 —
+- **라운드 수는 데이터셋이 정한다 + 최종 정산.** `total_rounds`·`round_year_map`·`final_year`가 데이터셋마다 다르다
+  (현재 기본 데이터셋은 R1~R5 = 2020~2024, 최종 2025). `5` 같은 상수를 하드코딩하지 않는다. 마지막 [대회 종료]
+  (`admin_end_game`)가 `final_year` 가격을 공개해 최종 평가금액을 스냅샷한다 —
   `current_round`를 `total_rounds+1`로 올리면 `current_price`가 `final_year`로 폴백한다(거래는 없음).
 - **신규상장·상장폐지는 다른 상태.** `stocks.listed_from_round` 이전 라운드엔 목록에서 미노출(상장 예정).
   가격이 0이면 거래정지·평가액 0(상장폐지). 둘을 혼동하지 않는다.
-- **데이터 원천은 `src/data.js`(생성물).** `seed_stocks_2025.json`·`seed_financials_2025.json` +
-  `scripts/build-data.mjs`(소개·힌트) → `data.js` → `scripts/gen-seed.mjs` → `seed.sql`.
-  데이터를 바꾸면 JSON을 고치고 두 스크립트를 다시 돌린다. 정합성 테스트(`data.test.js`)가 힌트↔주가 방향을 고정.
+- **입장은 두 방식 — 코드 / 자율 입장.** `game_state.join_mode`(`code`|`open`, 기본 code)가 정한다.
+  `code`면 관리자가 만든 참가 코드로(`login_team`), `open`이면 학생이 **닉네임+4자리 PIN**으로(`join_team`).
+  자율 입장은 새 닉네임=조 생성(시작 전만)·PIN 발급, 기존 닉네임=PIN 재접속. 방식 전환은 시작(R0) 전에만.
+- **콘텐츠 원천은 이제 DB의 데이터셋이다.** 재무·시황·힌트·주가·게임설정 한 벌이 `datasets.payload`(jsonb)에 있고,
+  `game_state.active_dataset_id`가 지금 쓰는 벌을 가리킨다. 관리자가 [데이터셋] 탭에서 **엑셀 양식(`datasetXlsx.js`)**
+  또는 각 탭 편집으로 만들고 저장한다. 엑셀 업로드는 3단계 리포트 후 **항상 새 데이터셋 생성**(덮어쓰기 아님).
+  - **`src/data.js`(생성물)는 "새 DB 초기 템플릿 + 테스트 원천"으로만 남는다.** `seed_*_2025.json` +
+    `scripts/build-data.mjs` → `data.js` → `scripts/gen-seed.mjs` → `seed.sql`. 정합성 테스트(`data.test.js`)가 힌트↔주가 방향을 고정.
+  - **재무·시황 지표 정의는 `src/metrics.js` 단일 소스.** `FIN_METRICS`(5)·`MACRO_METRICS`(6)가 key(camel)/db(snake)/xlsx(엑셀 열)/
+    label/unit을 들고, 모달·편집기·엑셀 파서·`data.js`가 전부 이걸 참조한다. **지표를 늘리거나 이름을 바꿀 땐 여기 한 곳만 고친다.**
 
 ## 아키텍처 규칙
 
@@ -77,8 +89,8 @@ select private.set_admin_secret('원하는_비밀');
 - **낙관적 업데이트 금지.** 서버가 확정한 값으로만 상태를 갱신한다. 교실 네트워크에선 지연이 체감되지 않는다.
 - **DB 쓰기는 RPC로만.** 테이블에 insert/update/delete 정책을 만들지 않는다(RLS 기본 거부).
   새 테이블을 만들면 select 정책만 신중히 열고, 쓰기는 `security definer` 함수로.
-- **조별 데이터 읽기도 RPC로.** 인증이 없어(anon key + 참가 코드) RLS가 "자기 조"를 알 수 없다.
-  `get_my_hints`·`get_my_order_sheet`처럼 코드를 받는 RPC를 쓴다. `teams` 직접 조회는 막혀 있고
+- **조별 데이터 읽기도 RPC로.** 인증이 없어(anon key + 참가 코드/PIN) RLS가 "자기 조"를 알 수 없다.
+  `get_my_hints`처럼 코드를 받는 RPC를 쓴다. `teams` 직접 조회는 막혀 있고
   코드 없는 `public_teams` 뷰만 열려 있다 — 참가 코드가 노출되면 격리가 통째로 무너진다.
 - **`teams`를 읽는 함수는 `security definer`여야 한다.** 아니면 RLS에 막혀 조용히 NULL이 된다.
 - **관리자 RPC는 `p_admin_secret`을 받아 `private.verify_admin()`으로 검사한다.**
@@ -134,13 +146,16 @@ select private.set_admin_secret('원하는_비밀');
 
 ## 문서
 
+> 누가 무엇을 읽나: `README.md`의 "문서 지도" 표 참조(강사·교보재팀·개발자·모두).
+
 - `docs/DECISIONS.md` — 왜 그렇게 했는지. **큰 결정이 생기면 여기에 추가한다.**
 - `docs/ROADMAP.md` — 현재 위치와 남은 일.
-- `docs/STATUS.md` — 현재 상태의 완전한 스냅샷(진행률·파일 지도·DB·검증). 외부 검수·인수인계용.
-- `docs/GAME_RULES.md` — 확정된 게임 규칙서(모델 v3·라운드·힌트·밸런스, 미확정은 `[팀 확인 대기]`).
-- `docs/DATA_GUIDE.md` — 다음 게임 데이터 교체 절차(비개발자용).
-- `docs/SCREENS.md` — 화면·버튼 설명서(학생·관리자). `docs/function_btn.md` — 버튼·팝업 참조 표.
+- `docs/STATUS.md` — 현재 상태의 완전한 스냅샷(진행률·파일 지도·DB·검증 + §6 발견된 불일치). 외부 검수·인수인계용.
+- `docs/GAME_RULES.md` — 확정된 게임 규칙서(모델 v3·라운드·힌트·입장 방식·밸런스, 미확정은 `[팀 확인 대기]`).
+- `docs/DATA_GUIDE.md` — 데이터 형식·정합성·파일 파이프라인 참조(개발자·심화).
+- `docs/MANUAL_CONTENT.md` — 콘텐츠 제작자용(엑셀 양식·관리자 화면으로 데이터 만드는 법).
+- `docs/SCREENS.md` — 전 화면·버튼 설명서(학생·관리자). *(옛 `function_btn.md`는 여기로 병합·삭제됨.)*
 - `docs/OPERATIONS.md` — 대회 당일 운영 순서(⚠ 리허설 전 초안).
-- `docs/MANUAL_ADMIN.md` — 강사용 대회 진행 매뉴얼(실제 버튼·순서). `docs/MANUAL_CONTENT.md` — 콘텐츠 제작자용(관리자 화면으로 데이터 만드는 법).
+- `docs/MANUAL_ADMIN.md` — 강사용 관리자 화면 조작 매뉴얼(실제 버튼·순서).
 
 규칙이 바뀌면 이 파일을, 판단의 근거가 생기면 `DECISIONS.md`를, 현황이 바뀌면 `STATUS.md`를 갱신한다.
