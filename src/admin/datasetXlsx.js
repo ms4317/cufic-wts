@@ -393,3 +393,33 @@ export function buildWorkbook(payload) {
 
   return XLSX.write(wb, { bookType: 'xlsx', type: 'array' })
 }
+
+// 빈 양식(.xlsx) — 헤더 + 형식을 보여주는 예시 2줄만. 나머지는 직접 채운다.
+export function buildBlankWorkbook() {
+  const example = {
+    game: {
+      total_rounds: 5,
+      round_year_map: { 1: 2020, 2: 2021, 3: 2022, 4: 2023, 5: 2024 },
+      default_seed: 100000000,
+      final_year: 2025,
+      round_duration_seconds: 600,
+    },
+    stocks: [
+      { id: 'S01', name: '한빛반도체', sector: '', description: '반도체를 만드는 회사예요', listed_from_round: 1, prices: { 2020: 10000, 2021: 12000, 2022: 9000, 2023: 15000, 2024: 18000, 2025: 20000 }, display_order: 0 },
+      { id: 'S02', name: '미래바이오', sector: '', description: '신약을 개발하는 바이오 회사예요 (R3 상장 예시)', listed_from_round: 3, prices: { 2022: 5000, 2023: 8000, 2024: 12000, 2025: 15000 }, display_order: 1 },
+    ],
+    financials: [
+      { stock_id: 'S01', year: 2020, revenue: 5000, op_income: 800, net_income: 600, debt_ratio: 45, roe: 12 },
+      { stock_id: 'S01', year: 2021, revenue: 7000, op_income: 1200, net_income: 900, debt_ratio: 40, roe: 15 },
+    ],
+    macro: [
+      { year: 2020, summary: '코로나 충격으로 경기 급랭 (예시)', rate: 0.5, gdp: -0.7, unemployment: 4, fx: 1180, cpi: 0.5, oil: 42 },
+      { year: 2021, summary: '경기 반등·유동성 장세 (예시)', rate: 0.75, gdp: 4.1, unemployment: 3.7, fx: 1150, cpi: 2.5, oil: 68 },
+    ],
+    hints: [
+      { round: 2, grade: 'S', headline: '반도체 재고 급증… 업황 둔화 우려 (예시)', impact: 'down', related_stock_ids: ['S01'] },
+      { round: 2, grade: 'D', headline: '방향·관련종목은 비워도 돼요 (예시)', impact: 'flat', related_stock_ids: [] },
+    ],
+  }
+  return buildWorkbook(example)
+}

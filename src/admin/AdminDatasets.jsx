@@ -71,6 +71,20 @@ export default function AdminDatasets({ actions, game, refresh, notify, dirty, o
     URL.revokeObjectURL(url)
   }
 
+  // 빈 양식(.xlsx) — 헤더 + 예시 2줄만. 처음부터 만들 때.
+  const downloadBlank = async () => {
+    const { buildBlankWorkbook } = await import('./datasetXlsx')
+    const blob = new Blob([buildBlankWorkbook()], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = '데이터셋_빈양식.xlsx'
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   const onImport = async (e) => {
     const file = e.target.files?.[0]
     e.target.value = ''
@@ -212,8 +226,11 @@ export default function AdminDatasets({ actions, game, refresh, notify, dirty, o
         {/* 받기: 편집 중 데이터셋을 양식(.xlsx)·데이터(.json)로 바로 다운로드 */}
         <div className="ds-import">
           <span className="ds-import-label">받기</span>
+          <button className="text-btn" onClick={downloadBlank}>
+            📄 빈 양식 (.xlsx)
+          </button>
           <button className="text-btn" disabled={busy || !active} onClick={() => exportXlsx(active)}>
-            📊 양식 다운로드 (.xlsx)
+            📊 양식 다운로드 (예시 채움 .xlsx)
           </button>
           <button className="text-btn" disabled={busy || !active} onClick={() => exportDs(active)}>
             📁 데이터 다운로드 (.json)
