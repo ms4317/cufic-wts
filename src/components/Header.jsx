@@ -1,6 +1,6 @@
 import { num, signed, pct, dirOf } from '../format'
 import ThemeToggle from './ThemeToggle'
-import TimerPill, { TimerEdge } from './RoundTimer'
+import TimerPill from './RoundTimer'
 
 export default function Header({
   account,
@@ -105,11 +105,6 @@ export default function Header({
           로그아웃
         </button>
       </div>
-
-      {/* 거래 타이머 — C안: 헤더 하단 가장자리 전폭 진행바 (교실 뒤에서도 체감) */}
-      {timerState && (
-        <TimerEdge remainingMs={remainingMs} durationMs={durationMs} state={timerState} />
-      )}
     </header>
   )
 }

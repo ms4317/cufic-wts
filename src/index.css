@@ -118,7 +118,6 @@ input,
 
 /* ===== 상단 바 ===== */
 header {
-  position: relative; /* 타이머 C안(하단 전폭 라인)의 기준 */
   flex: 0 0 60px;
   display: flex;
   align-items: center;
@@ -1924,31 +1923,6 @@ td {
   }
 }
 
-/* C안 — 헤더 하단 가장자리 전폭 진행바 (학생 화면) */
-.timer-edge {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 4px;
-  background: var(--line);
-  overflow: hidden;
-}
-.timer-edge > i {
-  display: block;
-  height: 100%;
-  background: var(--gold);
-  transition: width 1s linear;
-}
-.timer-edge.warn > i {
-  background: var(--warn);
-}
-.timer-edge.urgent > i {
-  background: var(--up);
-}
-.timer-edge:not(.live) > i {
-  width: 0 !important;
-}
 /* 관리자 진행 카드 안에서는 필을 블록으로 넓게 (진행바는 절대배치라 그대로 하단 전폭) */
 .acard .timer-pill {
   display: block;

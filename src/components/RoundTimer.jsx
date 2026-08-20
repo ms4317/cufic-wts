@@ -1,4 +1,4 @@
-// 거래 라운드 타이머 — A안(헤더 필 + 진행바) + C안(헤더 하단 전폭 라인). 학생·관리자 공용.
+// 거래 라운드 타이머 — A안(헤더 필: 라벨+시간 위, 아래 얇은 진행바). 학생·관리자 공용.
 //   · state: 'live'(카운트다운) | 'closed'(마감) | 'waiting'(대기)
 //   · 색: 여유=골드 / 남은 60초↓=경고(--warn) / 30초↓=긴급(--up, 점 깜빡임 + 테두리 발광)
 //   · 진행바 기준값 durationMs = round_duration_seconds(라운드 시작 시 설정된 총 시간)
@@ -34,16 +34,6 @@ export default function TimerPill({ remainingMs = 0, durationMs = 0, state = 'wa
       <span className="tp-bar">
         <i style={{ width: fillPct(remainingMs, durationMs, live) + '%' }} />
       </span>
-    </span>
-  )
-}
-
-// C안 — 헤더 하단 가장자리 전폭 진행바 (학생 화면)
-export function TimerEdge({ remainingMs = 0, durationMs = 0, state = 'waiting' }) {
-  const live = state === 'live'
-  return (
-    <span className={'timer-edge' + (live ? ' live' : '') + tier(state, remainingMs)} aria-hidden="true">
-      <i style={{ width: fillPct(remainingMs, durationMs, live) + '%' }} />
     </span>
   )
 }
