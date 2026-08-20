@@ -16,6 +16,7 @@ import { errorText } from './supabase'
 import Login from './components/Login'
 import RotateNotice from './components/RotateNotice'
 import Header from './components/Header'
+import RoundTimer from './components/RoundTimer'
 import StockList from './components/StockList'
 import Chart from './components/Chart'
 import OrderSheet from './components/OrderSheet'
@@ -439,20 +440,24 @@ function Student({ theme, onToggleTheme }) {
         rank={myRank}
         teamCount={board.length}
         hintCount={hints.length}
-        tradingOpen={tradingOpen}
-        remainingMs={remainingMs}
-        durationMs={(game?.round_duration_seconds ?? 600) * 1000}
-        started={started}
         bellTotal={broadcasts.length}
         bellCount={unreadBc}
         onOpenBroadcasts={() => setBcOpen(true)}
         onOpenRanking={() => setRankOpen(true)}
         onOpenHints={() => setHintsOpen(true)}
-        onOpenMarket={() => setMarketOpen(true)}
         theme={theme}
         onToggleTheme={onToggleTheme}
         onLogout={handleLogout}
       />
+
+      {started && !ended && (
+        <RoundTimer
+          live={tradingOpen}
+          remainingMs={remainingMs}
+          durationMs={(game?.round_duration_seconds ?? 600) * 1000}
+          label="거래 대기 · 강사 선생님이 타이머를 시작하면 매매가 열려요"
+        />
+      )}
 
       {!started && (
         <div className="notstarted">아직 대회가 시작되지 않았어요. 강사 선생님을 기다려 주세요.</div>

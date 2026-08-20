@@ -1781,6 +1781,133 @@ td {
   font-weight: 700;
 }
 
+/* 시황판 — 6지표 콤팩트 그리드 (재무 모달과 같은 언어) */
+.fs-macro {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+@media (max-width: 820px) {
+  .fs-macro {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+.fs-mcell {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: var(--r-md);
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  cursor: pointer;
+  text-align: left;
+}
+.fs-mcell.on {
+  border-color: var(--gold);
+}
+.fs-mlabel {
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.fs-mval {
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1;
+}
+.fs-mval em {
+  font-size: 11px;
+  color: var(--dim);
+  font-weight: 500;
+  font-style: normal;
+  margin-left: 3px;
+}
+
+/* ===== 거래 타이머 (독립 요소, 학생·관리자 공용) ===== */
+.round-timer {
+  margin: 10px 16px 4px;
+  padding: 10px 16px;
+  border-radius: var(--r-md);
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.acard .round-timer {
+  margin: 4px 0 8px;
+}
+.round-timer .rt-main {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+.rt-label {
+  font-size: 13px;
+  color: var(--muted);
+  font-weight: 600;
+}
+.rt-label.idle {
+  color: var(--dim);
+  font-weight: 500;
+}
+.rt-clock {
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  color: var(--text); /* 평상시 중립. 60초↓ 골드·30초↓ 빨강으로만 강조 */
+}
+.rt-flag {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--up);
+  margin-left: auto;
+}
+.rt-bar {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--line);
+  overflow: hidden;
+}
+.rt-bar > i {
+  display: block;
+  height: 100%;
+  background: var(--ok);
+  transition: width 1s linear;
+}
+.round-timer.warn .rt-clock,
+.round-timer.warn .rt-flag {
+  color: var(--gold);
+}
+.round-timer.warn .rt-bar > i {
+  background: var(--gold);
+}
+.round-timer.urgent .rt-clock,
+.round-timer.urgent .rt-flag {
+  color: var(--up);
+}
+.round-timer.urgent .rt-bar > i {
+  background: var(--up);
+}
+.round-timer.urgent {
+  border-color: color-mix(in srgb, var(--up) 45%, var(--line));
+  animation: rt-pulse 1s ease-in-out infinite;
+}
+@keyframes rt-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+  50% {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--up) 28%, transparent);
+  }
+}
+
 /* ===== 주문 확인 모달 ===== */
 .confirm {
   text-align: center;

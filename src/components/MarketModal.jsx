@@ -1,4 +1,4 @@
-import { Fragment, useState } from 'react'
+import { useState } from 'react'
 import Modal from './Modal'
 import { num } from '../format'
 import { FIN_YEARS } from '../data'
@@ -6,83 +6,75 @@ import { MACRO_METRICS } from '../metrics'
 
 /**
  * 시황판 — 연도별 거시경제 지표(금리·GDP·실업률·환율·물가·유가).
- * 재무제표처럼 현재 라운드 연도까지만 공개한다(미래 스포일러 차단).
- * 가격을 직접 움직이진 않지만, 학생이 재무제표·힌트와 함께 판단하는 '배경'이다.
+ * 재무제표 모달과 같은 디자인 언어: 연도 탭 + 6지표 콤팩트 표(한 화면) + 용어 접기.
+ * 현재 라운드 연도까지만 공개(미래 스포일러 차단). 가격을 직접 움직이진 않는 '배경' 정보.
  */
 export default function MarketModal({ open, onClose, round, macro }) {
-  const [openMetric, setOpenMetric] = useState(null)
-
   const years = FIN_YEARS.filter((y) => y <= round.year)
-  const cur = macro?.[round.year]
+  const [year, setYear] = useState(years.at(-1) ?? round.year)
+  const [openTerm, setOpenTerm] = useState(null) // 용어 전체 접기/펼치기
+  const [openCell, setOpenCell] = useState(null) // 지표 셀 설명
+
+  const sel = years.includes(year) ? year : (years.at(-1) ?? round.year)
+  const cur = macro?.[sel]
   const fmt = (m, v) => (v == null ? '-' : m.unit === '%' ? v.toFixed(1) : num(v))
 
   return (
     <Modal open={open} onClose={onClose} title="시황판 · 거시경제" wide>
+      <p className="fs-meta">
+        금리·GDP·실업률·물가 = % / 환율 = 원/$ / 유가 = $ · {round.year}년까지 공개돼요.
+        <br />
+        지표는 종목 판단의 <b>배경</b>이에요 — 재무제표·힌트와 함께 살펴보세요.
+      </p>
+
+      {years.length > 0 && (
+        <div className="fs-tabs">
+          {years.map((y) => (
+            <button key={y} className={y === sel ? 'on' : ''} onClick={() => setYear(y)}>
+              {y}년
+            </button>
+          ))}
+        </div>
+      )}
+
       {cur?.summary && (
-        <p className="fin-desc">
-          <b>{round.year}년</b> — {cur.summary}
+        <p className="fs-intro">
+          <b>{sel}년</b> — {cur.summary}
         </p>
       )}
 
-      <p className="fin-note">
-        금리·GDP·실업률·물가 = % / 환율 = 원/$ / 유가 = $ · {round.year}년까지 공개돼요. 지표는 종목
-        판단의 <b>배경</b>이에요 — 재무제표·힌트와 함께 살펴보세요.
-      </p>
+      <div className="fs-macro">
+        {MACRO_METRICS.map((m) => (
+          <button
+            key={m.key}
+            className={'fs-mcell' + (openCell === m.key ? ' on' : '')}
+            onClick={() => setOpenCell(openCell === m.key ? null : m.key)}
+          >
+            <span className="fs-mlabel">
+              {m.label} <span className="fs-q">?</span>
+            </span>
+            <span className="fs-mval num">
+              {fmt(m, cur?.[m.key])}
+              <em>{m.unit}</em>
+            </span>
+          </button>
+        ))}
+      </div>
+      {openCell && <p className="fs-chipdesc">{MACRO_METRICS.find((m) => m.key === openCell)?.desc}</p>}
 
-      <table>
-        <thead>
-          <tr>
-            <th>지표 (눌러서 설명 보기)</th>
-            {years.map((y) => (
-              <th key={y}>{y}년</th>
+      <div className="fs-gloss">
+        <button className="fs-gloss-h" onClick={() => setOpenTerm(openTerm === 'all' ? null : 'all')}>
+          용어 설명 {openTerm === 'all' ? '▲' : '▼'}
+        </button>
+        {openTerm === 'all' && (
+          <dl>
+            {MACRO_METRICS.map((m) => (
+              <div className="fs-g" key={m.key}>
+                <b>{m.label}</b> — {m.desc}
+              </div>
             ))}
-          </tr>
-        </thead>
-        <tbody>
-          {MACRO_METRICS.map((m) => {
-            const expanded = openMetric === m.key
-            return (
-              <Fragment key={m.key}>
-                <tr>
-                  <td>
-                    <button
-                      className="metric-btn"
-                      aria-expanded={expanded}
-                      onClick={() => setOpenMetric(expanded ? null : m.key)}
-                    >
-                      {m.label}
-                      <span className="help" aria-hidden="true">
-                        ?
-                      </span>
-                    </button>
-                    <div className="sub">{m.unit}</div>
-                  </td>
-                  {years.map((y) => (
-                    <td key={y} className="num">
-                      {fmt(m, macro?.[y]?.[m.key])}
-                    </td>
-                  ))}
-                </tr>
-                {expanded && (
-                  <tr className="desc-row">
-                    <td colSpan={years.length + 1}>{m.desc}</td>
-                  </tr>
-                )}
-              </Fragment>
-            )
-          })}
-        </tbody>
-      </table>
-
-      <div className="glossary">
-        <h3>용어 설명</h3>
-        <dl>
-          {MACRO_METRICS.map((m) => (
-            <div className="g" key={m.key}>
-              <b>{m.label}</b> — {m.desc}
-            </div>
-          ))}
-        </dl>
+          </dl>
+        )}
       </div>
     </Modal>
   )

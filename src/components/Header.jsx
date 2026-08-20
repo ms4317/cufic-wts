@@ -1,11 +1,7 @@
 import { num, signed, pct, dirOf } from '../format'
 import ThemeToggle from './ThemeToggle'
 
-const mmss = (ms) => {
-  const s = Math.max(0, Math.round(ms / 1000))
-  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
-}
-
+// 거래 타이머는 헤더 배지에서 빠져 독립 요소(RoundTimer)로 이동했다.
 export default function Header({
   account,
   team,
@@ -14,23 +10,16 @@ export default function Header({
   rank,
   teamCount,
   hintCount = 0,
-  tradingOpen = false,
-  remainingMs = 0,
-  durationMs = 0,
-  started = false,
   bellTotal = 0,
   bellCount = 0,
   onOpenBroadcasts,
   onOpenRanking,
   onOpenHints,
-  onOpenMarket,
   theme,
   onToggleTheme,
   onLogout,
 }) {
   const dir = dirOf(account.pnl)
-  // 남은 시간 비율 (로딩바). 매초 remainingMs가 줄며 바가 함께 줄어든다.
-  const fillPct = durationMs > 0 ? Math.max(0, Math.min(100, (remainingMs / durationMs) * 100)) : 0
 
   return (
     <header>
@@ -54,30 +43,7 @@ export default function Header({
             : `ROUND ${round.round} · ${round.year}년`}
       </span>
 
-      {/* 거래 타이머 — 열려 있으면 카운트다운, 아니면 대기 (종료 후엔 숨김) */}
-      {started && !ended && (
-        <span
-          className={
-            'badge timer' +
-            (tradingOpen ? ' live' : ' idle') +
-            (tradingOpen && remainingMs <= 30000 ? ' urgent' : tradingOpen && remainingMs <= 60000 ? ' warn' : '')
-          }
-        >
-          {tradingOpen ? (
-            <>
-              <span className="trow">
-                <span className="pulse" />
-                거래 <b className="tclock num">{mmss(remainingMs)}</b>
-              </span>
-              <span className="tbar">
-                <i style={{ width: fillPct + '%' }} />
-              </span>
-            </>
-          ) : (
-            '거래 대기'
-          )}
-        </span>
-      )}
+      {/* 거래 타이머는 헤더 아래 RoundTimer(독립 요소)로 표시한다 */}
 
       {/* 조별 순위 — 누르면 전체 순위 팝업 */}
       {rank != null && (

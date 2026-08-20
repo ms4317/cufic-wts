@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import Modal from '../components/Modal'
+import RoundTimer from '../components/RoundTimer'
 import { errorText } from '../supabase'
 import { checkContent } from '../dataCheck'
 import { num } from '../format'
@@ -20,6 +21,7 @@ export default function AdminProgress({
   actions,
   game,
   teams,
+  gamePin,
   stocks = [],
   hints = [],
   financials = [],
@@ -31,6 +33,7 @@ export default function AdminProgress({
   const [confirm, setConfirm] = useState(null) // 'advance' | 'end' | 'reset'
   const [resetText, setResetText] = useState('')
   const [busy, setBusy] = useState(false)
+  const [pinBusy, setPinBusy] = useState(false)
   const [nowTs, setNowTs] = useState(() => Date.now())
   const [bcText, setBcText] = useState('') // 속보 입력
   const [issues, setIssues] = useState(null) // [데이터 점검] 결과
@@ -69,6 +72,8 @@ export default function AdminProgress({
   const remainingMs = endsAt ? Math.max(0, endsAt - nowTs) : 0
   const timerRunning = !notStarted && remainingMs > 0
   const durMin = Math.round((game.round_duration_seconds ?? 600) / 60)
+  const durationMs = (game.round_duration_seconds ?? 600) * 1000
+  const openMode = game.join_mode === 'open'
 
   const traded = teams.filter((t) => Number(t.trades_this_round) > 0)
 
@@ -108,6 +113,25 @@ export default function AdminProgress({
       return
     }
     await refresh()
+  }
+
+  // 공용 게임 PIN 발급/재발급 (자율 입장)
+  const issuePin = async () => {
+    setPinBusy(true)
+    const r = await actions.setGamePin()
+    setPinBusy(false)
+    if (!r.ok) return notify(errorText(r.error), 'down')
+    notify('입장 PIN을 발급했어요: ' + r.game_pin, 'gold')
+    await refresh()
+  }
+
+  // 대회 시작 — 자율 입장인데 PIN이 없으면 학생이 못 들어오므로 막는다(가드)
+  const tryStart = () => {
+    if (openMode && !gamePin) {
+      notify('입장 PIN을 먼저 발급하세요 — 지금 시작하면 학생이 못 들어와요', 'down')
+      return
+    }
+    setConfirm('advance')
   }
 
   // 라운드 시간은 무조건 10분으로 시작한다. 미세 조정은 아래 ±1분 버튼으로.
@@ -244,40 +268,97 @@ export default function AdminProgress({
 
   return (
     <div className="apanel">
-      {/* 시작 전: 이번 게임에 쓸 데이터셋 선택 → 아래 [대회 시작]으로 진행 */}
+      {/* 시작 전: 대회 준비 — 순서대로 ①데이터셋 ②입장 PIN ③입장 확인 ④대회 시작 */}
       {notStarted && (
-        <section className="acard ds-pick">
-          <span className="acap">이번 게임 데이터셋</span>
-          <p className="anote">
-            불러올 데이터 한 벌을 고르세요. 고른 내용으로 게임이 세팅됩니다 (조는 유지 · 저장 안 한 편집은
-            사라짐). 만들기·백업은 <b>[데이터셋]</b> 탭에서.
-          </p>
-          <div className="ds-pick-row">
-            <select
-              className="ds-pick-sel"
-              value={activeDsId ?? ''}
-              disabled={busy || dsList.length === 0}
-              onChange={(e) => askSwitchDs(e.target.value)}
-            >
-              {dsList.length === 0 ? (
-                <option value="">저장된 데이터셋이 없어요 — [데이터셋] 탭에서 먼저 저장</option>
+        <section className="acard prep-card">
+          <span className="acap">대회 준비 — 순서대로</span>
+
+          {/* ① 데이터셋 */}
+          <div className="prep-step">
+            <span className="prep-no">①</span>
+            <div className="prep-body">
+              <span className="prep-t">데이터셋 선택</span>
+              <div className="ds-pick-row">
+                <select
+                  className="ds-pick-sel"
+                  value={activeDsId ?? ''}
+                  disabled={busy || dsList.length === 0}
+                  onChange={(e) => askSwitchDs(e.target.value)}
+                >
+                  {dsList.length === 0 ? (
+                    <option value="">저장된 데이터셋이 없어요 — [데이터셋] 탭에서 먼저 저장</option>
+                  ) : (
+                    <>
+                      {activeDsId == null && <option value="">데이터셋 선택…</option>}
+                      {dsList.map((d) => (
+                        <option key={d.id} value={d.id}>
+                          {d.name}
+                        </option>
+                      ))}
+                    </>
+                  )}
+                </select>
+                {activeDs?.description && <span className="ds-pick-desc">{activeDs.description}</span>}
+              </div>
+              <span className="anote">고른 내용으로 게임이 세팅됩니다(조 유지 · 저장 안 한 편집은 사라짐). 만들기·백업은 [데이터셋] 탭.</span>
+            </div>
+          </div>
+
+          {/* ② 입장 안내 — 자율 입장이면 게임 PIN, 코드 방식이면 코드 배부 */}
+          <div className="prep-step">
+            <span className="prep-no">②</span>
+            <div className="prep-body">
+              {openMode ? (
+                <>
+                  <span className="prep-t">입장 PIN 발급</span>
+                  <div className="gamepin-row">
+                    <span className="gamepin-val num">{gamePin || '– – – –'}</span>
+                    <button className="act-btn prime" disabled={pinBusy} onClick={issuePin}>
+                      {gamePin ? 'PIN 재발급' : 'PIN 발급'}
+                    </button>
+                  </div>
+                  <span className="anote">
+                    {gamePin ? '학생들에게 이 번호를 알려주세요. 학생은 닉네임 + 이 PIN으로 입장합니다.' : '아직 PIN이 없어요 — [PIN 발급]으로 만들고 학생에게 알려주세요.'}
+                  </span>
+                </>
               ) : (
                 <>
-                  {activeDsId == null && <option value="">데이터셋 선택…</option>}
-                  {dsList.map((d) => (
-                    <option key={d.id} value={d.id}>
-                      {d.name}
-                    </option>
-                  ))}
+                  <span className="prep-t">참가 코드 배부</span>
+                  <span className="anote">코드 방식이에요. [조 관리] 탭에서 조·코드를 만들어 학생에게 나눠주세요. (입장 방식은 아래 게임 설정에서 변경)</span>
                 </>
               )}
-            </select>
-            {activeDs?.description && <span className="ds-pick-desc">{activeDs.description}</span>}
+            </div>
+          </div>
+
+          {/* ③ 입장 확인 */}
+          <div className="prep-step">
+            <span className="prep-no">③</span>
+            <div className="prep-body">
+              <span className="prep-t">입장 확인</span>
+              <span className={teams.length > 0 ? 'aok' : 'anote'}>
+                {teams.length > 0
+                  ? `지금 ${teams.length}개 조 입장함`
+                  : openMode
+                    ? '아직 입장한 조가 없어요 — 학생이 PIN으로 입장하면 실시간으로 늘어나요'
+                    : '아직 만든 조가 없어요 — [조 관리] 탭에서 추가하세요'}
+              </span>
+            </div>
+          </div>
+
+          {/* ④ 대회 시작 */}
+          <div className="prep-step">
+            <span className="prep-no">④</span>
+            <div className="prep-body">
+              <button className="act-btn prime prep-start" disabled={busy} onClick={tryStart}>
+                대회 시작 (ROUND 1 열기)
+              </button>
+              <span className="anote">누르면 ROUND 1이 열리고, 학생 새 입장은 마감됩니다(재접속만 가능).</span>
+            </div>
           </div>
         </section>
       )}
 
-      {nextAction && (
+      {nextAction && !notStarted && (
         <section className="acard next-action">
           <div className="na-info">
             <span className="na-label">다음 할 일</span>
@@ -288,71 +369,52 @@ export default function AdminProgress({
           </button>
         </section>
       )}
-      <section className="acard big">
-        <span className="acap">현재 라운드</span>
-        <div className="round-big">
-          {notStarted ? (
-            <>
-              <b>시작 전</b>
-              <span>진행 버튼을 누르면 ROUND 1이 열립니다</span>
-            </>
-          ) : (
-            <>
-              <b>
-                ROUND {cur} · {game.round_year_map?.[String(cur)]}년
-              </b>
-              <span>
-                전체 {total}라운드 중 {cur}번째
-              </span>
-            </>
-          )}
-        </div>
-
-        {showRoundBtn && (
-          <div className="arow">
-            {!isLast ? (
-              <button className="act-btn prime" disabled={busy} onClick={() => setConfirm('advance')}>
-                {notStarted ? '대회 시작 (ROUND 1 열기)' : '다음 연도로 넘어가기 (순위 갱신)'}
-              </button>
-            ) : (
-              <button className="act-btn danger" disabled={busy} onClick={() => setConfirm('end')}>
-                대회 종료
-              </button>
-            )}
+      {!notStarted && (
+        <section className="acard big">
+          <span className="acap">현재 라운드</span>
+          <div className="round-big">
+            <b>
+              ROUND {cur} · {game.round_year_map?.[String(cur)]}년
+            </b>
+            <span>
+              전체 {total}라운드 중 {cur}번째
+            </span>
           </div>
-        )}
 
-        {!notStarted && !isLast && (
-          <p className="anote">
-            누르면 <b>{nextYear}년 가격이 공개</b>되고 보유종목이 재평가돼 <b>순위가 갱신</b>되며,
-            새 순위로 <b>힌트가 자동 배분</b>됩니다(하위권 우대). 순위를 확인한 뒤 아래에서
-            <b>타이머를 시작</b>하면 거래가 열립니다. 되돌릴 수 없습니다.
-          </p>
-        )}
-      </section>
+          {showRoundBtn && (
+            <div className="arow">
+              {!isLast ? (
+                <button className="act-btn prime" disabled={busy} onClick={() => setConfirm('advance')}>
+                  다음 연도로 넘어가기 (순위 갱신)
+                </button>
+              ) : (
+                <button className="act-btn danger" disabled={busy} onClick={() => setConfirm('end')}>
+                  대회 종료
+                </button>
+              )}
+            </div>
+          )}
+
+          {!isLast && (
+            <p className="anote">
+              누르면 <b>{nextYear}년 가격이 공개</b>되고 보유종목이 재평가돼 <b>순위가 갱신</b>되며,
+              새 순위로 <b>힌트가 자동 배분</b>됩니다(하위권 우대). 순위를 확인한 뒤 아래에서
+              <b>타이머를 시작</b>하면 거래가 열립니다. 되돌릴 수 없습니다.
+            </p>
+          )}
+        </section>
+      )}
 
       {/* 거래 타이머 — 순위 확인 후 여기서 거래를 연다 */}
       {!notStarted && (
         <section className="acard big">
           <span className="acap">거래 타이머</span>
-          <div className="round-big">
-            {timerRunning ? (
-              <>
-                <b className="timer-count live">{mmss(remainingMs)}</b>
-                <span>거래 진행 중 — 학생들이 매매할 수 있어요</span>
-              </>
-            ) : endsAt ? (
-              <>
-                <b className="timer-count">0:00</b>
-                <span>거래 마감 — 순위 확인 후 다음 연도로 넘기세요</span>
-              </>
-            ) : (
-              <>
-                <b className="timer-count">대기</b>
-                <span>타이머를 시작하면 {durMin}분간 거래가 열립니다</span>
-              </>
-            )}
-          </div>
+          <RoundTimer
+            live={timerRunning}
+            remainingMs={remainingMs}
+            durationMs={durationMs}
+            label={endsAt ? '거래 마감 · 순위 확인 후 다음 연도로 넘기세요' : `타이머를 시작하면 ${durMin}분간 거래가 열려요`}
+          />
           {timerRunning && (
             <div className="timer-adjust">
               <button className="act-btn adj" disabled={busy} onClick={() => adjustTimer(-1)}>
