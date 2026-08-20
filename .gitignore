@@ -16,3 +16,6 @@ dist-ssr
 # Supabase CLI 로컬 산출물 (마이그레이션·시드는 커밋한다)
 supabase/.branches
 supabase/.temp
+
+# Claude Code 로컬 설정 (개인 개발환경 — 공유 안 함)
+.claude/settings.local.json
