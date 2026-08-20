@@ -563,7 +563,18 @@
 }
 .content-head.fin,
 .content-row.fin {
-  grid-template-columns: 44px repeat(5, minmax(0, 1fr)) auto;
+  grid-template-columns: 44px repeat(7, minmax(56px, 1fr)) minmax(150px, 1.6fr) auto;
+}
+.cr-calc {
+  font-size: 11px;
+  color: var(--muted);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cr-calc .warn {
+  color: var(--down);
 }
 .content-head {
   font-size: 11px;

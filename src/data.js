@@ -502,770 +502,976 @@ export const initialHints = [
 ]
 
 // 재무·시황 지표 정의는 src/metrics.js 단일 소스 (교보재팀이 지표를 바꾸면 거기만 수정)
-export { FIN_METRICS, MACRO_METRICS } from './metrics.js'
+export { FIN_INPUTS, FIN_DERIVED, deriveFinancials, MACRO_METRICS } from './metrics.js'
 
-// 재무제표. null = 미상장/상장폐지 연도(화면에서 '-'). 단위: 금액=억원, 비율=%.
+// 재무제표. null = 미상장/상장폐지 연도(화면에서 '-'). 입력 잎 7개(억원)만 저장, 나머지는 deriveFinancials로 계산.
 export const financials = {
   "S01": {
     "2020": {
+      "currentAssets": 27529,
+      "noncurrentAssets": 27529,
+      "currentLiabilities": 10729,
+      "noncurrentLiabilities": 16094,
       "revenue": 38000,
-      "opIncome": 3200,
-      "netIncome": 2400,
-      "debtRatio": 95,
-      "roe": 8.5
+      "operatingExpense": 34800,
+      "nonoperatingExpense": 800
     },
     "2021": {
+      "currentAssets": 29388,
+      "noncurrentAssets": 29387,
+      "currentLiabilities": 11265,
+      "noncurrentLiabilities": 16898,
       "revenue": 40500,
-      "opIncome": 3900,
-      "netIncome": 3000,
-      "debtRatio": 92,
-      "roe": 9.8
+      "operatingExpense": 36600,
+      "nonoperatingExpense": 900
     },
     "2022": {
+      "currentAssets": 30505,
+      "noncurrentAssets": 30504,
+      "currentLiabilities": 11560,
+      "noncurrentLiabilities": 17339,
       "revenue": 43800,
-      "opIncome": 4600,
-      "netIncome": 3500,
-      "debtRatio": 90,
-      "roe": 10.9
+      "operatingExpense": 39200,
+      "nonoperatingExpense": 1100
     },
     "2023": {
+      "currentAssets": 32204,
+      "noncurrentAssets": 32203,
+      "currentLiabilities": 12059,
+      "noncurrentLiabilities": 18089,
       "revenue": 45200,
-      "opIncome": 4800,
-      "netIncome": 3700,
-      "debtRatio": 88,
-      "roe": 10.8
+      "operatingExpense": 40400,
+      "nonoperatingExpense": 1100
     },
     "2024": {
+      "currentAssets": 33684,
+      "noncurrentAssets": 33683,
+      "currentLiabilities": 12689,
+      "noncurrentLiabilities": 19034,
       "revenue": 45900,
-      "opIncome": 4700,
-      "netIncome": 3600,
-      "debtRatio": 89,
-      "roe": 10.1
+      "operatingExpense": 41200,
+      "nonoperatingExpense": 1100
     },
     "2025": {
+      "currentAssets": 36653,
+      "noncurrentAssets": 36652,
+      "currentLiabilities": 14878,
+      "noncurrentLiabilities": 22316,
       "revenue": 44100,
-      "opIncome": 2100,
-      "netIncome": 1300,
-      "debtRatio": 103,
-      "roe": 3.6
+      "operatingExpense": 42000,
+      "nonoperatingExpense": 800
     }
   },
   "S02": {
     "2020": {
+      "currentAssets": 125827,
+      "noncurrentAssets": 125826,
+      "currentLiabilities": 31240,
+      "noncurrentLiabilities": 46859,
       "revenue": 236000,
-      "opIncome": 28000,
-      "netIncome": 21000,
-      "debtRatio": 45,
-      "roe": 12.1
+      "operatingExpense": 208000,
+      "nonoperatingExpense": 7000
     },
     "2021": {
+      "currentAssets": 137697,
+      "noncurrentAssets": 137696,
+      "currentLiabilities": 32582,
+      "noncurrentLiabilities": 48872,
       "revenue": 268000,
-      "opIncome": 41000,
-      "netIncome": 32000,
-      "debtRatio": 42,
-      "roe": 16.5
+      "operatingExpense": 227000,
+      "nonoperatingExpense": 9000
     },
     "2022": {
+      "currentAssets": 144971,
+      "noncurrentAssets": 144970,
+      "currentLiabilities": 33136,
+      "noncurrentLiabilities": 49704,
       "revenue": 292000,
-      "opIncome": 46000,
-      "netIncome": 35000,
-      "debtRatio": 40,
-      "roe": 16.9
+      "operatingExpense": 246000,
+      "nonoperatingExpense": 11000
     },
     "2023": {
+      "currentAssets": 151938,
+      "noncurrentAssets": 151937,
+      "currentLiabilities": 36550,
+      "noncurrentLiabilities": 54825,
       "revenue": 245000,
-      "opIncome": 9500,
-      "netIncome": 6800,
-      "debtRatio": 43,
-      "roe": 3.2
+      "operatingExpense": 235500,
+      "nonoperatingExpense": 2700
     },
     "2024": {
+      "currentAssets": 159727,
+      "noncurrentAssets": 159727,
+      "currentLiabilities": 37156,
+      "noncurrentLiabilities": 55735,
       "revenue": 289000,
-      "opIncome": 38000,
-      "netIncome": 29000,
-      "debtRatio": 41,
-      "roe": 12.8
+      "operatingExpense": 251000,
+      "nonoperatingExpense": 9000
     },
     "2025": {
+      "currentAssets": 177070,
+      "noncurrentAssets": 177070,
+      "currentLiabilities": 39745,
+      "noncurrentLiabilities": 59618,
       "revenue": 331000,
-      "opIncome": 52000,
-      "netIncome": 40000,
-      "debtRatio": 39,
-      "roe": 15.7
+      "operatingExpense": 279000,
+      "nonoperatingExpense": 12000
     }
   },
   "S03": {
     "2020": {
+      "currentAssets": 9643,
+      "noncurrentAssets": 9643,
+      "currentLiabilities": 2000,
+      "noncurrentLiabilities": 3000,
       "revenue": 12400,
-      "opIncome": 2100,
-      "netIncome": 1600,
-      "debtRatio": 35,
-      "roe": 11.2
+      "operatingExpense": 10300,
+      "nonoperatingExpense": 500
     },
     "2021": {
+      "currentAssets": 10190,
+      "noncurrentAssets": 10190,
+      "currentLiabilities": 2023,
+      "noncurrentLiabilities": 3034,
       "revenue": 13800,
-      "opIncome": 2500,
-      "netIncome": 1900,
-      "debtRatio": 33,
-      "roe": 12.4
+      "operatingExpense": 11300,
+      "nonoperatingExpense": 600
     },
     "2022": {
+      "currentAssets": 10746,
+      "noncurrentAssets": 10745,
+      "currentLiabilities": 2181,
+      "noncurrentLiabilities": 3272,
       "revenue": 13200,
-      "opIncome": 2200,
-      "netIncome": 1700,
-      "debtRatio": 34,
-      "roe": 10.6
+      "operatingExpense": 11000,
+      "nonoperatingExpense": 500
     },
     "2023": {
+      "currentAssets": 11045,
+      "noncurrentAssets": 11044,
+      "currentLiabilities": 2242,
+      "noncurrentLiabilities": 3363,
       "revenue": 12900,
-      "opIncome": 2000,
-      "netIncome": 1500,
-      "debtRatio": 34,
-      "roe": 9.1
+      "operatingExpense": 10900,
+      "nonoperatingExpense": 500
     },
     "2024": {
+      "currentAssets": 11534,
+      "noncurrentAssets": 11534,
+      "currentLiabilities": 2237,
+      "noncurrentLiabilities": 3355,
       "revenue": 13600,
-      "opIncome": 2300,
-      "netIncome": 1800,
-      "debtRatio": 32,
-      "roe": 10.3
+      "operatingExpense": 11300,
+      "nonoperatingExpense": 500
     },
     "2025": {
+      "currentAssets": 12094,
+      "noncurrentAssets": 12093,
+      "currentLiabilities": 2233,
+      "noncurrentLiabilities": 3349,
       "revenue": 15900,
-      "opIncome": 3100,
-      "netIncome": 2400,
-      "debtRatio": 30,
-      "roe": 12.9
+      "operatingExpense": 12800,
+      "nonoperatingExpense": 700
     }
   },
   "S04": {
     "2020": {
+      "currentAssets": 84,
+      "noncurrentAssets": 84,
+      "currentLiabilities": 43,
+      "noncurrentLiabilities": 65,
       "revenue": 120,
-      "opIncome": -35,
-      "netIncome": -40,
-      "debtRatio": 180,
-      "roe": -25
+      "operatingExpense": 155,
+      "nonoperatingExpense": 5
     },
     "2021": {
+      "currentAssets": 250,
+      "noncurrentAssets": 250,
+      "currentLiabilities": 120,
+      "noncurrentLiabilities": 180,
       "revenue": 310,
-      "opIncome": 20,
-      "netIncome": 12,
-      "debtRatio": 150,
-      "roe": 6
+      "operatingExpense": 290,
+      "nonoperatingExpense": 8
     },
     "2022": {
+      "currentAssets": 1751,
+      "noncurrentAssets": 1750,
+      "currentLiabilities": 525,
+      "noncurrentLiabilities": 788,
       "revenue": 2850,
-      "opIncome": 1350,
-      "netIncome": 1050,
-      "debtRatio": 60,
-      "roe": 48
+      "operatingExpense": 1500,
+      "nonoperatingExpense": 300
     },
     "2023": {
+      "currentAssets": 2144,
+      "noncurrentAssets": 2143,
+      "currentLiabilities": 706,
+      "noncurrentLiabilities": 1059,
       "revenue": 1420,
-      "opIncome": 380,
-      "netIncome": 290,
-      "debtRatio": 70,
-      "roe": 11.5
+      "operatingExpense": 1040,
+      "nonoperatingExpense": 90
     },
     "2024": {
+      "currentAssets": 2316,
+      "noncurrentAssets": 2316,
+      "currentLiabilities": 794,
+      "noncurrentLiabilities": 1191,
       "revenue": 1180,
-      "opIncome": 240,
-      "netIncome": 180,
-      "debtRatio": 75,
-      "roe": 6.8
+      "operatingExpense": 940,
+      "nonoperatingExpense": 60
     },
     "2025": {
+      "currentAssets": 2434,
+      "noncurrentAssets": 2434,
+      "currentLiabilities": 767,
+      "noncurrentLiabilities": 1151,
       "revenue": 1650,
-      "opIncome": 520,
-      "netIncome": 410,
-      "debtRatio": 65,
-      "roe": 13.9
+      "operatingExpense": 1130,
+      "nonoperatingExpense": 110
     }
   },
   "S05": {
     "2020": {
+      "currentAssets": 24001,
+      "noncurrentAssets": 24001,
+      "currentLiabilities": 14629,
+      "noncurrentLiabilities": 21944,
       "revenue": 8900,
-      "opIncome": 2100,
-      "netIncome": 1600,
-      "debtRatio": 320,
-      "roe": 14
+      "operatingExpense": 6800,
+      "nonoperatingExpense": 500
     },
     "2021": {
+      "currentAssets": 38510,
+      "noncurrentAssets": 38510,
+      "currentLiabilities": 24767,
+      "noncurrentLiabilities": 37151,
       "revenue": 14200,
-      "opIncome": 4800,
-      "netIncome": 3700,
-      "debtRatio": 410,
-      "roe": 24.5
+      "operatingExpense": 9400,
+      "nonoperatingExpense": 1100
     },
     "2022": {
+      "currentAssets": 62967,
+      "noncurrentAssets": 62966,
+      "currentLiabilities": 42502,
+      "noncurrentLiabilities": 63754,
       "revenue": 21500,
-      "opIncome": 7900,
-      "netIncome": 6100,
-      "debtRatio": 540,
-      "roe": 31
+      "operatingExpense": 13600,
+      "nonoperatingExpense": 1800
     },
     "2023": {
+      "currentAssets": 24255,
+      "noncurrentAssets": 24255,
+      "currentLiabilities": 17444,
+      "noncurrentLiabilities": 26166,
       "revenue": 9800,
-      "opIncome": -5200,
-      "netIncome": -6800,
-      "debtRatio": 890,
-      "roe": -48
+      "operatingExpense": 15000,
+      "nonoperatingExpense": 1600
     },
     "2024": null,
     "2025": null
   },
   "S06": {
     "2020": {
+      "currentAssets": 659,
+      "noncurrentAssets": 659,
+      "currentLiabilities": 357,
+      "noncurrentLiabilities": 536,
       "revenue": 850,
-      "opIncome": -420,
-      "netIncome": -480,
-      "debtRatio": 210,
-      "roe": -35
+      "operatingExpense": 1270,
+      "nonoperatingExpense": 60
     },
     "2021": {
+      "currentAssets": 2160,
+      "noncurrentAssets": 2160,
+      "currentLiabilities": 1248,
+      "noncurrentLiabilities": 1872,
       "revenue": 2400,
-      "opIncome": -680,
-      "netIncome": -750,
-      "debtRatio": 260,
-      "roe": -42
+      "operatingExpense": 3080,
+      "nonoperatingExpense": 70
     },
     "2022": {
+      "currentAssets": 3480,
+      "noncurrentAssets": 3480,
+      "currentLiabilities": 2204,
+      "noncurrentLiabilities": 3306,
       "revenue": 2900,
-      "opIncome": -1100,
-      "netIncome": -1250,
-      "debtRatio": 380,
-      "roe": -68
+      "operatingExpense": 4000,
+      "nonoperatingExpense": 150
     },
     "2023": {
+      "currentAssets": 3255,
+      "noncurrentAssets": 3255,
+      "currentLiabilities": 2184,
+      "noncurrentLiabilities": 3276,
       "revenue": 2100,
-      "opIncome": -950,
-      "netIncome": -1080,
-      "debtRatio": 520,
-      "roe": -95
+      "operatingExpense": 3050,
+      "nonoperatingExpense": 130
     },
     "2024": {
+      "currentAssets": 2640,
+      "noncurrentAssets": 2640,
+      "currentLiabilities": 1872,
+      "noncurrentLiabilities": 2808,
       "revenue": 1200,
-      "opIncome": -700,
-      "netIncome": -820,
-      "debtRatio": 780,
-      "roe": -160
+      "operatingExpense": 1900,
+      "nonoperatingExpense": 120
     },
     "2025": null
   },
   "S07": {
     "2020": {
+      "currentAssets": 3069,
+      "noncurrentAssets": 3069,
+      "currentLiabilities": 1286,
+      "noncurrentLiabilities": 1929,
       "revenue": 4200,
-      "opIncome": 260,
-      "netIncome": 190,
-      "debtRatio": 110,
-      "roe": 6.5
+      "operatingExpense": 3940,
+      "nonoperatingExpense": 70
     },
     "2021": {
+      "currentAssets": 3147,
+      "noncurrentAssets": 3146,
+      "currentLiabilities": 1346,
+      "noncurrentLiabilities": 2020,
       "revenue": 3900,
-      "opIncome": 180,
-      "netIncome": 120,
-      "debtRatio": 115,
-      "roe": 4.1
+      "operatingExpense": 3720,
+      "nonoperatingExpense": 60
     },
     "2022": {
+      "currentAssets": 3180,
+      "noncurrentAssets": 3180,
+      "currentLiabilities": 1344,
+      "noncurrentLiabilities": 2016,
       "revenue": 4100,
-      "opIncome": 210,
-      "netIncome": 150,
-      "debtRatio": 112,
-      "roe": 5
+      "operatingExpense": 3890,
+      "nonoperatingExpense": 60
     },
     "2023": {
+      "currentAssets": 1822,
+      "noncurrentAssets": 1821,
+      "currentLiabilities": 837,
+      "noncurrentLiabilities": 1256,
       "revenue": 3100,
-      "opIncome": -240,
-      "netIncome": -310,
-      "debtRatio": 135,
-      "roe": -11
+      "operatingExpense": 3340,
+      "nonoperatingExpense": 70
     },
     "2024": {
+      "currentAssets": 3124,
+      "noncurrentAssets": 3124,
+      "currentLiabilities": 1280,
+      "noncurrentLiabilities": 1920,
       "revenue": 4600,
-      "opIncome": 420,
-      "netIncome": 320,
-      "debtRatio": 105,
-      "roe": 10.5
+      "operatingExpense": 4180,
+      "nonoperatingExpense": 100
     },
     "2025": {
+      "currentAssets": 1938,
+      "noncurrentAssets": 1938,
+      "currentLiabilities": 870,
+      "noncurrentLiabilities": 1306,
       "revenue": 3400,
-      "opIncome": -120,
-      "netIncome": -180,
-      "debtRatio": 128,
-      "roe": -6.2
+      "operatingExpense": 3520,
+      "nonoperatingExpense": 60
     }
   },
   "S08": {
     "2020": {
+      "currentAssets": 12375,
+      "noncurrentAssets": 12375,
+      "currentLiabilities": 3789,
+      "noncurrentLiabilities": 5683,
       "revenue": 21000,
-      "opIncome": 1500,
-      "netIncome": 1100,
-      "debtRatio": 62,
-      "roe": 7.2
+      "operatingExpense": 19500,
+      "nonoperatingExpense": 400
     },
     "2021": {
+      "currentAssets": 12681,
+      "noncurrentAssets": 12681,
+      "currentLiabilities": 3844,
+      "noncurrentLiabilities": 5765,
       "revenue": 21400,
-      "opIncome": 1550,
-      "netIncome": 1150,
-      "debtRatio": 61,
-      "roe": 7.3
+      "operatingExpense": 19850,
+      "nonoperatingExpense": 400
     },
     "2022": {
+      "currentAssets": 13128,
+      "noncurrentAssets": 13128,
+      "currentLiabilities": 3938,
+      "noncurrentLiabilities": 5908,
       "revenue": 22800,
-      "opIncome": 1700,
-      "netIncome": 1280,
-      "debtRatio": 60,
-      "roe": 7.8
+      "operatingExpense": 21100,
+      "nonoperatingExpense": 420
     },
     "2023": {
+      "currentAssets": 13655,
+      "noncurrentAssets": 13654,
+      "currentLiabilities": 4010,
+      "noncurrentLiabilities": 6015,
       "revenue": 24100,
-      "opIncome": 1850,
-      "netIncome": 1400,
-      "debtRatio": 58,
-      "roe": 8.1
+      "operatingExpense": 22250,
+      "nonoperatingExpense": 450
     },
     "2024": {
+      "currentAssets": 14033,
+      "noncurrentAssets": 14033,
+      "currentLiabilities": 4121,
+      "noncurrentLiabilities": 6182,
       "revenue": 24600,
-      "opIncome": 1800,
-      "netIncome": 1350,
-      "debtRatio": 58,
-      "roe": 7.6
+      "operatingExpense": 22800,
+      "nonoperatingExpense": 450
     },
     "2025": {
+      "currentAssets": 14613,
+      "noncurrentAssets": 14612,
+      "currentLiabilities": 4196,
+      "noncurrentLiabilities": 6295,
       "revenue": 25900,
-      "opIncome": 1950,
-      "netIncome": 1480,
-      "debtRatio": 56,
-      "roe": 7.9
+      "operatingExpense": 23950,
+      "nonoperatingExpense": 470
     }
   },
   "S09": {
     "2020": {
+      "currentAssets": 55417,
+      "noncurrentAssets": 55416,
+      "currentLiabilities": 26238,
+      "noncurrentLiabilities": 39357,
       "revenue": 98000,
-      "opIncome": 2800,
-      "netIncome": 1900,
-      "debtRatio": 145,
-      "roe": 4.2
+      "operatingExpense": 95200,
+      "nonoperatingExpense": 900
     },
     "2021": {
+      "currentAssets": 61094,
+      "noncurrentAssets": 61094,
+      "currentLiabilities": 27625,
+      "noncurrentLiabilities": 41438,
       "revenue": 132000,
-      "opIncome": 8900,
-      "netIncome": 6800,
-      "debtRatio": 130,
-      "roe": 12.8
+      "operatingExpense": 123100,
+      "nonoperatingExpense": 2100
     },
     "2022": {
+      "currentAssets": 67692,
+      "noncurrentAssets": 67692,
+      "currentLiabilities": 29538,
+      "noncurrentLiabilities": 44308,
       "revenue": 158000,
-      "opIncome": 12500,
-      "netIncome": 9600,
-      "debtRatio": 120,
-      "roe": 15.6
+      "operatingExpense": 145500,
+      "nonoperatingExpense": 2900
     },
     "2023": {
+      "currentAssets": 73466,
+      "noncurrentAssets": 73466,
+      "currentLiabilities": 32995,
+      "noncurrentLiabilities": 49493,
       "revenue": 141000,
-      "opIncome": 4200,
-      "netIncome": 2900,
-      "debtRatio": 128,
-      "roe": 4.5
+      "operatingExpense": 136800,
+      "nonoperatingExpense": 1300
     },
     "2024": {
+      "currentAssets": 77752,
+      "noncurrentAssets": 77751,
+      "currentLiabilities": 33270,
+      "noncurrentLiabilities": 49906,
       "revenue": 172000,
-      "opIncome": 14800,
-      "netIncome": 11500,
-      "debtRatio": 115,
-      "roe": 15.9
+      "operatingExpense": 157200,
+      "nonoperatingExpense": 3300
     },
     "2025": {
+      "currentAssets": 86383,
+      "noncurrentAssets": 86382,
+      "currentLiabilities": 35882,
+      "noncurrentLiabilities": 53823,
       "revenue": 198000,
-      "opIncome": 19500,
-      "netIncome": 15200,
-      "debtRatio": 108,
-      "roe": 18.3
+      "operatingExpense": 178500,
+      "nonoperatingExpense": 4300
     }
   },
   "S10": {
     "2020": {
+      "currentAssets": 390,
+      "noncurrentAssets": 390,
+      "currentLiabilities": 152,
+      "noncurrentLiabilities": 228,
       "revenue": 340,
-      "opIncome": 15,
-      "netIncome": 8,
-      "debtRatio": 95,
-      "roe": 2
+      "operatingExpense": 325,
+      "nonoperatingExpense": 7
     },
     "2021": {
+      "currentAssets": 407,
+      "noncurrentAssets": 407,
+      "currentLiabilities": 156,
+      "noncurrentLiabilities": 234,
       "revenue": 380,
-      "opIncome": 22,
-      "netIncome": 14,
-      "debtRatio": 92,
-      "roe": 3.3
+      "operatingExpense": 358,
+      "nonoperatingExpense": 8
     },
     "2022": {
+      "currentAssets": 422,
+      "noncurrentAssets": 422,
+      "currentLiabilities": 160,
+      "noncurrentLiabilities": 240,
       "revenue": 450,
-      "opIncome": 30,
-      "netIncome": 20,
-      "debtRatio": 90,
-      "roe": 4.5
+      "operatingExpense": 420,
+      "nonoperatingExpense": 10
     },
     "2023": {
+      "currentAssets": 452,
+      "noncurrentAssets": 451,
+      "currentLiabilities": 166,
+      "noncurrentLiabilities": 249,
       "revenue": 620,
-      "opIncome": 55,
-      "netIncome": 40,
-      "debtRatio": 85,
-      "roe": 8.2
+      "operatingExpense": 565,
+      "nonoperatingExpense": 15
     },
     "2024": {
+      "currentAssets": 2768,
+      "noncurrentAssets": 2767,
+      "currentLiabilities": 786,
+      "noncurrentLiabilities": 1178,
       "revenue": 5800,
-      "opIncome": 1900,
-      "netIncome": 1500,
-      "debtRatio": 55,
-      "roe": 42
+      "operatingExpense": 3900,
+      "nonoperatingExpense": 400
     },
     "2025": {
+      "currentAssets": 3784,
+      "noncurrentAssets": 3783,
+      "currentLiabilities": 1225,
+      "noncurrentLiabilities": 1838,
       "revenue": 4100,
-      "opIncome": 780,
-      "netIncome": 590,
-      "debtRatio": 68,
-      "roe": 13.1
+      "operatingExpense": 3320,
+      "nonoperatingExpense": 190
     }
   },
   "S11": {
     "2020": {
+      "currentAssets": 2590,
+      "noncurrentAssets": 2590,
+      "currentLiabilities": 952,
+      "noncurrentLiabilities": 1428,
       "revenue": 3100,
-      "opIncome": 280,
-      "netIncome": 210,
-      "debtRatio": 85,
-      "roe": 7.5
+      "operatingExpense": 2820,
+      "nonoperatingExpense": 70
     },
     "2021": {
+      "currentAssets": 2730,
+      "noncurrentAssets": 2730,
+      "currentLiabilities": 984,
+      "noncurrentLiabilities": 1476,
       "revenue": 3600,
-      "opIncome": 360,
-      "netIncome": 270,
-      "debtRatio": 82,
-      "roe": 9
+      "operatingExpense": 3240,
+      "nonoperatingExpense": 90
     },
     "2022": {
+      "currentAssets": 2967,
+      "noncurrentAssets": 2966,
+      "currentLiabilities": 1040,
+      "noncurrentLiabilities": 1560,
       "revenue": 4500,
-      "opIncome": 520,
-      "netIncome": 400,
-      "debtRatio": 78,
-      "roe": 12
+      "operatingExpense": 3980,
+      "nonoperatingExpense": 120
     },
     "2023": {
+      "currentAssets": 3246,
+      "noncurrentAssets": 3246,
+      "currentLiabilities": 1104,
+      "noncurrentLiabilities": 1657,
       "revenue": 5200,
-      "opIncome": 640,
-      "netIncome": 500,
-      "debtRatio": 74,
-      "roe": 13.4
+      "operatingExpense": 4560,
+      "nonoperatingExpense": 140
     },
     "2024": {
+      "currentAssets": 3675,
+      "noncurrentAssets": 3674,
+      "currentLiabilities": 1210,
+      "noncurrentLiabilities": 1816,
       "revenue": 6400,
-      "opIncome": 850,
-      "netIncome": 670,
-      "debtRatio": 70,
-      "roe": 15.5
+      "operatingExpense": 5550,
+      "nonoperatingExpense": 180
     },
     "2025": {
+      "currentAssets": 3980,
+      "noncurrentAssets": 3980,
+      "currentLiabilities": 1333,
+      "noncurrentLiabilities": 1999,
       "revenue": 6100,
-      "opIncome": 720,
-      "netIncome": 560,
-      "debtRatio": 72,
-      "roe": 12.1
+      "operatingExpense": 5380,
+      "nonoperatingExpense": 160
     }
   },
   "S12": {
     "2020": {
+      "currentAssets": 850,
+      "noncurrentAssets": 850,
+      "currentLiabilities": 280,
+      "noncurrentLiabilities": 420,
       "revenue": 980,
-      "opIncome": 110,
-      "netIncome": 80,
-      "debtRatio": 70,
-      "roe": 8
+      "operatingExpense": 870,
+      "nonoperatingExpense": 30
     },
     "2021": {
+      "currentAssets": 977,
+      "noncurrentAssets": 977,
+      "currentLiabilities": 308,
+      "noncurrentLiabilities": 462,
       "revenue": 1450,
-      "opIncome": 230,
-      "netIncome": 180,
-      "debtRatio": 65,
-      "roe": 15.2
+      "operatingExpense": 1220,
+      "nonoperatingExpense": 50
     },
     "2022": {
+      "currentAssets": 1059,
+      "noncurrentAssets": 1058,
+      "currentLiabilities": 327,
+      "noncurrentLiabilities": 491,
       "revenue": 1620,
-      "opIncome": 260,
-      "netIncome": 200,
-      "debtRatio": 63,
-      "roe": 15.4
+      "operatingExpense": 1360,
+      "nonoperatingExpense": 60
     },
     "2023": {
+      "currentAssets": 490,
+      "noncurrentAssets": 489,
+      "currentLiabilities": 172,
+      "noncurrentLiabilities": 257,
       "revenue": 1100,
-      "opIncome": -80,
-      "netIncome": -120,
-      "debtRatio": 78,
-      "roe": -9
+      "operatingExpense": 1180,
+      "nonoperatingExpense": 40
     },
     "2024": {
+      "currentAssets": 1209,
+      "noncurrentAssets": 1208,
+      "currentLiabilities": 384,
+      "noncurrentLiabilities": 577,
       "revenue": 1750,
-      "opIncome": 290,
-      "netIncome": 230,
-      "debtRatio": 66,
-      "roe": 15.8
+      "operatingExpense": 1460,
+      "nonoperatingExpense": 60
     },
     "2025": {
+      "currentAssets": 1475,
+      "noncurrentAssets": 1475,
+      "currentLiabilities": 433,
+      "noncurrentLiabilities": 650,
       "revenue": 2600,
-      "opIncome": 560,
-      "netIncome": 450,
-      "debtRatio": 58,
-      "roe": 24.1
+      "operatingExpense": 2040,
+      "nonoperatingExpense": 110
     }
   },
   "S13": {
     "2020": null,
     "2021": null,
     "2022": {
+      "currentAssets": 263,
+      "noncurrentAssets": 262,
+      "currentLiabilities": 126,
+      "noncurrentLiabilities": 189,
       "revenue": 420,
-      "opIncome": -180,
-      "netIncome": -210,
-      "debtRatio": 150,
-      "roe": -28
+      "operatingExpense": 600,
+      "nonoperatingExpense": 30
     },
     "2023": {
+      "currentAssets": 338,
+      "noncurrentAssets": 338,
+      "currentLiabilities": 168,
+      "noncurrentLiabilities": 253,
       "revenue": 510,
-      "opIncome": -120,
-      "netIncome": -150,
-      "debtRatio": 165,
-      "roe": -22
+      "operatingExpense": 630,
+      "nonoperatingExpense": 30
     },
     "2024": {
+      "currentAssets": 468,
+      "noncurrentAssets": 468,
+      "currentLiabilities": 218,
+      "noncurrentLiabilities": 328,
       "revenue": 780,
-      "opIncome": -30,
-      "netIncome": -45,
-      "debtRatio": 140,
-      "roe": -6.5
+      "operatingExpense": 810,
+      "nonoperatingExpense": 15
     },
     "2025": {
+      "currentAssets": 909,
+      "noncurrentAssets": 908,
+      "currentLiabilities": 381,
+      "noncurrentLiabilities": 571,
       "revenue": 1450,
-      "opIncome": 210,
-      "netIncome": 160,
-      "debtRatio": 110,
-      "roe": 18.5
+      "operatingExpense": 1240,
+      "nonoperatingExpense": 50
     }
   },
   "S14": {
     "2020": {
+      "currentAssets": 585,
+      "noncurrentAssets": 584,
+      "currentLiabilities": 219,
+      "noncurrentLiabilities": 328,
       "revenue": 640,
-      "opIncome": 40,
-      "netIncome": 28,
-      "debtRatio": 88,
-      "roe": 4.5
+      "operatingExpense": 600,
+      "nonoperatingExpense": 12
     },
     "2021": {
+      "currentAssets": 911,
+      "noncurrentAssets": 910,
+      "currentLiabilities": 300,
+      "noncurrentLiabilities": 450,
       "revenue": 2100,
-      "opIncome": 380,
-      "netIncome": 300,
-      "debtRatio": 70,
-      "roe": 28
+      "operatingExpense": 1720,
+      "nonoperatingExpense": 80
     },
     "2022": {
+      "currentAssets": 462,
+      "noncurrentAssets": 461,
+      "currentLiabilities": 189,
+      "noncurrentLiabilities": 284,
       "revenue": 900,
-      "opIncome": -150,
-      "netIncome": -190,
-      "debtRatio": 105,
-      "roe": -18
+      "operatingExpense": 1050,
+      "nonoperatingExpense": 40
     },
     "2023": {
+      "currentAssets": 312,
+      "noncurrentAssets": 312,
+      "currentLiabilities": 154,
+      "noncurrentLiabilities": 230,
       "revenue": 480,
-      "opIncome": -210,
-      "netIncome": -250,
-      "debtRatio": 160,
-      "roe": -35
+      "operatingExpense": 690,
+      "nonoperatingExpense": 40
     },
     "2024": {
+      "currentAssets": 289,
+      "noncurrentAssets": 289,
+      "currentLiabilities": 147,
+      "noncurrentLiabilities": 221,
       "revenue": 420,
-      "opIncome": -90,
-      "netIncome": -120,
-      "debtRatio": 175,
-      "roe": -20
+      "operatingExpense": 510,
+      "nonoperatingExpense": 30
     },
     "2025": {
+      "currentAssets": 745,
+      "noncurrentAssets": 745,
+      "currentLiabilities": 374,
+      "noncurrentLiabilities": 560,
       "revenue": 510,
-      "opIncome": 10,
-      "netIncome": 5,
-      "debtRatio": 168,
-      "roe": 0.9
+      "operatingExpense": 500,
+      "nonoperatingExpense": 5
     }
   },
   "S15": {
     "2020": {
+      "currentAssets": 3770,
+      "noncurrentAssets": 3770,
+      "currentLiabilities": 1976,
+      "noncurrentLiabilities": 2964,
       "revenue": 5200,
-      "opIncome": -380,
-      "netIncome": -450,
-      "debtRatio": 190,
-      "roe": -12
+      "operatingExpense": 5580,
+      "nonoperatingExpense": 70
     },
     "2021": {
+      "currentAssets": 3387,
+      "noncurrentAssets": 3386,
+      "currentLiabilities": 1849,
+      "noncurrentLiabilities": 2774,
       "revenue": 4300,
-      "opIncome": -520,
-      "netIncome": -600,
-      "debtRatio": 215,
-      "roe": -18
+      "operatingExpense": 4820,
+      "nonoperatingExpense": 80
     },
     "2022": {
+      "currentAssets": 3660,
+      "noncurrentAssets": 3660,
+      "currentLiabilities": 1968,
+      "noncurrentLiabilities": 2952,
       "revenue": 4800,
-      "opIncome": -150,
-      "netIncome": -220,
-      "debtRatio": 205,
-      "roe": -7
+      "operatingExpense": 4950,
+      "nonoperatingExpense": 70
     },
     "2023": {
+      "currentAssets": 4479,
+      "noncurrentAssets": 4479,
+      "currentLiabilities": 2326,
+      "noncurrentLiabilities": 3489,
       "revenue": 5600,
-      "opIncome": 180,
-      "netIncome": 110,
-      "debtRatio": 185,
-      "roe": 3.5
+      "operatingExpense": 5420,
+      "nonoperatingExpense": 70
     },
     "2024": {
+      "currentAssets": 4727,
+      "noncurrentAssets": 4727,
+      "currentLiabilities": 2327,
+      "noncurrentLiabilities": 3491,
       "revenue": 7100,
-      "opIncome": 620,
-      "netIncome": 480,
-      "debtRatio": 160,
-      "roe": 13.2
+      "operatingExpense": 6480,
+      "nonoperatingExpense": 140
     },
     "2025": {
+      "currentAssets": 5066,
+      "noncurrentAssets": 5066,
+      "currentLiabilities": 2563,
+      "noncurrentLiabilities": 3844,
       "revenue": 6300,
-      "opIncome": 280,
-      "netIncome": 190,
-      "debtRatio": 172,
-      "roe": 5.1
+      "operatingExpense": 6020,
+      "nonoperatingExpense": 90
     }
   },
   "S16": {
     "2020": {
+      "currentAssets": 19,
+      "noncurrentAssets": 18,
+      "currentLiabilities": 6,
+      "noncurrentLiabilities": 8,
       "revenue": 45,
-      "opIncome": -120,
-      "netIncome": -130,
-      "debtRatio": 60,
-      "roe": -18
+      "operatingExpense": 165,
+      "nonoperatingExpense": 10
     },
     "2021": {
+      "currentAssets": 27,
+      "noncurrentAssets": 26,
+      "currentLiabilities": 9,
+      "noncurrentLiabilities": 14,
       "revenue": 60,
-      "opIncome": -180,
-      "netIncome": -195,
-      "debtRatio": 75,
-      "roe": -22
+      "operatingExpense": 240,
+      "nonoperatingExpense": 15
     },
     "2022": {
+      "currentAssets": 45,
+      "noncurrentAssets": 45,
+      "currentLiabilities": 19,
+      "noncurrentLiabilities": 28,
       "revenue": 85,
-      "opIncome": -240,
-      "netIncome": -260,
-      "debtRatio": 110,
-      "roe": -30
+      "operatingExpense": 325,
+      "nonoperatingExpense": 20
     },
     "2023": {
+      "currentAssets": 48,
+      "noncurrentAssets": 47,
+      "currentLiabilities": 24,
+      "noncurrentLiabilities": 36,
       "revenue": 70,
-      "opIncome": -280,
-      "netIncome": -300,
-      "debtRatio": 170,
-      "roe": -45
+      "operatingExpense": 350,
+      "nonoperatingExpense": 20
     },
     "2024": {
+      "currentAssets": 51,
+      "noncurrentAssets": 50,
+      "currentLiabilities": 29,
+      "noncurrentLiabilities": 44,
       "revenue": 55,
-      "opIncome": -250,
-      "netIncome": -270,
-      "debtRatio": 260,
-      "roe": -70
+      "operatingExpense": 305,
+      "nonoperatingExpense": 20
     },
     "2025": {
+      "currentAssets": 48,
+      "noncurrentAssets": 48,
+      "currentLiabilities": 30,
+      "noncurrentLiabilities": 46,
       "revenue": 40,
-      "opIncome": -210,
-      "netIncome": -230,
-      "debtRatio": 380,
-      "roe": -120
+      "operatingExpense": 250,
+      "nonoperatingExpense": 20
     }
   },
   "S17": {
     "2020": {
+      "currentAssets": 209,
+      "noncurrentAssets": 209,
+      "currentLiabilities": 91,
+      "noncurrentLiabilities": 137,
       "revenue": 380,
-      "opIncome": -140,
-      "netIncome": -160,
-      "debtRatio": 120,
-      "roe": -25
+      "operatingExpense": 520,
+      "nonoperatingExpense": 20
     },
     "2021": {
+      "currentAssets": 523,
+      "noncurrentAssets": 523,
+      "currentLiabilities": 240,
+      "noncurrentLiabilities": 361,
       "revenue": 890,
-      "opIncome": -220,
-      "netIncome": -250,
-      "debtRatio": 135,
-      "roe": -30
+      "operatingExpense": 1110,
+      "nonoperatingExpense": 30
     },
     "2022": {
+      "currentAssets": 844,
+      "noncurrentAssets": 844,
+      "currentLiabilities": 405,
+      "noncurrentLiabilities": 608,
       "revenue": 1350,
-      "opIncome": -180,
-      "netIncome": -210,
-      "debtRatio": 150,
-      "roe": -28
+      "operatingExpense": 1530,
+      "nonoperatingExpense": 30
     },
     "2023": {
+      "currentAssets": 853,
+      "noncurrentAssets": 852,
+      "currentLiabilities": 558,
+      "noncurrentLiabilities": 837,
       "revenue": 620,
-      "opIncome": -890,
-      "netIncome": -1100,
-      "debtRatio": 450,
-      "roe": -180
+      "operatingExpense": 1510,
+      "nonoperatingExpense": 210
     },
     "2024": {
+      "currentAssets": 825,
+      "noncurrentAssets": 825,
+      "currentLiabilities": 440,
+      "noncurrentLiabilities": 660,
       "revenue": 1100,
-      "opIncome": -150,
-      "netIncome": -180,
-      "debtRatio": 200,
-      "roe": -35
+      "operatingExpense": 1250,
+      "nonoperatingExpense": 30
     },
     "2025": {
+      "currentAssets": 821,
+      "noncurrentAssets": 821,
+      "currentLiabilities": 371,
+      "noncurrentLiabilities": 557,
       "revenue": 1900,
-      "opIncome": 60,
-      "netIncome": 30,
-      "debtRatio": 130,
-      "roe": 4.2
+      "operatingExpense": 1840,
+      "nonoperatingExpense": 30
     }
   },
   "S18": {
     "2020": {
+      "currentAssets": 226830,
+      "noncurrentAssets": 226829,
+      "currentLiabilities": 64390,
+      "noncurrentLiabilities": 96586,
       "revenue": 486000,
-      "opIncome": 32000,
-      "netIncome": 24000,
-      "debtRatio": 55,
-      "roe": 8.2
+      "operatingExpense": 454000,
+      "nonoperatingExpense": 8000
     },
     "2021": {
+      "currentAssets": 236011,
+      "noncurrentAssets": 236011,
+      "currentLiabilities": 65404,
+      "noncurrentLiabilities": 98107,
       "revenue": 512000,
-      "opIncome": 38000,
-      "netIncome": 29000,
-      "debtRatio": 53,
-      "roe": 9.4
+      "operatingExpense": 474000,
+      "nonoperatingExpense": 9000
     },
     "2022": {
+      "currentAssets": 244477,
+      "noncurrentAssets": 244476,
+      "currentLiabilities": 66057,
+      "noncurrentLiabilities": 99086,
       "revenue": 561000,
-      "opIncome": 45000,
-      "netIncome": 34000,
-      "debtRatio": 51,
-      "roe": 10.5
+      "operatingExpense": 516000,
+      "nonoperatingExpense": 11000
     },
     "2023": {
+      "currentAssets": 256667,
+      "noncurrentAssets": 256666,
+      "currentLiabilities": 72000,
+      "noncurrentLiabilities": 108000,
       "revenue": 528000,
-      "opIncome": 31000,
-      "netIncome": 23000,
-      "debtRatio": 54,
-      "roe": 6.9
+      "operatingExpense": 497000,
+      "nonoperatingExpense": 8000
     },
     "2024": {
+      "currentAssets": 264706,
+      "noncurrentAssets": 264706,
+      "currentLiabilities": 70588,
+      "noncurrentLiabilities": 105883,
       "revenue": 589000,
-      "opIncome": 47000,
-      "netIncome": 36000,
-      "debtRatio": 50,
-      "roe": 10.2
+      "operatingExpense": 542000,
+      "nonoperatingExpense": 11000
     },
     "2025": {
+      "currentAssets": 282204,
+      "noncurrentAssets": 282203,
+      "currentLiabilities": 73220,
+      "noncurrentLiabilities": 109831,
       "revenue": 642000,
-      "opIncome": 58000,
-      "netIncome": 45000,
-      "debtRatio": 48,
-      "roe": 11.8
+      "operatingExpense": 584000,
+      "nonoperatingExpense": 13000
     }
   }
 }

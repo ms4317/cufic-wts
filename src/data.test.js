@@ -6,7 +6,8 @@ import {
   ROUNDS,
   FINAL_YEAR,
   FIN_YEARS,
-  FIN_METRICS,
+  FIN_INPUTS,
+  deriveFinancials,
   financials,
   PRINCIPAL,
   initialCash,
@@ -116,27 +117,64 @@ describe('재무제표', () => {
     for (const s of stocks) expect(financials[s.code], s.name).toBeDefined()
   })
 
-  it('연도별로 null(미상장/폐지)이거나 5개 지표가 빠짐없이 숫자다', () => {
+  it('연도별로 null(미상장/폐지)이거나 입력 잎 7개가 빠짐없이 숫자다', () => {
     for (const s of stocks) {
       for (const y of FIN_YEARS) {
         expect(financials[s.code], `${s.name}`).toHaveProperty(String(y))
         const row = financials[s.code][y]
         if (row === null) continue // 미상장/폐지 연도
-        for (const m of FIN_METRICS) {
+        for (const m of FIN_INPUTS) {
           expect(typeof row[m.key], `${s.name} ${y} ${m.key}`).toBe('number')
         }
       }
     }
   })
 
-  it('부채비율은 음수가 될 수 없다', () => {
+  it('자산·부채·비용 입력은 음수가 될 수 없다', () => {
+    const nonNeg = ['currentAssets', 'noncurrentAssets', 'currentLiabilities', 'noncurrentLiabilities', 'operatingExpense', 'nonoperatingExpense']
     for (const s of stocks) {
       for (const y of FIN_YEARS) {
         const row = financials[s.code][y]
         if (row === null) continue
-        expect(row.debtRatio, `${s.name} ${y}`).toBeGreaterThanOrEqual(0)
+        for (const k of nonNeg) expect(row[k], `${s.name} ${y} ${k}`).toBeGreaterThanOrEqual(0)
       }
     }
+  })
+})
+
+describe('deriveFinancials (자동 계산)', () => {
+  it('목업 예시대로 계산한다 (자산=부채+자본, 단계 차감, 비율)', () => {
+    const f = deriveFinancials({
+      currentAssets: 60, noncurrentAssets: 40,
+      currentLiabilities: 20, noncurrentLiabilities: 50,
+      revenue: 1000, operatingExpense: 600, nonoperatingExpense: 100,
+    })
+    expect(f.assets).toBe(100)
+    expect(f.liabilities).toBe(70)
+    expect(f.equity).toBe(30)
+    expect(f.assets).toBe(f.liabilities + f.equity) // 회계 항등식
+    expect(f.operatingIncome).toBe(400)
+    expect(f.netIncome).toBe(300)
+    expect(f.debtRatio).toBeCloseTo(233.3, 1)
+    expect(f.roe).toBeCloseTo(1000, 1)
+    expect(f.impaired).toBe(false)
+  })
+
+  it('자본잠식(자본 ≤ 0)이면 부채비율·ROE는 null이고 impaired', () => {
+    const f = deriveFinancials({
+      currentAssets: 10, noncurrentAssets: 10,
+      currentLiabilities: 30, noncurrentLiabilities: 20,
+      revenue: 100, operatingExpense: 120, nonoperatingExpense: 0,
+    })
+    expect(f.equity).toBe(-30)
+    expect(f.impaired).toBe(true)
+    expect(f.debtRatio).toBeNull()
+    expect(f.roe).toBeNull()
+    expect(f.operatingIncome).toBe(-20) // 영업손실도 계산은 된다
+  })
+
+  it('null 입력이면 null', () => {
+    expect(deriveFinancials(null)).toBeNull()
   })
 })
 

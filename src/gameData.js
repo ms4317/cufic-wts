@@ -56,16 +56,19 @@ export function buildStocks(rawStocks, game, positions) {
     })
 }
 
-// DB 행 → 화면이 쓰는 모양. 재무제표: { [종목코드]: { [연도]: {revenue,opIncome,...} } }
+// DB 행 → 화면이 쓰는 모양. 재무제표: { [종목코드]: { [연도]: {입력 7개} } }
+// 파생값(자산·부채·자본·영업이익·당기순이익·부채비율·ROE)은 저장하지 않고 화면에서 deriveFinancials로 계산한다.
 function shapeFinancials(rows) {
   const out = {}
   for (const r of rows ?? []) {
     ;(out[r.stock_id] ??= {})[r.year] = {
+      currentAssets: Number(r.current_assets),
+      noncurrentAssets: Number(r.noncurrent_assets),
+      currentLiabilities: Number(r.current_liabilities),
+      noncurrentLiabilities: Number(r.noncurrent_liabilities),
       revenue: Number(r.revenue),
-      opIncome: Number(r.op_income),
-      netIncome: Number(r.net_income),
-      debtRatio: Number(r.debt_ratio),
-      roe: Number(r.roe),
+      operatingExpense: Number(r.operating_expense),
+      nonoperatingExpense: Number(r.nonoperating_expense),
     }
   }
   return out

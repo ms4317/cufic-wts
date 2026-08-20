@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { errorText } from '../supabase'
-import { FIN_METRICS, MACRO_METRICS } from '../metrics'
+import { num } from '../format'
+import { FIN_INPUTS, deriveFinancials, MACRO_METRICS } from '../metrics'
 
 // 게임에 등장하는 연도 = 라운드 연도 + 최종 연도
 const yearsOf = (game) => {
@@ -54,19 +55,15 @@ function MacroRow({ year, row, onSave, busy }) {
 }
 
 function FinRow({ stockId, year, row, onSave, onDelete, busy }) {
-  const [d, setD] = useState({
-    revenue: row?.revenue ?? '',
-    opIncome: row?.op_income ?? '',
-    netIncome: row?.net_income ?? '',
-    debtRatio: row?.debt_ratio ?? '',
-    roe: row?.roe ?? '',
-  })
+  // 입력은 잎 7개만. 자산합계·자본·이익·비율은 아래에서 실시간 계산해 보여준다(저장 안 함).
+  const [d, setD] = useState(() => Object.fromEntries(FIN_INPUTS.map((m) => [m.key, row?.[m.db] ?? ''])))
   const set = (k, v) => setD((p) => ({ ...p, [k]: v }))
   const empty = Object.values(d).every((v) => v === '' || v == null)
+  const c = deriveFinancials(Object.fromEntries(FIN_INPUTS.map((m) => [m.key, Number(d[m.key]) || 0])))
   return (
     <div className="content-row fin">
       <span className="cr-year">{year}년</span>
-      {FIN_METRICS.map((m) => (
+      {FIN_INPUTS.map((m) => (
         <input
           key={m.key}
           className="cr-num num"
@@ -78,6 +75,10 @@ function FinRow({ stockId, year, row, onSave, onDelete, busy }) {
           placeholder={m.unit}
         />
       ))}
+      <span className="cr-calc num" title="입력값으로 자동 계산 (저장 안 됨)">
+        자본 {num(c.equity)} · 순익 {num(c.netIncome)} · 부채{c.debtRatio == null ? '—' : Math.round(c.debtRatio) + '%'} · ROE {c.roe == null ? '—' : Math.round(c.roe) + '%'}
+        {c.impaired && <b className="warn"> ⚠자본잠식</b>}
+      </span>
       <span className="cr-actions">
         <button className="act-btn prime sm" disabled={busy || empty} onClick={() => onSave(stockId, year, d)}>
           저장
@@ -135,15 +136,9 @@ export default function AdminContent({ actions, game, stocks, financials, macro,
 
   const saveFin = async (sid, year, d) => {
     setBusy(true)
-    const r = await actions.upsertFinancial({
-      stockId: sid,
-      year,
-      revenue: Math.round(Number(d.revenue)),
-      opIncome: Math.round(Number(d.opIncome)),
-      netIncome: Math.round(Number(d.netIncome)),
-      debtRatio: Number(d.debtRatio),
-      roe: Number(d.roe),
-    })
+    const payload = { stockId: sid, year }
+    for (const m of FIN_INPUTS) payload[m.key] = Math.round(Number(d[m.key]) || 0)
+    const r = await actions.upsertFinancial(payload)
     setBusy(false)
     if (!r.ok) return notify(errorText(r.error), 'down')
     notify(`${year}년 재무 저장했어요`, 'gold')
@@ -201,16 +196,17 @@ export default function AdminContent({ actions, game, stocks, financials, macro,
               ))}
             </select>
           </label>
-          <span className="anote">단위: 매출·영업이익·순이익 = 억원(적자 음수) / 부채비율·ROE = %</span>
+          <span className="anote">입력은 잎 7개(억원)만 — 자산·부채·자본·영업이익·당기순이익·부채비율·ROE는 자동 계산됩니다.</span>
         </div>
         <div className="content-table">
           <div className="content-head fin">
             <span className="cr-year">연도</span>
-            {FIN_METRICS.map((m) => (
+            {FIN_INPUTS.map((m) => (
               <span key={m.key} className="cr-num">
                 {m.label}
               </span>
             ))}
+            <span className="cr-calc">자동 계산</span>
             <span className="sm-sp" />
           </div>
           {years.map((y) => (

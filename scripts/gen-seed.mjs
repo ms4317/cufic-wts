@@ -77,11 +77,13 @@ for (const [code, years] of Object.entries(financials)) {
   for (const [year, v] of Object.entries(years)) {
     if (!v) continue
     finRows.push(
-      `  (${q(code)}, ${year}, ${v.revenue}, ${v.opIncome}, ${v.netIncome}, ${v.debtRatio}, ${v.roe})`,
+      `  (${q(code)}, ${year}, ${v.currentAssets}, ${v.noncurrentAssets}, ${v.currentLiabilities}, ${v.noncurrentLiabilities}, ${v.revenue}, ${v.operatingExpense}, ${v.nonoperatingExpense})`,
     )
   }
 }
-w('insert into financials (stock_id, year, revenue, op_income, net_income, debt_ratio, roe) values')
+w(
+  'insert into financials (stock_id, year, current_assets, noncurrent_assets, current_liabilities, noncurrent_liabilities, revenue, operating_expense, nonoperating_expense) values',
+)
 w(finRows.join(',\n') + ';')
 w()
 

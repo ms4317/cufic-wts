@@ -108,11 +108,13 @@ export function makeAdminActions(getSecret) {
       call('admin_upsert_financial', {
         p_stock_id: f.stockId,
         p_year: f.year,
+        p_current_assets: f.currentAssets,
+        p_noncurrent_assets: f.noncurrentAssets,
+        p_current_liabilities: f.currentLiabilities,
+        p_noncurrent_liabilities: f.noncurrentLiabilities,
         p_revenue: f.revenue,
-        p_op_income: f.opIncome,
-        p_net_income: f.netIncome,
-        p_debt_ratio: f.debtRatio,
-        p_roe: f.roe,
+        p_operating_expense: f.operatingExpense,
+        p_nonoperating_expense: f.nonoperatingExpense,
       }),
     deleteFinancial: (stockId, year) =>
       call('admin_delete_financial', { p_stock_id: stockId, p_year: year }),

@@ -80,8 +80,10 @@ select private.set_admin_secret('원하는_비밀');
   또는 각 탭 편집으로 만들고 저장한다. 엑셀 업로드는 3단계 리포트 후 **항상 새 데이터셋 생성**(덮어쓰기 아님).
   - **`src/data.js`(생성물)는 "새 DB 초기 템플릿 + 테스트 원천"으로만 남는다.** `seed_*_2025.json` +
     `scripts/build-data.mjs` → `data.js` → `scripts/gen-seed.mjs` → `seed.sql`. 정합성 테스트(`data.test.js`)가 힌트↔주가 방향을 고정.
-  - **재무·시황 지표 정의는 `src/metrics.js` 단일 소스.** `FIN_METRICS`(5)·`MACRO_METRICS`(6)가 key(camel)/db(snake)/xlsx(엑셀 열)/
-    label/unit을 들고, 모달·편집기·엑셀 파서·`data.js`가 전부 이걸 참조한다. **지표를 늘리거나 이름을 바꿀 땐 여기 한 곳만 고친다.**
+  - **재무·시황 지표 정의는 `src/metrics.js` 단일 소스.** 재무제표(v4)는 **입력 잎 7개(`FIN_INPUTS`)만 저장**하고
+    자산·부채·자본·영업이익·당기순이익·부채비율·ROE는 **`deriveFinancials()`가 계산**한다(`FIN_DERIVED`가 표시 메타). 시황은 `MACRO_METRICS`(6).
+    각 항목이 key(camel)/db(snake)/xlsx(엑셀 열)/label/unit을 들고, 모달·편집기·엑셀 파서·`data.js`가 전부 이걸 참조한다.
+    **지표를 늘리거나 이름을 바꿀 땐 여기 한 곳만 고친다. 파생값을 DB/시드/payload에 저장하지 않는다**(계산은 `deriveFinancials` 한 곳). 자본 ≤ 0이면 부채비율·ROE는 null(자본잠식).
 
 ## 아키텍처 규칙
 

@@ -5,7 +5,7 @@
 //   · 열 매핑은 위치가 아니라 헤더 이름(키워드)으로 → 열 순서·추가에 강함. 모르는 열은 info로 '무시됨'.
 // SheetJS(xlsx)는 무거우므로 이 모듈은 AdminDatasets에서 동적 import 한다(학생 번들 미영향).
 import * as XLSX from 'xlsx'
-import { FIN_METRICS, MACRO_METRICS } from '../metrics.js'
+import { FIN_INPUTS, MACRO_METRICS } from '../metrics.js'
 
 const GRADES = ['S', 'A', 'B', 'C', 'D']
 const IMPACTS = ['up', 'down', 'flat']
@@ -179,7 +179,7 @@ export function parseWorkbook(buf) {
     const H = fRows[fH]
     const sidC = colOf(H, '종목ID'),
       yearC = colOf(H, '연도')
-    const metCols = FIN_METRICS.map((m) => ({ m, col: colOf(H, ...[].concat(m.xlsx)) }))
+    const metCols = FIN_INPUTS.map((m) => ({ m, col: colOf(H, ...[].concat(m.xlsx)) }))
     reportUnknown(H, new Set([sidC, yearC, ...metCols.map((x) => x.col)].filter((x) => x >= 0)), '재무제표', fH, INFO)
     for (let i = fH + 1; i < fRows.length; i++) {
       const row = fRows[i],
@@ -364,13 +364,13 @@ export function buildWorkbook(payload) {
     .forEach((st) => kRows.push([st.id, st.name, st.description || '', st.sector || '', st.listed_from_round ?? 1, ...years.map((y) => st.prices?.[y] ?? '')]))
   XLSX.utils.book_append_sheet(wb, aoa(kRows), '종목')
 
-  const fHead = ['종목ID', '연도', ...FIN_METRICS.map((m) => `${m.label}(${m.unit === '억원' ? '억' : m.unit})`)]
+  const fHead = ['종목ID', '연도', ...FIN_INPUTS.map((m) => `${m.label}(억)`)]
   const fRows = [
     ['③ 재무제표 (종목 × 연도)', ...Array(fHead.length - 1).fill('')],
-    ['한 행 = 한 종목의 한 해. 단위: 억원(적자 음수) / %. 미상장·폐지 연도는 행을 빼세요.', ...Array(fHead.length - 1).fill('')],
+    ['한 행 = 한 종목의 한 해. 입력은 잎 7개(억원)만 — 자산·부채·자본·이익·부채비율·ROE는 자동 계산돼요. 미상장·폐지 연도는 행을 빼세요.', ...Array(fHead.length - 1).fill('')],
     fHead,
   ]
-  financials.forEach((f) => fRows.push([f.stock_id, f.year, ...FIN_METRICS.map((m) => f[m.db])]))
+  financials.forEach((f) => fRows.push([f.stock_id, f.year, ...FIN_INPUTS.map((m) => f[m.db])]))
   XLSX.utils.book_append_sheet(wb, aoa(fRows), '재무제표')
 
   const hHead = ['라운드', '등급(S~D)', '힌트 문구', '방향(up/down/flat) (선택)', '관련 종목ID (선택)']
@@ -409,8 +409,8 @@ export function buildBlankWorkbook() {
       { id: 'S02', name: '미래바이오', sector: '', description: '신약을 개발하는 바이오 회사예요 (R3 상장 예시)', listed_from_round: 3, prices: { 2022: 5000, 2023: 8000, 2024: 12000, 2025: 15000 }, display_order: 1 },
     ],
     financials: [
-      { stock_id: 'S01', year: 2020, revenue: 5000, op_income: 800, net_income: 600, debt_ratio: 45, roe: 12 },
-      { stock_id: 'S01', year: 2021, revenue: 7000, op_income: 1200, net_income: 900, debt_ratio: 40, roe: 15 },
+      { stock_id: 'S01', year: 2020, current_assets: 6000, noncurrent_assets: 4000, current_liabilities: 2000, noncurrent_liabilities: 1000, revenue: 5000, operating_expense: 4200, nonoperating_expense: 200 },
+      { stock_id: 'S01', year: 2021, current_assets: 7000, noncurrent_assets: 5000, current_liabilities: 2500, noncurrent_liabilities: 1500, revenue: 7000, operating_expense: 5800, nonoperating_expense: 300 },
     ],
     macro: [
       { year: 2020, summary: '코로나 충격으로 경기 급랭 (예시)', rate: 0.5, gdp: -0.7, unemployment: 4, fx: 1180, cpi: 0.5, oil: 42 },

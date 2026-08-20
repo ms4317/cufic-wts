@@ -75,7 +75,16 @@ const MACRO = {
   2025: { summary: '금리 정상화·안정 국면', rate: 2.5, gdp: 1.8, unemployment: 3.0, fx: 1320, cpi: 2.0, oil: 72 },
 }
 
-const FIN_KEY = { revenue: 'revenue', op_income: 'opIncome', net_income: 'netIncome', debt_ratio: 'debtRatio', roe: 'roe' }
+// 재무제표 입력 7개: JSON(snake_case) → data.js(camelCase). src/metrics.js FIN_INPUTS의 db→key와 같게 유지.
+const FIN_KEY = {
+  current_assets: 'currentAssets',
+  noncurrent_assets: 'noncurrentAssets',
+  current_liabilities: 'currentLiabilities',
+  noncurrent_liabilities: 'noncurrentLiabilities',
+  revenue: 'revenue',
+  operating_expense: 'operatingExpense',
+  nonoperating_expense: 'nonoperatingExpense',
+}
 
 const financials = {}
 for (const [code, years] of Object.entries(finJson.financials)) {
@@ -131,9 +140,9 @@ export const stocks = ${JSON.stringify(stocks, null, 2)}
 export const initialHints = ${JSON.stringify(HINTS, null, 2)}
 
 // 재무·시황 지표 정의는 src/metrics.js 단일 소스 (교보재팀이 지표를 바꾸면 거기만 수정)
-export { FIN_METRICS, MACRO_METRICS } from './metrics.js'
+export { FIN_INPUTS, FIN_DERIVED, deriveFinancials, MACRO_METRICS } from './metrics.js'
 
-// 재무제표. null = 미상장/상장폐지 연도(화면에서 '-'). 단위: 금액=억원, 비율=%.
+// 재무제표. null = 미상장/상장폐지 연도(화면에서 '-'). 입력 잎 7개(억원)만 저장, 나머지는 deriveFinancials로 계산.
 export const financials = ${JSON.stringify(financials, null, 2)}
 
 // 거시경제 시황. 연도별 지표(현재 라운드 연도 초과분은 스포일러라 화면에서 가린다).
