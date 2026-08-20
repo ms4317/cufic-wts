@@ -5,7 +5,19 @@
 //   · 열 매핑은 위치가 아니라 헤더 이름(키워드)으로 → 열 순서·추가에 강함. 모르는 열은 info로 '무시됨'.
 // SheetJS(xlsx)는 무거우므로 이 모듈은 AdminDatasets에서 동적 import 한다(학생 번들 미영향).
 import * as XLSX from 'xlsx'
-import { FIN_INPUTS, MACRO_METRICS } from '../metrics.js'
+import { FIN_INPUTS, MACRO_METRICS, deriveFinancials } from '../metrics.js'
+
+// 재무 시트 오른쪽 '※자동' 참조 열 — 엑셀 수식으로 자동 계산(입력 X, 파서는 무시). 정본 양식과 1:1.
+// 열: A종목ID B연도 C유동자산 D비유동자산 E유동부채 F비유동부채 G매출 H영업비용 I영업외비용 → J~P 자동.
+const FIN_AUTO = [
+  { label: '자산합계 ※자동', f: (R) => `C${R}+D${R}`, v: (d) => d.assets },
+  { label: '부채합계 ※자동', f: (R) => `E${R}+F${R}`, v: (d) => d.liabilities },
+  { label: '자본 ※자동', f: (R) => `J${R}-K${R}`, v: (d) => d.equity },
+  { label: '영업이익 ※자동', f: (R) => `G${R}-H${R}`, v: (d) => d.operatingIncome },
+  { label: '당기순이익 ※자동', f: (R) => `M${R}-I${R}`, v: (d) => d.netIncome },
+  { label: '부채비율(%) ※자동', f: (R) => `IF(L${R}<=0,"—",ROUND(K${R}/L${R}*100,1))`, v: (d) => (d.debtRatio == null ? '—' : Math.round(d.debtRatio * 10) / 10) },
+  { label: 'ROE(%) ※자동', f: (R) => `IF(L${R}<=0,"—",ROUND(N${R}/L${R}*100,1))`, v: (d) => (d.roe == null ? '—' : Math.round(d.roe * 10) / 10) },
+]
 
 const GRADES = ['S', 'A', 'B', 'C', 'D']
 const IMPACTS = ['up', 'down', 'flat']
@@ -384,14 +396,24 @@ export function buildWorkbook(payload) {
     .forEach((st) => kRows.push([st.id, st.name, st.description || '', st.sector || '', st.listed_from_round ?? 1, ...years.map((y) => st.prices?.[y] ?? '')]))
   XLSX.utils.book_append_sheet(wb, aoa(kRows), '종목')
 
-  const fHead = ['종목ID', '연도', ...FIN_INPUTS.map((m) => `${m.label}(억)`)]
+  const fHead = ['종목ID', '연도', ...FIN_INPUTS.map((m) => `${m.label}(억)`), ...FIN_AUTO.map((a) => a.label)]
   const fRows = [
     ['③ 재무제표 (종목 × 연도)', ...Array(fHead.length - 1).fill('')],
-    ['한 행 = 한 종목의 한 해. 입력은 잎 7개(억원)만 — 자산·부채·자본·이익·부채비율·ROE는 자동 계산돼요. 미상장·폐지 연도는 행을 빼세요.', ...Array(fHead.length - 1).fill('')],
+    ['입력은 잎 7개(억원)만! 오른쪽 ※자동 열(자산합계·자본·부채비율·ROE 등)은 엑셀이 자동 계산 — 참고용이니 채우지 마세요. 미상장·폐지 연도는 행을 빼세요.', ...Array(fHead.length - 1).fill('')],
     fHead,
   ]
-  financials.forEach((f) => fRows.push([f.stock_id, f.year, ...FIN_INPUTS.map((m) => f[m.db])]))
-  XLSX.utils.book_append_sheet(wb, aoa(fRows), '재무제표')
+  financials.forEach((f) => fRows.push([f.stock_id, f.year, ...FIN_INPUTS.map((m) => f[m.db]), ...Array(FIN_AUTO.length).fill(null)]))
+  const fWs = aoa(fRows)
+  // ※자동 열(J~P)에 엑셀 수식 + 캐시값. 데이터 첫 엑셀 행 = 4 (제목·설명·헤더가 1·2·3행).
+  financials.forEach((f, i) => {
+    const R = 4 + i
+    const d = deriveFinancials(Object.fromEntries(FIN_INPUTS.map((m) => [m.key, Number(f[m.db]) || 0])))
+    FIN_AUTO.forEach((a, j) => {
+      const v = a.v(d)
+      fWs[XLSX.utils.encode_col(9 + j) + R] = typeof v === 'number' ? { t: 'n', f: a.f(R), v } : { t: 'str', f: a.f(R), v }
+    })
+  })
+  XLSX.utils.book_append_sheet(wb, fWs, '재무제표')
 
   const hHead = ['라운드', '등급(S~D)', '힌트 문구', '방향(up/down/flat) (선택)', '관련 종목ID (선택)']
   const hRows = [
