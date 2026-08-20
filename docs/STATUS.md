@@ -1,6 +1,6 @@
 # 현황 스냅샷 (STATUS)
 
-> **갱신: 2026-08-15** · 게임 모델 **v3**(즉시 체결 + 라운드 타이머) + **콘텐츠 전면 DB 이관(B)** + **데이터셋 엑셀 왕복** + **자율 입장** + **배포** 기준.
+> **갱신: 2026-08-20** · 게임 모델 **v3**(즉시 체결 + 라운드 타이머) + **재무제표 v4**(입력 7 + 파생) + **콘텐츠 전면 DB 이관(B)** + **데이터셋 엑셀 왕복** + **자율 입장 + 공용 게임 PIN** + **배포** 기준.
 > 이 문서는 "지금 이 순간 무엇이 있고 무엇이 없나"의 완전한 스냅샷이다. 외부 검수·내년 인수인계용.
 > 판단의 *이유*는 [DECISIONS.md](DECISIONS.md), 게임 *규칙*은 [GAME_RULES.md](GAME_RULES.md),
 > *화면*은 [SCREENS.md](SCREENS.md), *데이터 교체*는 [DATA_GUIDE.md](DATA_GUIDE.md)·[MANUAL_CONTENT.md](MANUAL_CONTENT.md),
@@ -110,7 +110,7 @@
 | `actions.js` | 상태 변경 동작. 학생 `makeActions`(placeOrder), 관리자 `makeAdminActions`(매 호출 `p_admin_secret`. 콘텐츠·데이터셋 포함) |
 | `dataCheck.js` | 콘텐츠 정합성 검사(`checkContent`·`hintMismatches`). 관리자 [데이터 점검]이 사용 |
 | `distribute.js` | 힌트 라운드로빈 배분 로직(`sortPool`·`rankWorstFirst`·`assignRoundRobin`·`distribute`). 미리보기가 사용 |
-| `metrics.js` | **재무·시황 지표 정의 단일 소스**(`FIN_METRICS` 5·`MACRO_METRICS` 6, key/db/xlsx/label/unit). 모달·편집·엑셀 파서가 참조. `data.js`가 재수출 |
+| `metrics.js` | **재무·시황 지표 정의 단일 소스**(`FIN_INPUTS` 7 입력 + `FIN_DERIVED` 파생 + `deriveFinancials()` · `MACRO_METRICS` 6, key/db/xlsx/label/unit). 모달·편집·엑셀 파서가 참조. `data.js`가 재수출 |
 | `data.js` | **자동 생성**. 데이터셋 초기 템플릿 + 재무제표 모달·정합성 테스트의 공통 원천(종목·가격·힌트·재무·시황·상수) |
 | `index.css` | 학생 화면 스타일 + 테마 CSS 변수(다크/라이트). 색 하드코딩 금지 |
 | `admin.css` | 관리자 화면·보유목록·부팅/로딩/에러 스타일 |
@@ -173,7 +173,7 @@
 ### `supabase/`
 | 파일 | 역할 |
 |---|---|
-| `migrations/*.sql` | 스키마·RPC 이력 **31개**(0001~0031, 아래 §3) |
+| `migrations/*.sql` | 스키마·RPC 이력 **32개**(0001~0032, 아래 §3) |
 | `seed.sql` | **자동 생성**. game_state·stocks(18)·hints·검증용 조 재삽입 |
 | `config.toml` | Supabase CLI 설정(project_id, 포트, seed 지정) |
 
@@ -290,10 +290,10 @@
 
 ## 5. 미커밋 변경 / git ↔ DB 정합
 
-- **작업 트리** — 공용 게임 PIN·자율 입장 재설계 커밋 진행 중. 마이그레이션 0030은 remote 적용 완료.
+- **작업 트리** — 공용 게임 PIN·자율 입장·재무 v4·타이머 재설계 커밋 완료. 마이그레이션 0030~0032 remote 적용 완료.
 - **마이그레이션 0001~0032 전부 remote 적용됨** — git과 스키마 일치. (0032 = 리셋 시 공용 게임 PIN 초기화. 현재 라이브 game_pin 없음[발급 전].)
-- **라이브 DB 현재 상태(2026-08-15 기준)** — `current_round=0`(시작 전), `active_dataset_id=2`("기본 데이터셋"),
-  **`join_mode=open`**(자율 입장으로 전환), 18종목, **조 0개**(TEAM_1~5 삭제·정리 완료), 공용 게임 PIN 발급됨. *(대회 전 강사가 게임 PIN 재발급 → 학생 전달.)*
+- **라이브 DB 현재 상태(2026-08-20 기준)** — `current_round=0`(시작 전), `active_dataset_id=2`("기본 데이터셋"),
+  **`join_mode=open`**(자율 입장으로 전환), 18종목, **조 0개**(TEAM_1~5 삭제·정리 완료), 공용 게임 PIN 미발급(—). *(대회 전 강사가 게임 PIN 발급 → 학생 전달.)*
 - **관리자 비밀** — DB `private.config`와 `.env`가 현재 개발 기본값으로 일치(약함, 강화 대기).
 - **배포** — Vercel(main 자동), Keep-Alive Actions 시크릿 설정·가동. 도메인 https://cufic-wts.vercel.app.
   ⚠ **배포된 사이트는 아직 옛 클라이언트 코드** — 자율 입장 새 흐름은 `main` push(재배포) 후에 라이브에 반영된다.

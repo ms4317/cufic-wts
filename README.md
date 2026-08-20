@@ -112,7 +112,7 @@ src/
   components/     학생 화면
   admin/          관리자 화면 (7탭) + datasetXlsx.js(엑셀 왕복)
 supabase/
-  migrations/     스키마·RPC. 순서대로 적용된다 (현재 0001~0029)
+  migrations/     스키마·RPC. 순서대로 적용된다 (현재 0001~0032)
   seed.sql        자동 생성 — 직접 고치지 말 것
 scripts/
   build-data.mjs  JSON + 소개·힌트 → src/data.js
