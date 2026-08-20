@@ -103,6 +103,7 @@ export function makeAdminActions(getSecret) {
         p_fx: m.fx,
         p_cpi: m.cpi,
         p_oil: m.oil,
+        p_sp500: m.sp500,
       }),
     upsertFinancial: (f) =>
       call('admin_upsert_financial', {

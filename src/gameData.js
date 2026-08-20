@@ -85,6 +85,7 @@ function shapeMacro(rows) {
       fx: Number(r.fx),
       cpi: Number(r.cpi),
       oil: Number(r.oil),
+      sp500: Number(r.sp500),
     }
   }
   return out

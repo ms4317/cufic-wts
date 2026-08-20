@@ -89,12 +89,12 @@ w()
 
 // ── macro (시황)
 w('-- 시황(거시경제 지표 + 한 줄 요약).')
-w('insert into macro (year, summary, rate, gdp, unemployment, fx, cpi, oil) values')
+w('insert into macro (year, summary, rate, gdp, unemployment, fx, cpi, oil, sp500) values')
 w(
   Object.entries(MACRO)
     .map(
       ([year, m]) =>
-        `  (${year}, ${q(m.summary)}, ${m.rate}, ${m.gdp}, ${m.unemployment}, ${m.fx}, ${m.cpi}, ${m.oil})`,
+        `  (${year}, ${q(m.summary)}, ${m.rate}, ${m.gdp}, ${m.unemployment}, ${m.fx}, ${m.cpi}, ${m.oil}, ${m.sp500})`,
     )
     .join(',\n') + ';',
 )

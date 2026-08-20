@@ -1485,7 +1485,8 @@ export const MACRO = {
     "unemployment": 4,
     "fx": 1180,
     "cpi": 0.5,
-    "oil": 42
+    "oil": 42,
+    "sp500": 3100
   },
   "2021": {
     "summary": "경기 반등·유동성 장세 — 성장주 급등",
@@ -1494,7 +1495,8 @@ export const MACRO = {
     "unemployment": 3.7,
     "fx": 1150,
     "cpi": 2.5,
-    "oil": 68
+    "oil": 68,
+    "sp500": 4300
   },
   "2022": {
     "summary": "인플레이션 급등, 금리 인상 시작 — 성장주 조정",
@@ -1503,7 +1505,8 @@ export const MACRO = {
     "unemployment": 2.9,
     "fx": 1300,
     "cpi": 5.1,
-    "oil": 95
+    "oil": 95,
+    "sp500": 3600
   },
   "2023": {
     "summary": "고금리 지속·경기 둔화 — 실적 옥석 가리기",
@@ -1512,7 +1515,8 @@ export const MACRO = {
     "unemployment": 2.7,
     "fx": 1310,
     "cpi": 3.6,
-    "oil": 78
+    "oil": 78,
+    "sp500": 4200
   },
   "2024": {
     "summary": "금리 인하 기대·완만한 회복",
@@ -1521,7 +1525,8 @@ export const MACRO = {
     "unemployment": 2.8,
     "fx": 1350,
     "cpi": 2.3,
-    "oil": 80
+    "oil": 80,
+    "sp500": 5100
   },
   "2025": {
     "summary": "금리 정상화·안정 국면",
@@ -1530,6 +1535,7 @@ export const MACRO = {
     "unemployment": 3,
     "fx": 1320,
     "cpi": 2,
-    "oil": 72
+    "oil": 72,
+    "sp500": 5400
   }
 }

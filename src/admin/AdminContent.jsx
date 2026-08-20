@@ -20,6 +20,7 @@ function MacroRow({ year, row, onSave, busy }) {
     fx: row?.fx ?? '',
     cpi: row?.cpi ?? '',
     oil: row?.oil ?? '',
+    sp500: row?.sp500 ?? '',
   })
   const set = (k, v) => setD((p) => ({ ...p, [k]: v }))
   return (
@@ -127,6 +128,7 @@ export default function AdminContent({ actions, game, stocks, financials, macro,
       fx: Math.round(Number(d.fx)),
       cpi: Number(d.cpi),
       oil: Math.round(Number(d.oil)),
+      sp500: Math.round(Number(d.sp500)),
     })
     setBusy(false)
     if (!r.ok) return notify(errorText(r.error), 'down')

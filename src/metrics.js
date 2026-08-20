@@ -84,4 +84,5 @@ export const MACRO_METRICS = [
   { key: 'fx', db: 'fx', xlsx: '환율', label: '환율', unit: '원/$', round: true, desc: '1달러를 사는 데 드는 원화예요. 오르면(원화 약세) 수출 기업엔 유리, 수입엔 불리해요.' },
   { key: 'cpi', db: 'cpi', xlsx: '물가', label: '물가상승률', unit: '%', desc: '물건 값이 1년간 얼마나 올랐는지예요. 너무 높으면 금리를 올려 잡으려 해요.' },
   { key: 'oil', db: 'oil', xlsx: '유가', label: '국제유가', unit: '$', round: true, desc: '원유 1배럴 가격(달러)이에요. 오르면 항공·운송·제조 비용이 커져요.' },
+  { key: 'sp500', db: 'sp500', xlsx: 'S&P', label: 'S&P 500', unit: 'p', round: true, desc: '가상의 글로벌 주가지수예요. 세계 경기와 투자심리의 온도계 — 오르면 위험자산 선호(주식 강세), 내리면 안전자산 선호 분위기예요.' },
 ]
