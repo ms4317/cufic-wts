@@ -1833,13 +1833,14 @@ td {
 /* ===== 거래 타이머 — A안(헤더 필+진행바) + C안(헤더 하단 전폭 라인). 학생·관리자 공용 =====
    상태색: 여유=골드 / 60초↓=경고(--warn) / 30초↓=긴급(--up, 깜빡임+발광) */
 .timer-pill {
-  display: inline-flex;
-  flex-direction: column;
+  position: relative; /* 진행바(하단 절대배치)의 기준 */
+  display: inline-block;
   border-radius: 10px;
   overflow: hidden;
   border: 1px solid var(--line);
   background: var(--panel-2);
   min-width: 132px;
+  padding-bottom: 4px; /* 진행바 4px 자리 확보 */
 }
 .timer-pill .tp-top {
   display: flex;
@@ -1867,8 +1868,12 @@ td {
   color: var(--gold);
 }
 .timer-pill .tp-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
   height: 4px;
-  background: var(--line);
+  background: var(--line); /* 진행바 트랙 — 콘텐츠 폭과 무관하게 필 전체 폭 */
 }
 .timer-pill .tp-bar > i {
   display: block;
@@ -1944,9 +1949,9 @@ td {
 .timer-edge:not(.live) > i {
   width: 0 !important;
 }
-/* 관리자 진행 카드 안에서는 필을 블록으로 넓게 */
+/* 관리자 진행 카드 안에서는 필을 블록으로 넓게 (진행바는 절대배치라 그대로 하단 전폭) */
 .acard .timer-pill {
-  display: flex;
+  display: block;
   width: 100%;
   margin-bottom: 8px;
 }
