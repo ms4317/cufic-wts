@@ -72,6 +72,7 @@ select private.set_admin_secret('원하는_비밀');
     **`private.config('game_pin')`에 둔다 — `game_state`는 anon이 select로 읽으므로 거기 두면 게이트가 뚫린다**(admin_secret과 동일 원리).
     신호(signals)는 공개 테이블이라 **PIN 값을 payload에 절대 싣지 않는다**(플래그만).
   - 자율 입장은 새 닉네임=조 생성(시작 전만), 기존 닉네임=재접속(공용 PIN 확인). 방식 전환은 시작(R0) 전에만.
+  - **PIN은 발급 전까지 없음(`—`)이고, `reset_game`이 초기화한다**(0032, 리셋=새 판 → 강사가 매번 새로 발급). 라운드 넘김·조 삭제로는 안 지워진다.
   - 옛 팀별 `teams.pin`은 0030에서 폐기(파괴적 drop 없이 미사용). 새 코드에서 팀별 PIN을 부활시키지 말 것.
 - **콘텐츠 원천은 이제 DB의 데이터셋이다.** 재무·시황·힌트·주가·게임설정 한 벌이 `datasets.payload`(jsonb)에 있고,
   `game_state.active_dataset_id`가 지금 쓰는 벌을 가리킨다. 관리자가 [데이터셋] 탭에서 **엑셀 양식(`datasetXlsx.js`)**

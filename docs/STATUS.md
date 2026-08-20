@@ -18,7 +18,7 @@
 ### ✅ 완료 (동작 확인됨)
 
 **백엔드 (Supabase, 프로젝트 `cufic_wts` / `zhwidhvoxcoljffvqhol`, 서울)**
-- 마이그레이션 **31개**(0001~0031) 전부 remote 적용. 스키마 재현 가능(대시보드 수동 편집 없음).
+- 마이그레이션 **32개**(0001~0032) 전부 remote 적용. 스키마 재현 가능(대시보드 수동 편집 없음).
 - **즉시 체결 + 라운드 타이머** — `place_order`가 그 자리에서 체결, `now() < round_ends_at`을 서버가 강제.
 - **게임 루프** — `advance_round`(연도 넘기기) → `start_round_timer`(거래 창 열기) → 자동 마감. 진행 중 `adjust_round_timer`로 ±조정(0019).
 - **자동 힌트 차등 지급(라운드로빈, 0025)** — R2부터 `distribute_round_hints`가 힌트 풀을 등급순 정렬 후
@@ -192,7 +192,7 @@
 
 ## 3. DB 현황
 
-### 3.1 테이블 (31개 마이그레이션 적용 후 현재 — public 13개 + private.config + public_teams 뷰)
+### 3.1 테이블 (32개 마이그레이션 적용 후 현재 — public 13개 + private.config + public_teams 뷰)
 
 > `private.config`(key/value) — `admin_secret`, **`game_pin`**(공용 게임 PIN, 0030). REST 노출 경로 없음(anon이 못 읽음).
 
@@ -236,7 +236,7 @@
 | `advance_round(secret)` | 연도 넘기기. 스냅샷 → 새 가격 공개 → `distribute_round_hints` 자동 배분(라운드로빈) |
 | `start_round_timer(secret, p_minutes)` / `adjust_round_timer(secret, p_seconds)` | 거래 창 열기 / 진행 중 ±조정. UI는 `round_duration_seconds`(설정값 durMin)를 전송 |
 | `admin_end_game(secret)` | 대회 종료. 최종(2025) 스냅샷, `is_ended=true` |
-| `reset_game(secret)` | snapshots/trades/positions/hint_grants/broadcasts 삭제, cash=seed, round=0(조·콘텐츠 유지) |
+| `reset_game(secret)` | snapshots/trades/positions/hint_grants/broadcasts 삭제, cash=seed, round=0(조·콘텐츠 유지) + **공용 게임 PIN 초기화**(0032, 리셋=새 판) |
 | `admin_update_game_config(secret, ...)` | 게임 설정(시드·총 라운드·**`p_join_mode`** 등). 시작 전에만 변경 |
 | `admin_set_game_pin(secret)` | **공용 게임 PIN 발급/재발급**(무작위 4자리 → `private.config`). 값을 돌려줌(강사가 읽어 전달). 신호엔 값 미포함 |
 | `admin_teams_status(secret)` | 조별 seed/cash/equity/pnl + 이번 라운드 거래 수 + 힌트 수 + **last_login_at** + **game_pin**(공용) |
@@ -291,7 +291,7 @@
 ## 5. 미커밋 변경 / git ↔ DB 정합
 
 - **작업 트리** — 공용 게임 PIN·자율 입장 재설계 커밋 진행 중. 마이그레이션 0030은 remote 적용 완료.
-- **마이그레이션 0001~0031 전부 remote 적용됨** — git과 스키마 일치. (0031 재무 v4 적용 + 라이브 재무 더미 재적재 + 데이터셋 2개 payload 변환 완료.)
+- **마이그레이션 0001~0032 전부 remote 적용됨** — git과 스키마 일치. (0032 = 리셋 시 공용 게임 PIN 초기화. 현재 라이브 game_pin 없음[발급 전].)
 - **라이브 DB 현재 상태(2026-08-15 기준)** — `current_round=0`(시작 전), `active_dataset_id=2`("기본 데이터셋"),
   **`join_mode=open`**(자율 입장으로 전환), 18종목, **조 0개**(TEAM_1~5 삭제·정리 완료), 공용 게임 PIN 발급됨. *(대회 전 강사가 게임 PIN 재발급 → 학생 전달.)*
 - **관리자 비밀** — DB `private.config`와 `.env`가 현재 개발 기본값으로 일치(약함, 강화 대기).
