@@ -18,7 +18,7 @@
 ### ✅ 완료 (동작 확인됨)
 
 **백엔드 (Supabase, 프로젝트 `cufic_wts` / `zhwidhvoxcoljffvqhol`, 서울)**
-- 마이그레이션 **29개**(0001~0029) 전부 remote 적용. 스키마 재현 가능(대시보드 수동 편집 없음).
+- 마이그레이션 **30개**(0001~0030) 전부 remote 적용. 스키마 재현 가능(대시보드 수동 편집 없음).
 - **즉시 체결 + 라운드 타이머** — `place_order`가 그 자리에서 체결, `now() < round_ends_at`을 서버가 강제.
 - **게임 루프** — `advance_round`(연도 넘기기) → `start_round_timer`(거래 창 열기) → 자동 마감. 진행 중 `adjust_round_timer`로 ±조정(0019).
 - **자동 힌트 차등 지급(라운드로빈, 0025)** — R2부터 `distribute_round_hints`가 힌트 풀을 등급순 정렬 후
@@ -29,8 +29,9 @@
   "지금 사용 중인 한 벌"을 가리킨다. 불러오기는 게임 리셋을 동반(조 유지), 진행 중엔 잠금.
 - **데이터셋 엑셀 왕복** — 공식 양식(.xlsx) 다운로드/업로드로 콘텐츠 한 벌을 통째로 편집. 업로드는 3단계 리포트(오류·경고·정보)
   후 **항상 새 데이터셋 생성**(덮어쓰기 아님). JSON 가져오기/내보내기도 지원. `src/admin/datasetXlsx.js`(SheetJS 동적 로드).
-- **자율 입장(open, 0028)** — `game_state.join_mode`(`code`|`open`)로 전환. open이면 학생이 **닉네임+4자리 PIN**으로 입장(`join_team`),
-  기존 닉네임은 PIN 재접속, 새 조는 시작 전(R0)만. code면 기존 참가 코드 방식. 시작 전에만 방식 변경 가능.
+- **자율 입장(open, 0028) + 공용 게임 PIN(0030)** — `game_state.join_mode`(`code`|`open`)로 전환. open이면 학생이
+  **닉네임 + 공용 게임 PIN**으로 입장/재접속(`join_team`, Kahoot식). 공용 PIN은 강사가 시작 전 무작위 4자리 발급(`admin_set_game_pin`),
+  `private.config('game_pin')`에 저장(anon이 못 읽음). 기존 닉네임은 재접속, 새 조는 시작 전(R0)만. 시작 전에만 방식 변경 가능.
 - **최종 정산** — `admin_end_game`이 `final_year`(2025) 가격을 공개하고 스냅샷. 떠나는 라운드·최종 두 지점 모두 기록(0017).
 - **공통 속보** — `broadcasts` 전원 공개, 실시간 신호.
 - **조 접속 추적(0027)** — `login_team`/`join_team` 성공 시 `teams.last_login_at` 기록, `admin_teams_status`가 함께 반환(최근 10분 = 접속).
@@ -45,7 +46,7 @@
   일시정지를 막는다. 저장소 시크릿(`SUPABASE_URL`·`SUPABASE_ANON_KEY`) 설정 완료, 수동 실행 **성공 확인**.
 
 **학생 화면**
-- **입장 2방식** — 참가 코드(서버 검증) 또는 **닉네임+PIN(자율 입장)**. 자율 입장은 새 닉네임이면 PIN 발급, 기존 닉네임이면 PIN 재접속. 새로고침 자동 재로그인 · 로딩/실패/오프라인 처리.
+- **입장 2방식** — 참가 코드(서버 검증) 또는 **닉네임 + 공용 게임 PIN(자율 입장)**. 자율 입장은 한 화면(닉네임+PIN): 새 닉네임=새 조, 기존 닉네임=재접속. 새로고침 자동 재로그인 · 로딩/실패/오프라인 처리.
 - 즉시 매수·매도(비율 버튼·수량 스테퍼) · 거래 타이머 카운트다운 · 타이머 밖 버튼 잠금.
 - **거래 마감 임박 알림** — 헤더 타이머 배지 60초↓ 앰버 · 30초↓ 깜빡임 + 30초 전 토스트(1회).
 - **상장폐지 보유 경고** — 주문 패널 보유행·MY 보유표·라운드 요약에 "⚠ 상장폐지 · 전액 손실" 표시.
@@ -64,7 +65,7 @@
 - **종목·가격** — 종목 CRUD + 연도별 인라인 편집(0=거래정지·소급 안 됨 경고).
 - **재무·시황** — 연도별 시황 6지표 + 종목별 재무 5지표(저장/비움). 지표 정의는 `src/metrics.js` 단일 소스.
 - **힌트** — 풀 CRUD · 조별 수동 지급/취소 · 자동 배분 미리보기(호재/악재↔등락 불일치 경고).
-- **조 관리** — 추가/삭제 · 시드[시작 전만] · 예수금/평가/수익률/거래/힌트 + **접속 열**(최근 10분 초록) + PIN(자율 입장 모드만).
+- **조 관리** — code: 코드로 조 추가/삭제. open: **게임 입장 PIN 카드**([발급]/[재발급]) + 실시간 입장 목록(코드·조추가 숨김) + **이름 인라인 수정**. 공통: 시드[시작 전만]·예수금/평가/수익률/거래/힌트 + **접속 열**(최근 10분).
 - **리더보드** — 순위·순위 변동 ▲▼·단독 1위 골드·프로젝터용 큰 글씨 · **[대회 결과 내보내기 CSV]**(순위·라운드별 스냅샷·거래 로그 3구획, UTF-8 BOM).
 
 **데이터 / 품질**
@@ -159,7 +160,7 @@
 | `AdminStocks.jsx` | 종목·가격 탭(종목 CRUD·연도별 인라인 편집·0=거래정지·소급 안 됨 경고) |
 | `AdminContent.jsx` | 재무·시황 탭(연도별 시황 6지표 + 종목별 재무 5지표. 저장 시 학생 화면 즉시 반영) |
 | `AdminHints.jsx` | 힌트 탭(풀 CRUD·조별 수동 지급/취소·자동 배분 미리보기·힌트 편집기) |
-| `AdminTeams.jsx` | 조 관리 탭(추가/삭제·시드[시작 전만]·예수금/평가/수익률/거래·힌트·**접속 열**[최근 10분]·PIN[자율 입장]) |
+| `AdminTeams.jsx` | 조 관리 탭. open이면 게임 PIN 카드·실시간 목록·이름 인라인 수정, code면 코드로 조 추가. 시드[시작 전만]·현황·**접속 열**[최근 10분] |
 
 ### `scripts/` · `.github/`
 | 파일 | 역할 |
@@ -172,7 +173,7 @@
 ### `supabase/`
 | 파일 | 역할 |
 |---|---|
-| `migrations/*.sql` | 스키마·RPC 이력 **29개**(0001~0029, 아래 §3) |
+| `migrations/*.sql` | 스키마·RPC 이력 **30개**(0001~0030, 아래 §3) |
 | `seed.sql` | **자동 생성**. game_state·stocks(18)·hints·검증용 조 재삽입 |
 | `config.toml` | Supabase CLI 설정(project_id, 포트, seed 지정) |
 
@@ -191,7 +192,9 @@
 
 ## 3. DB 현황
 
-### 3.1 테이블 (29개 마이그레이션 적용 후 현재 — public 13개 + private.config + public_teams 뷰)
+### 3.1 테이블 (30개 마이그레이션 적용 후 현재 — public 13개 + private.config + public_teams 뷰)
+
+> `private.config`(key/value) — `admin_secret`, **`game_pin`**(공용 게임 PIN, 0030). REST 노출 경로 없음(anon이 못 읽음).
 
 | 테이블 | 핵심 컬럼(의미) |
 |---|---|
@@ -200,7 +203,7 @@
 | `financials` (PK stock+year) | 연도별 재무. `revenue`·`op_income`·`net_income`(억원, 적자 음수)·`debt_ratio`·`roe`(%) |
 | `macro` (PK year) | 연도별 거시. `summary`(한 줄)·`rate`·`gdp`·`unemployment`·`fx`·`cpi`·`oil` |
 | `datasets` | `id`(PK), `name`, `description`, `payload`(jsonb 콘텐츠 한 벌), `created_at` |
-| `teams` | `id`(uuid), `code`(unique, 로그인 신원), `name`, `seed`, `cash`, **`last_login_at`**(접속 추적), **`pin`**(자율 입장 4자리) |
+| `teams` | `id`(uuid), `code`(unique, 로그인 신원), `name`, `seed`, `cash`, **`last_login_at`**(접속 추적), `pin`(옛 팀별 PIN — 0030 이후 미사용) |
 | `positions` (PK team+stock) | `quantity`(보유), `avg_price`(가중평균단가). 전량 매도 시 행 삭제 |
 | `trades` | `side`(buy/sell), `price`, `quantity`, `round`, `realized_pnl`(매도만), `created_at` |
 | `round_snapshots` (PK team+round) | `equity`(그 라운드 떠날 때 평가금액). 종료 스냅샷 round=total+1 |
@@ -219,7 +222,7 @@
 | 함수 | 요약 |
 |---|---|
 | `login_team(p_code)` | 참가 코드 검증 + `last_login_at` 기록. 목록은 안 줌 |
-| `join_team(p_nickname, p_pin)` | **자율 입장(open 모드).** 새 닉네임=조 생성(R0만) + PIN 발급, 기존 닉네임=PIN 재접속. `last_login_at` 기록 |
+| `join_team(p_name, p_pin)` | **자율 입장(open 모드).** `p_pin`은 **공용 게임 PIN**(private.config)과 대조. 새 닉네임=조 생성(R0만), 기존 닉네임=재접속. `last_login_at` 기록. 미발급이면 `no_game_pin` |
 | `place_order(p_team_code, p_stock_id, p_side, p_quantity)` | **즉시 체결.** 타이머 안에서만(밖이면 `round_closed`), 예수금·보유 검증 |
 | `current_price(p_stock_id)` | 현재 라운드 가격(없으면 `final_year` 폴백, 0=거래정지). `security definer`(0018 복원) |
 | `team_equity`/`team_cash(p_team_id)` | 평가금액 / 예수금 |
@@ -235,8 +238,9 @@
 | `admin_end_game(secret)` | 대회 종료. 최종(2025) 스냅샷, `is_ended=true` |
 | `reset_game(secret)` | snapshots/trades/positions/hint_grants/broadcasts 삭제, cash=seed, round=0(조·콘텐츠 유지) |
 | `admin_update_game_config(secret, ...)` | 게임 설정(시드·총 라운드·**`p_join_mode`** 등). 시작 전에만 변경 |
-| `admin_teams_status(secret)` | 조별 seed/cash/equity/pnl + 이번 라운드 거래 수 + 힌트 수 + **last_login_at** + **pin** |
-| `admin_create_team`/`admin_delete_team`/`admin_set_team_seed` | 조 CRUD(시드 변경은 `current_round>0`이면 거부) |
+| `admin_set_game_pin(secret)` | **공용 게임 PIN 발급/재발급**(무작위 4자리 → `private.config`). 값을 돌려줌(강사가 읽어 전달). 신호엔 값 미포함 |
+| `admin_teams_status(secret)` | 조별 seed/cash/equity/pnl + 이번 라운드 거래 수 + 힌트 수 + **last_login_at** + **game_pin**(공용) |
+| `admin_create_team`/`admin_delete_team`/`admin_rename_team`/`admin_set_team_seed` | 조 CRUD·이름 수정(rename는 2~12자·중복 불가). 시드 변경은 `current_round>0`이면 거부 |
 | `admin_upsert_stock`/`admin_delete_stock` | 종목 CRUD(코드·이름·소개·**업종·상장 라운드**·연도별 가격·순서. 0023에서 파라미터 확장) |
 | `admin_upsert_macro`/`admin_list_macro` | 시황 편집/전체 조회 |
 | `admin_upsert_financial`/`admin_list_financials`/`admin_delete_financial` | 재무 편집/조회/비움 |
@@ -286,12 +290,13 @@
 
 ## 5. 미커밋 변경 / git ↔ DB 정합
 
-- **작업 트리** — 문서 갱신 커밋 진행 중. 직전 코드 커밋 **`79df416`**(main, GitHub push 완료).
-- **마이그레이션 0001~0029 전부 remote 적용됨** — git과 스키마 일치.
+- **작업 트리** — 공용 게임 PIN·자율 입장 재설계 커밋 진행 중. 마이그레이션 0030은 remote 적용 완료.
+- **마이그레이션 0001~0030 전부 remote 적용됨** — git과 스키마 일치.
 - **라이브 DB 현재 상태(2026-08-15 기준)** — `current_round=0`(시작 전), `active_dataset_id=2`("기본 데이터셋"),
-  `join_mode=code`, 18종목, 조 **TEAM_1~5**(플레이테스트용, 시드 1억). *(대회 전 `reset_game` + 실제 조 생성 + 검증/플레이테스트 조 정리 필요 → OPERATIONS.)*
+  **`join_mode=open`**(자율 입장으로 전환), 18종목, **조 0개**(TEAM_1~5 삭제·정리 완료), 공용 게임 PIN 발급됨. *(대회 전 강사가 게임 PIN 재발급 → 학생 전달.)*
 - **관리자 비밀** — DB `private.config`와 `.env`가 현재 개발 기본값으로 일치(약함, 강화 대기).
 - **배포** — Vercel(main 자동), Keep-Alive Actions 시크릿 설정·가동. 도메인 https://cufic-wts.vercel.app.
+  ⚠ **배포된 사이트는 아직 옛 클라이언트 코드** — 자율 입장 새 흐름은 `main` push(재배포) 후에 라이브에 반영된다.
 
 ---
 

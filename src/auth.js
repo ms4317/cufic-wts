@@ -11,8 +11,9 @@ export async function getJoinMode() {
 }
 
 /**
- * 자율 입장(open 모드) — 닉네임(+PIN)으로 조 생성/재접속.
- * @returns 신규: {ok, team, pin, created} · 재접속: {ok, team} · PIN 필요: {ok:false, error:'need_pin'}
+ * 자율 입장(open 모드) — 닉네임 + 공용 게임 PIN으로 조 생성/재접속.
+ * PIN은 강사가 발급해 전달한 "게임 하나에 공용 PIN 하나". 신규·재접속 모두 같은 PIN을 쓴다.
+ * @returns 신규: {ok, team, created} · 재접속: {ok, team} · 실패: {ok:false, error, code}
  */
 export async function join(name, pin) {
   const nm = String(name || '').trim()
@@ -24,8 +25,9 @@ export async function join(name, pin) {
     const MSG = {
       join_disabled: '지금은 자율 입장을 받지 않아요.',
       bad_name: '닉네임은 2~12자로 입력해 주세요.',
-      need_pin: '이미 있는 닉네임이에요. PIN을 입력해 주세요.',
-      wrong_pin: 'PIN이 틀렸어요. 다시 확인해 주세요.',
+      no_game_pin: '아직 입장 PIN이 준비되지 않았어요. 강사 선생님께 확인해 주세요.',
+      need_pin: '입장 PIN을 입력해 주세요.',
+      wrong_pin: '입장 PIN이 틀렸어요. 강사 선생님이 알려준 PIN을 확인해 주세요.',
       join_closed: '대회가 시작돼 새 입장은 마감됐어요. 기존 닉네임+PIN으로만 들어올 수 있어요.',
     }
     return { ok: false, error: MSG[r.error] || '연결이 불안정해요. 다시 시도해 주세요.', code: r.error }
@@ -35,7 +37,7 @@ export async function join(name, pin) {
   } catch {
     // 저장 실패해도 세션 내 입장은 허용
   }
-  return { ok: true, team: { id: r.team_id, code: r.code, name: r.name }, pin: r.pin, created: !!r.created }
+  return { ok: true, team: { id: r.team_id, code: r.code, name: r.name }, created: !!r.created }
 }
 
 export function loadTeam() {

@@ -69,8 +69,12 @@ select private.set_admin_secret('원하는_비밀');
 - **신규상장·상장폐지는 다른 상태.** `stocks.listed_from_round` 이전 라운드엔 목록에서 미노출(상장 예정).
   가격이 0이면 거래정지·평가액 0(상장폐지). 둘을 혼동하지 않는다.
 - **입장은 두 방식 — 코드 / 자율 입장.** `game_state.join_mode`(`code`|`open`, 기본 code)가 정한다.
-  `code`면 관리자가 만든 참가 코드로(`login_team`), `open`이면 학생이 **닉네임+4자리 PIN**으로(`join_team`).
-  자율 입장은 새 닉네임=조 생성(시작 전만)·PIN 발급, 기존 닉네임=PIN 재접속. 방식 전환은 시작(R0) 전에만.
+  `code`면 관리자가 만든 참가 코드로(`login_team`), `open`이면 학생이 **닉네임 + 공용 게임 PIN**으로(`join_team`, Kahoot식).
+  - **공용 게임 PIN은 게임 하나에 하나.** 강사가 시작 전 무작위 4자리 발급(`admin_set_game_pin`)해 학생 전원에게 전달.
+    **`private.config('game_pin')`에 둔다 — `game_state`는 anon이 select로 읽으므로 거기 두면 게이트가 뚫린다**(admin_secret과 동일 원리).
+    신호(signals)는 공개 테이블이라 **PIN 값을 payload에 절대 싣지 않는다**(플래그만).
+  - 자율 입장은 새 닉네임=조 생성(시작 전만), 기존 닉네임=재접속(공용 PIN 확인). 방식 전환은 시작(R0) 전에만.
+  - 옛 팀별 `teams.pin`은 0030에서 폐기(파괴적 drop 없이 미사용). 새 코드에서 팀별 PIN을 부활시키지 말 것.
 - **콘텐츠 원천은 이제 DB의 데이터셋이다.** 재무·시황·힌트·주가·게임설정 한 벌이 `datasets.payload`(jsonb)에 있고,
   `game_state.active_dataset_id`가 지금 쓰는 벌을 가리킨다. 관리자가 [데이터셋] 탭에서 **엑셀 양식(`datasetXlsx.js`)**
   또는 각 탭 편집으로 만들고 저장한다. 엑셀 업로드는 3단계 리포트 후 **항상 새 데이터셋 생성**(덮어쓰기 아님).

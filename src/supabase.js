@@ -75,6 +75,9 @@ export const ERROR_TEXT = {
   unauthorized: '관리자 비밀번호가 맞지 않습니다',
   game_already_started: '대회가 시작된 뒤에는 바꿀 수 없습니다',
   code_exists: '이미 있는 참가 코드입니다',
+  name_exists: '이미 쓰고 있는 이름이에요',
+  bad_name: '이름은 2~12자로 입력해 주세요',
+  team_not_found: '조를 찾을 수 없어요',
   invalid_payload: '데이터셋 파일 형식이 올바르지 않아요',
   not_found: '찾을 수 없어요',
 }

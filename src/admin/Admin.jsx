@@ -41,7 +41,7 @@ const TAB_HELP = {
   stocks: '종목과 연도별 가격 — 게임의 뼈대',
   content: '종목별 재무제표와 연도별 거시 지표',
   hints: '라운드별 힌트 작성과 지급',
-  teams: '참가 조와 코드',
+  teams: '참가 조 — 입장 현황·게임 PIN·이름',
 }
 
 const SECRET_KEY = 'wts-admin' // 세션 동안만 기억한다 (sessionStorage)
@@ -63,6 +63,7 @@ export default function Admin({ theme, onToggleTheme }) {
   const [game, setGame] = useState(null)
   const [stocks, setStocks] = useState([])
   const [teams, setTeams] = useState([])
+  const [gamePin, setGamePin] = useState(null) // 공용 게임 PIN (자율 입장). admin_teams_status가 반환
   const [hints, setHints] = useState([])
   const [board, setBoard] = useState([])
   const [broadcasts, setBroadcasts] = useState([])
@@ -88,7 +89,10 @@ export default function Admin({ theme, onToggleTheme }) {
     ])
     if (g.ok) setGame(g.rows[0] ?? null)
     if (s.ok) setStocks(s.rows.slice().sort((a, b) => a.display_order - b.display_order))
-    if (ts.ok) setTeams(ts.teams ?? [])
+    if (ts.ok) {
+      setTeams(ts.teams ?? [])
+      setGamePin(ts.game_pin ?? null)
+    }
     if (hs.ok) setHints(hs.hints ?? [])
     if (bc.ok) setBroadcasts(bc.rows ?? [])
     if (fin.ok) setFinancials(fin.rows ?? [])
@@ -190,6 +194,7 @@ export default function Admin({ theme, onToggleTheme }) {
     game,
     stocks,
     teams,
+    gamePin,
     hints,
     board,
     broadcasts,

@@ -4,19 +4,18 @@ import ThemeToggle from './ThemeToggle'
 /**
  * 입장 화면. 두 방식 —
  *   · code(기본): 강사가 나눠준 참가 코드 입력 (`onSubmit`).
- *   · open(자율): 닉네임으로 조를 만들거나 재접속. 신규는 PIN 1회 발급, 재접속은 닉네임+PIN (`onJoin`/`onCommit`).
+ *   · open(자율): 닉네임 + 공용 게임 PIN으로 조를 만들거나 재접속 (`onJoin`/`onCommit`).
+ *     PIN은 강사가 발급해 전달하는 "게임 하나에 공용 PIN 하나". 신규·재접속 모두 같은 PIN.
  *
  * @param {'code'|'open'} mode
  * @param {(code:string)=>Promise<{ok,error?}>} onSubmit  코드 방식 로그인(입장까지 처리)
- * @param {(name:string, pin?:string)=>Promise<{ok, team?, pin?, created?, code?, error?}>} onJoin  자율 입장 시도(입장 확정 안 함)
+ * @param {(name:string, pin?:string)=>Promise<{ok, team?, created?, code?, error?}>} onJoin  자율 입장 시도(입장 확정 안 함)
  * @param {(team)=>Promise<void>} onCommit  실제 입장 확정
  */
 export default function Login({ mode = 'code', onSubmit, onJoin, onCommit, theme, onToggleTheme }) {
   const [code, setCode] = useState('')
   const [name, setName] = useState('')
   const [pin, setPin] = useState('')
-  const [step, setStep] = useState('name') // open: 'name' | 'pin' | 'created'
-  const [made, setMade] = useState(null) // 신규 발급 결과 {team, pin}
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
 
@@ -30,25 +29,7 @@ export default function Login({ mode = 'code', onSubmit, onJoin, onCommit, theme
     if (!r.ok) setError(r.error)
   }
 
-  const submitName = async (e) => {
-    e.preventDefault()
-    setError('')
-    setBusy(true)
-    const r = await onJoin(name)
-    setBusy(false)
-    if (r.ok && r.created) {
-      setMade({ team: r.team, pin: r.pin })
-      setStep('created')
-    } else if (r.ok) {
-      await onCommit(r.team) // 이미 있는 조를 PIN 없이? (서버는 신규만 pin 생략) — 방어적으로 처리
-    } else if (r.code === 'need_pin') {
-      setStep('pin')
-    } else {
-      setError(r.error)
-    }
-  }
-
-  const submitPin = async (e) => {
+  const submitJoin = async (e) => {
     e.preventDefault()
     setError('')
     setBusy(true)
@@ -95,10 +76,10 @@ export default function Login({ mode = 'code', onSubmit, onJoin, onCommit, theme
           </>
         )}
 
-        {/* ── 자율 입장: 닉네임 ── */}
-        {open && step === 'name' && (
+        {/* ── 자율 입장: 닉네임 + 공용 게임 PIN (한 화면) ── */}
+        {open && (
           <>
-            <form onSubmit={submitName}>
+            <form onSubmit={submitJoin}>
               <div className="field">
                 <label htmlFor="nick">닉네임 (우리 조 이름)</label>
                 <input
@@ -115,24 +96,8 @@ export default function Login({ mode = 'code', onSubmit, onJoin, onCommit, theme
                   spellCheck="false"
                 />
               </div>
-              <div className="err">{error}</div>
-              <button type="submit" className="go" disabled={busy || name.trim().length < 2}>
-                {busy ? '입장 중…' : '입장하기'}
-              </button>
-            </form>
-            <p className="hint">닉네임을 정하면 우리 조가 만들어져요. 이미 만든 닉네임이면 다시 들어와져요.</p>
-          </>
-        )}
-
-        {/* ── 자율 입장: 재접속 PIN ── */}
-        {open && step === 'pin' && (
-          <>
-            <form onSubmit={submitPin}>
-              <p className="join-back">
-                <b>{name}</b> 조로 다시 들어가기
-              </p>
               <div className="field">
-                <label htmlFor="pin">PIN (4자리)</label>
+                <label htmlFor="pin">입장 PIN (4자리)</label>
                 <input
                   id="pin"
                   value={pin}
@@ -142,46 +107,22 @@ export default function Login({ mode = 'code', onSubmit, onJoin, onCommit, theme
                   }}
                   placeholder="0000"
                   inputMode="numeric"
-                  autoFocus
                   autoComplete="off"
                 />
               </div>
               <div className="err">{error}</div>
-              <button type="submit" className="go" disabled={busy || pin.length !== 4}>
-                {busy ? '확인 중…' : '다시 입장'}
+              <button
+                type="submit"
+                className="go"
+                disabled={busy || name.trim().length < 2 || pin.length !== 4}
+              >
+                {busy ? '입장 중…' : '입장하기'}
               </button>
             </form>
-            <button
-              className="text-btn"
-              onClick={() => {
-                setStep('name')
-                setPin('')
-                setError('')
-              }}
-            >
-              ← 다른 닉네임으로
-            </button>
+            <p className="hint">
+              강사 선생님이 알려준 <b>입장 PIN</b>을 넣으세요. 처음 닉네임이면 새 조가, 이미 있는 닉네임이면 그 조로 들어가요.
+            </p>
           </>
-        )}
-
-        {/* ── 자율 입장: 신규 PIN 발급 안내 ── */}
-        {open && step === 'created' && made && (
-          <div className="join-made">
-            <p className="jm-hi">
-              <b>{made.team.name}</b> 조로 입장했어요!
-            </p>
-            <div className="jm-pin">
-              <span className="jm-pin-cap">재접속 PIN</span>
-              <span className="jm-pin-val num">{made.pin}</span>
-            </div>
-            <p className="jm-note">
-              다른 기기에서 다시 들어오거나, 실수로 나갔다가 돌아올 때 이 <b>PIN</b>이 필요해요.
-              <b> 꼭 기억하거나 적어두세요.</b>
-            </p>
-            <button className="go" disabled={busy} onClick={() => onCommit(made.team)}>
-              시작하기
-            </button>
-          </div>
         )}
       </div>
     </div>

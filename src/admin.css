@@ -939,6 +939,26 @@
   letter-spacing: 0.08em;
 }
 
+/* ── 자율 입장: 공용 게임 PIN 카드 (강조 = gold) */
+.gamepin-card {
+  border: 1px solid color-mix(in srgb, var(--gold) 40%, var(--line));
+  background: var(--gold-soft);
+}
+.gamepin-row {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin: 4px 0 2px;
+}
+.gamepin-val {
+  font-size: 44px;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+  color: var(--gold);
+  line-height: 1;
+}
+
 /* ── 게임 설정 편집 */
 .cfg-form {
   display: flex;
