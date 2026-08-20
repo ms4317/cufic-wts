@@ -5,6 +5,9 @@ dist-ssr
 .vite
 .DS_Store
 
+# Excel 임시 잠금 파일 (파일 열려 있을 때 생김 — 절대 커밋 금지)
+~$*
+
 # 비밀 — 절대 커밋 금지. 필요한 키 목록은 .env.example 참고
 .env
 .env.*
