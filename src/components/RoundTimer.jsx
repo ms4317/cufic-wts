@@ -1,35 +1,49 @@
-// 거래 라운드 타이머 — 헤더 배지보다 큰 독립 요소. 학생·관리자 공용.
-//   · live=true면 남은 시간 카운트다운 + 진행바가 함께 줄어든다.
-//   · 60초 이하 경고색(warn), 30초 이하 강조+깜빡임(urgent). 30초 토스트 알림과 결합해 쓴다.
-//   · live=false면 label(대기/마감 안내)만 크게. 서버 round_ends_at이 유일 기준(클라 카운트는 UX용).
+// 거래 라운드 타이머 — A안(헤더 필 + 진행바) + C안(헤더 하단 전폭 라인). 학생·관리자 공용.
+//   · state: 'live'(카운트다운) | 'closed'(마감) | 'waiting'(대기)
+//   · 색: 여유=골드 / 남은 60초↓=경고(--warn) / 30초↓=긴급(--up, 점 깜빡임 + 테두리 발광)
+//   · 진행바 기준값 durationMs = round_duration_seconds(라운드 시작 시 설정된 총 시간)
+//   · 서버 round_ends_at이 유일 기준. 클라 카운트다운은 UX용.
 
 const mmss = (ms) => {
   const s = Math.max(0, Math.round(ms / 1000))
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
 }
 
-export default function RoundTimer({ remainingMs = 0, durationMs = 0, live = false, label = '거래 대기' }) {
-  const fillPct = durationMs > 0 ? Math.max(0, Math.min(100, (remainingMs / durationMs) * 100)) : 0
-  const urgent = live && remainingMs <= 30000
-  const warn = live && remainingMs <= 60000 && !urgent
-  const cls = 'round-timer' + (live ? ' live' : ' idle') + (urgent ? ' urgent' : warn ? ' warn' : '')
+// 남은 시간 단계 → 상태 클래스 (live일 때만)
+function tier(state, remainingMs) {
+  if (state !== 'live') return ''
+  if (remainingMs <= 30000) return ' urgent'
+  if (remainingMs <= 60000) return ' warn'
+  return '' // 여유(기본=골드)
+}
+const fillPct = (remainingMs, durationMs, live) =>
+  live && durationMs > 0 ? Math.max(0, Math.min(100, (remainingMs / durationMs) * 100)) : 0
 
+// A안 — 헤더/카드용 필 (라벨+시간 위, 아래 얇은 진행바)
+export default function TimerPill({ remainingMs = 0, durationMs = 0, state = 'waiting' }) {
+  const live = state === 'live'
   return (
-    <div className={cls} role="timer" aria-live="off">
-      <div className="rt-main">
-        {live ? (
-          <>
-            <span className="rt-label">거래 마감까지</span>
-            <span className="rt-clock num">{mmss(remainingMs)}</span>
-            {urgent && <span className="rt-flag">마감 임박!</span>}
-          </>
-        ) : (
-          <span className="rt-label idle">{label}</span>
-        )}
-      </div>
-      <div className="rt-bar">
-        <i style={{ width: (live ? fillPct : 0) + '%' }} />
-      </div>
-    </div>
+    <span className={'timer-pill' + (live ? ' live' : '') + tier(state, remainingMs)} role="timer">
+      <span className="tp-top">
+        <span className="tp-dot" />
+        <span className="tp-label">거래</span>
+        <span className="tp-time num">
+          {state === 'live' ? mmss(remainingMs) : state === 'closed' ? '마감' : '대기'}
+        </span>
+      </span>
+      <span className="tp-bar">
+        <i style={{ width: fillPct(remainingMs, durationMs, live) + '%' }} />
+      </span>
+    </span>
+  )
+}
+
+// C안 — 헤더 하단 가장자리 전폭 진행바 (학생 화면)
+export function TimerEdge({ remainingMs = 0, durationMs = 0, state = 'waiting' }) {
+  const live = state === 'live'
+  return (
+    <span className={'timer-edge' + (live ? ' live' : '') + tier(state, remainingMs)} aria-hidden="true">
+      <i style={{ width: fillPct(remainingMs, durationMs, live) + '%' }} />
+    </span>
   )
 }

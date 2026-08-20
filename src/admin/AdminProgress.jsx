@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import Modal from '../components/Modal'
-import RoundTimer from '../components/RoundTimer'
+import TimerPill from '../components/RoundTimer'
 import { errorText } from '../supabase'
 import { checkContent } from '../dataCheck'
 import { num } from '../format'
@@ -134,16 +134,16 @@ export default function AdminProgress({
     setConfirm('advance')
   }
 
-  // 라운드 시간은 무조건 10분으로 시작한다. 미세 조정은 아래 ±1분 버튼으로.
+  // 라운드 시간 = 게임 설정의 타이머(round_duration_seconds → durMin). 미세 조정은 아래 ±1분 버튼으로.
   const startTimerNow = async () => {
     setBusy(true)
-    const r = await actions.startTimer(10)
+    const r = await actions.startTimer(durMin)
     setBusy(false)
     if (!r.ok) {
       notify(errorText(r.error), 'down')
       return
     }
-    notify(timerRunning ? '타이머를 다시 시작했어요 (10분)' : '거래를 열었어요 (10분)', 'gold')
+    notify(timerRunning ? `타이머를 다시 시작했어요 (${durMin}분)` : `거래를 열었어요 (${durMin}분)`, 'gold')
     await refresh()
   }
 
@@ -409,12 +409,18 @@ export default function AdminProgress({
       {!notStarted && (
         <section className="acard big">
           <span className="acap">거래 타이머</span>
-          <RoundTimer
-            live={timerRunning}
+          <TimerPill
             remainingMs={remainingMs}
             durationMs={durationMs}
-            label={endsAt ? '거래 마감 · 순위 확인 후 다음 연도로 넘기세요' : `타이머를 시작하면 ${durMin}분간 거래가 열려요`}
+            state={timerRunning ? 'live' : endsAt ? 'closed' : 'waiting'}
           />
+          <p className="anote">
+            {timerRunning
+              ? '거래 진행 중 — 학생들이 매매할 수 있어요'
+              : endsAt
+                ? '거래 마감 — 순위 확인 후 다음 연도로 넘기세요'
+                : `타이머를 시작하면 ${durMin}분간 거래가 열려요`}
+          </p>
           {timerRunning && (
             <div className="timer-adjust">
               <button className="act-btn adj" disabled={busy} onClick={() => adjustTimer(-1)}>
@@ -428,7 +434,7 @@ export default function AdminProgress({
           )}
           <div className="arow">
             <button className="act-btn prime" disabled={busy} onClick={startTimerNow}>
-              {timerRunning ? '타이머 다시 시작 (10분)' : '타이머 시작 (10분)'}
+              {timerRunning ? `타이머 다시 시작 (${durMin}분)` : `타이머 시작 (${durMin}분)`}
             </button>
           </div>
         </section>

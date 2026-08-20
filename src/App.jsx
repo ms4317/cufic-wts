@@ -16,7 +16,6 @@ import { errorText } from './supabase'
 import Login from './components/Login'
 import RotateNotice from './components/RotateNotice'
 import Header from './components/Header'
-import RoundTimer from './components/RoundTimer'
 import StockList from './components/StockList'
 import Chart from './components/Chart'
 import OrderSheet from './components/OrderSheet'
@@ -127,6 +126,8 @@ function Student({ theme, onToggleTheme }) {
   const endsAt = game?.round_ends_at ? new Date(game.round_ends_at).getTime() : null
   const remainingMs = endsAt ? Math.max(0, endsAt - nowTs) : 0
   const tradingOpen = started && !locked && remainingMs > 0
+  // 타이머 표시 상태: live(카운트다운) / closed(마감) / waiting(대기) / null(숨김)
+  const timerState = started && !ended ? (tradingOpen ? 'live' : endsAt ? 'closed' : 'waiting') : null
 
   // 안 읽은 속보 개수 — 종 버튼 깜빡임·배지용
   const unreadBc = broadcasts.reduce((n, b) => n + (Number(b.id) > seenBc ? 1 : 0), 0)
@@ -440,6 +441,9 @@ function Student({ theme, onToggleTheme }) {
         rank={myRank}
         teamCount={board.length}
         hintCount={hints.length}
+        remainingMs={remainingMs}
+        durationMs={(game?.round_duration_seconds ?? 600) * 1000}
+        timerState={timerState}
         bellTotal={broadcasts.length}
         bellCount={unreadBc}
         onOpenBroadcasts={() => setBcOpen(true)}
@@ -449,15 +453,6 @@ function Student({ theme, onToggleTheme }) {
         onToggleTheme={onToggleTheme}
         onLogout={handleLogout}
       />
-
-      {started && !ended && (
-        <RoundTimer
-          live={tradingOpen}
-          remainingMs={remainingMs}
-          durationMs={(game?.round_duration_seconds ?? 600) * 1000}
-          label="거래 대기 · 강사 선생님이 타이머를 시작하면 매매가 열려요"
-        />
-      )}
 
       {!started && (
         <div className="notstarted">아직 대회가 시작되지 않았어요. 강사 선생님을 기다려 주세요.</div>

@@ -43,10 +43,8 @@ select private.set_admin_secret('원하는_비밀');
   (예수금·보유 즉시 반영). 단 거래는 **관리자가 [타이머 시작]을 눌러 연 동안에만** 가능하다 —
   `round_ends_at`이 지나면 서버가 거부(`round_closed`)하고 화면 버튼도 잠긴다. `start_round_timer(p_minutes)`가
   마감 시각을 세우고, 진행 중 `adjust_round_timer`로 ±조정한다.
-  - ⚠ **현재 [타이머 시작] UI는 10분을 고정 전송한다**(`AdminProgress.jsx`의 `startTimer(10)`).
-    `round_duration_seconds`(게임 설정·데이터셋의 "타이머" 값)는 **대기 안내 문구·엑셀 내보내기에만** 쓰이고
-    시작 버튼엔 배선돼 있지 않다. **설정값을 실제로 쓰게 잇거나 설정 항목을 지워 정리할 것**(→ STATUS §6).
-    새 코드에서 타이머 상수를 더 늘리지 말 것.
+  - **타이머 길이 = 게임 설정의 `round_duration_seconds`.** [타이머 시작]은 `startTimer(durMin)`으로 그 값을 실제로 쓴다
+    (durMin = `round_duration_seconds/60`, 기본 600초=10분). 진행바 기준값도 이 값이다. **타이머 상수를 하드코딩하지 말 것.**
   - **게임 루프.** 관리자가 **[연도 넘기기]**(`advance_round`)를 누르면 그 라운드 평가금액을
     스냅샷하고 다음 연도 가격이 공개된다 → 보유가 재평가돼 **순위가 바뀐다** → 관리자가 순위를
     확인하고 **[타이머 시작]**(`start_round_timer`)으로 거래를 연다. 10분 뒤 자동 마감 → 다시 [연도 넘기기].

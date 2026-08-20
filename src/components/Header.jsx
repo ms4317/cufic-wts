@@ -1,7 +1,7 @@
 import { num, signed, pct, dirOf } from '../format'
 import ThemeToggle from './ThemeToggle'
+import TimerPill, { TimerEdge } from './RoundTimer'
 
-// 거래 타이머는 헤더 배지에서 빠져 독립 요소(RoundTimer)로 이동했다.
 export default function Header({
   account,
   team,
@@ -10,6 +10,9 @@ export default function Header({
   rank,
   teamCount,
   hintCount = 0,
+  remainingMs = 0,
+  durationMs = 0,
+  timerState = null, // 'live' | 'closed' | 'waiting' | null(숨김)
   bellTotal = 0,
   bellCount = 0,
   onOpenBroadcasts,
@@ -43,7 +46,10 @@ export default function Header({
             : `ROUND ${round.round} · ${round.year}년`}
       </span>
 
-      {/* 거래 타이머는 헤더 아래 RoundTimer(독립 요소)로 표시한다 */}
+      {/* 거래 타이머 — A안: 라벨+시간 위, 아래 얇은 진행바 */}
+      {timerState && (
+        <TimerPill remainingMs={remainingMs} durationMs={durationMs} state={timerState} />
+      )}
 
       {/* 조별 순위 — 누르면 전체 순위 팝업 */}
       {rank != null && (
@@ -99,6 +105,11 @@ export default function Header({
           로그아웃
         </button>
       </div>
+
+      {/* 거래 타이머 — C안: 헤더 하단 가장자리 전폭 진행바 (교실 뒤에서도 체감) */}
+      {timerState && (
+        <TimerEdge remainingMs={remainingMs} durationMs={durationMs} state={timerState} />
+      )}
     </header>
   )
 }

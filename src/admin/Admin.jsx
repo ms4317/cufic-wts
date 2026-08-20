@@ -3,6 +3,7 @@ import { makeAdminActions } from '../actions'
 import { subscribeSignals } from '../gameData'
 import { select, errorText } from '../supabase'
 import ThemeToggle from '../components/ThemeToggle'
+import TimerPill from '../components/RoundTimer'
 import Toasts, { useToasts } from '../components/Toast'
 import AdminProgress from './AdminProgress'
 import AdminHints from './AdminHints'
@@ -58,6 +59,7 @@ export default function Admin({ theme, onToggleTheme }) {
   const [checking, setChecking] = useState(true)
   const [tab, setTab] = useState('progress')
   const [dirty, setDirty] = useState(false) // 콘텐츠 편집 후 데이터셋에 저장 안 함
+  const [nowTs, setNowTs] = useState(() => Date.now()) // 헤더 타이머 카운트다운용 1초 틱
   const [toasts, pushToast, dismissToast] = useToasts()
 
   const [game, setGame] = useState(null)
@@ -128,6 +130,12 @@ export default function Admin({ theme, onToggleTheme }) {
       refresh()
     })
   }, [authed, refresh])
+
+  // 헤더 타이머 1초 틱
+  useEffect(() => {
+    const id = setInterval(() => setNowTs(Date.now()), 1000)
+    return () => clearInterval(id)
+  }, [])
 
   const doLogin = async (e) => {
     e.preventDefault()
@@ -206,6 +214,19 @@ export default function Admin({ theme, onToggleTheme }) {
     onSaved: () => setDirty(false),
   }
 
+  // 헤더 거래 타이머 (A안 필) — 서버 round_ends_at 기준
+  const tEndsAt = game?.round_ends_at ? new Date(game.round_ends_at).getTime() : null
+  const tRemain = tEndsAt ? Math.max(0, tEndsAt - nowTs) : 0
+  const tDur = (game?.round_duration_seconds ?? 600) * 1000
+  const tState =
+    (game?.current_round ?? 0) > 0 && !game?.is_ended
+      ? tRemain > 0 && !game?.is_locked
+        ? 'live'
+        : tEndsAt
+          ? 'closed'
+          : 'waiting'
+      : null
+
   return (
     <div className="admin">
       <header>
@@ -221,6 +242,7 @@ export default function Admin({ theme, onToggleTheme }) {
           </span>
         )}
         {game?.is_locked && <span className="badge">정산 중</span>}
+        {tState && <TimerPill remainingMs={tRemain} durationMs={tDur} state={tState} />}
         <div className="hbtns">
           <ThemeToggle theme={theme} onToggle={onToggleTheme} />
           <button className="text-btn" onClick={logout}>
