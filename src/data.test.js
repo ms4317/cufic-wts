@@ -222,10 +222,12 @@ describe('시황(거시경제)', () => {
     }
   })
 
-  it('금리·실업률은 음수가 될 수 없다', () => {
+  it('금리는 음수가 아니고 지수·유가·금은 양수다', () => {
     for (const y of FIN_YEARS) {
       expect(MACRO[y].rate).toBeGreaterThanOrEqual(0)
-      expect(MACRO[y].unemployment).toBeGreaterThanOrEqual(0)
+      for (const k of ['kospi', 'sp500', 'nikkei', 'europe', 'oil', 'gold']) {
+        expect(MACRO[y][k], `${y}년 ${k}`).toBeGreaterThan(0)
+      }
     }
   })
 })

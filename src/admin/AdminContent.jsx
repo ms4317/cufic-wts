@@ -14,13 +14,14 @@ const yearsOf = (game) => {
 function MacroRow({ year, row, onSave, busy }) {
   const [d, setD] = useState({
     summary: row?.summary ?? '',
+    kospi: row?.kospi ?? '',
+    sp500: row?.sp500 ?? '',
+    nikkei: row?.nikkei ?? '',
+    europe: row?.europe ?? '',
     rate: row?.rate ?? '',
-    gdp: row?.gdp ?? '',
-    unemployment: row?.unemployment ?? '',
-    fx: row?.fx ?? '',
     cpi: row?.cpi ?? '',
     oil: row?.oil ?? '',
-    sp500: row?.sp500 ?? '',
+    gold: row?.gold ?? '',
   })
   const set = (k, v) => setD((p) => ({ ...p, [k]: v }))
   return (
@@ -122,13 +123,14 @@ export default function AdminContent({ actions, game, stocks, financials, macro,
     const r = await actions.upsertMacro({
       year,
       summary: d.summary,
+      kospi: Math.round(Number(d.kospi)),
+      sp500: Math.round(Number(d.sp500)),
+      nikkei: Math.round(Number(d.nikkei)),
+      europe: Math.round(Number(d.europe)),
       rate: Number(d.rate),
-      gdp: Number(d.gdp),
-      unemployment: Number(d.unemployment),
-      fx: Math.round(Number(d.fx)),
       cpi: Number(d.cpi),
       oil: Math.round(Number(d.oil)),
-      sp500: Math.round(Number(d.sp500)),
+      gold: Math.round(Number(d.gold)),
     })
     setBusy(false)
     if (!r.ok) return notify(errorText(r.error), 'down')

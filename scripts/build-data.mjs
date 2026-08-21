@@ -67,12 +67,12 @@ const HINTS = [
 // 거시경제 시황(콘텐츠_초안). 연도별 지표 — 가격 스토리와 방향을 맞춘다.
 // 2020 코로나 급랭 → 2021 유동성 반등(성장주 급등) → 2022 인플레·금리인상(성장주 조정) → 2023 고금리 둔화 → 2024~ 정상화.
 const MACRO = {
-  2020: { summary: '코로나 충격으로 경기 급랭 — 초저금리·유가 폭락', rate: 0.5, gdp: -0.7, unemployment: 4.0, fx: 1180, cpi: 0.5, oil: 42, sp500: 3100 },
-  2021: { summary: '경기 반등·유동성 장세 — 성장주 급등', rate: 0.75, gdp: 4.1, unemployment: 3.7, fx: 1150, cpi: 2.5, oil: 68, sp500: 4300 },
-  2022: { summary: '인플레이션 급등, 금리 인상 시작 — 성장주 조정', rate: 3.25, gdp: 2.6, unemployment: 2.9, fx: 1300, cpi: 5.1, oil: 95, sp500: 3600 },
-  2023: { summary: '고금리 지속·경기 둔화 — 실적 옥석 가리기', rate: 3.5, gdp: 1.4, unemployment: 2.7, fx: 1310, cpi: 3.6, oil: 78, sp500: 4200 },
-  2024: { summary: '금리 인하 기대·완만한 회복', rate: 3.0, gdp: 2.0, unemployment: 2.8, fx: 1350, cpi: 2.3, oil: 80, sp500: 5100 },
-  2025: { summary: '금리 정상화·안정 국면', rate: 2.5, gdp: 1.8, unemployment: 3.0, fx: 1320, cpi: 2.0, oil: 72, sp500: 5400 },
+  2020: { summary: '코로나 충격으로 경기 급랭 — 초저금리·유가 폭락', kospi: 2300, sp500: 3100, nikkei: 23000, europe: 3300, rate: 0.5, cpi: 0.5, oil: 42, gold: 1900 },
+  2021: { summary: '경기 반등·유동성 장세 — 성장주 급등', kospi: 3200, sp500: 4300, nikkei: 28000, europe: 4300, rate: 0.75, cpi: 2.5, oil: 68, gold: 1800 },
+  2022: { summary: '인플레이션 급등, 금리 인상 시작 — 성장주 조정', kospi: 2400, sp500: 3600, nikkei: 26000, europe: 3800, rate: 3.25, cpi: 5.1, oil: 95, gold: 1850 },
+  2023: { summary: '고금리 지속·경기 둔화 — 실적 옥석 가리기', kospi: 2600, sp500: 4200, nikkei: 33000, europe: 4500, rate: 3.5, cpi: 3.6, oil: 78, gold: 2000 },
+  2024: { summary: '금리 인하 기대·완만한 회복', kospi: 2800, sp500: 5100, nikkei: 38000, europe: 4900, rate: 3.0, cpi: 2.3, oil: 80, gold: 2600 },
+  2025: { summary: '금리 정상화·안정 국면', kospi: 2900, sp500: 5400, nikkei: 39000, europe: 5100, rate: 2.5, cpi: 2.0, oil: 72, gold: 2750 },
 }
 
 // 재무제표 입력 7개: JSON(snake_case) → data.js(camelCase). src/metrics.js FIN_INPUTS의 db→key와 같게 유지.

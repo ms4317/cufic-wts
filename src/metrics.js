@@ -77,12 +77,14 @@ export function deriveFinancials(f) {
   }
 }
 
+// 시황 지표 — 시장 지수 4(pt) + 금리·물가(%) + 유가·금($). 순서 = 화면 표시 순서.
 export const MACRO_METRICS = [
+  { key: 'kospi', db: 'kospi', xlsx: '코스피', label: '코스피지수', unit: 'pt', round: true, desc: '한국 대표 기업 주가지수예요. 국내 증시 전체의 분위기를 보여줘요.' },
+  { key: 'sp500', db: 'sp500', xlsx: 'S&P', label: 'S&P 500', unit: 'pt', round: true, desc: '미국 대표 500개 기업 주가지수예요. 세계 증시·투자심리의 바로미터예요.' },
+  { key: 'nikkei', db: 'nikkei', xlsx: '일본', label: '일본지수', unit: 'pt', round: true, desc: '일본 대표 주가지수예요. 아시아 증시 흐름의 참고가 돼요.' },
+  { key: 'europe', db: 'europe', xlsx: '유럽', label: '유럽지수', unit: 'pt', round: true, desc: '유럽 대표 기업 주가지수예요. 유럽 경기·증시 분위기를 보여줘요.' },
   { key: 'rate', db: 'rate', xlsx: '금리', label: '기준금리', unit: '%', desc: '중앙은행이 정하는 기준 이자율이에요. 높으면 대출·투자가 위축되고 빚 많은 회사·성장주에 불리해요.' },
-  { key: 'gdp', db: 'gdp', xlsx: 'GDP', label: 'GDP 성장률', unit: '%', desc: '나라 경제가 1년간 얼마나 커졌는지예요. 높으면 경기가 좋아 소비·투자가 늘어요.' },
-  { key: 'unemployment', db: 'unemployment', xlsx: '실업', label: '실업률', unit: '%', desc: '일자리를 못 구한 사람의 비율이에요. 높으면 소비가 줄어 경기가 나빠요.' },
-  { key: 'fx', db: 'fx', xlsx: '환율', label: '환율', unit: '원/$', round: true, desc: '1달러를 사는 데 드는 원화예요. 오르면(원화 약세) 수출 기업엔 유리, 수입엔 불리해요.' },
   { key: 'cpi', db: 'cpi', xlsx: '물가', label: '물가상승률', unit: '%', desc: '물건 값이 1년간 얼마나 올랐는지예요. 너무 높으면 금리를 올려 잡으려 해요.' },
   { key: 'oil', db: 'oil', xlsx: '유가', label: '국제유가', unit: '$', round: true, desc: '원유 1배럴 가격(달러)이에요. 오르면 항공·운송·제조 비용이 커져요.' },
-  { key: 'sp500', db: 'sp500', xlsx: 'S&P', label: 'S&P 500', unit: 'p', round: true, desc: '가상의 글로벌 주가지수예요. 세계 경기와 투자심리의 온도계 — 오르면 위험자산 선호(주식 강세), 내리면 안전자산 선호 분위기예요.' },
+  { key: 'gold', db: 'gold', xlsx: '금($', label: '금', unit: '$/oz', round: true, desc: '금 1온스 가격(달러)이에요. 불안할수록 오르는 안전자산 — 위험 회피 심리의 지표예요.' },
 ]

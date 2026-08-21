@@ -455,8 +455,8 @@ export function buildBlankWorkbook() {
       { stock_id: 'S01', year: 2021, current_assets: 7000, noncurrent_assets: 5000, current_liabilities: 2500, noncurrent_liabilities: 1500, revenue: 7000, operating_expense: 5800, nonoperating_expense: 300 },
     ],
     macro: [
-      { year: 2020, summary: '코로나 충격으로 경기 급랭 (예시)', rate: 0.5, gdp: -0.7, unemployment: 4, fx: 1180, cpi: 0.5, oil: 42 },
-      { year: 2021, summary: '경기 반등·유동성 장세 (예시)', rate: 0.75, gdp: 4.1, unemployment: 3.7, fx: 1150, cpi: 2.5, oil: 68 },
+      { year: 2020, summary: '코로나 충격으로 경기 급랭 (예시)', kospi: 2300, sp500: 3100, nikkei: 23000, europe: 3300, rate: 0.5, cpi: 0.5, oil: 42, gold: 1900 },
+      { year: 2021, summary: '경기 반등·유동성 장세 (예시)', kospi: 3200, sp500: 4300, nikkei: 28000, europe: 4300, rate: 0.75, cpi: 2.5, oil: 68, gold: 1800 },
     ],
     hints: [
       { round: 2, grade: 'S', headline: '반도체 재고 급증… 업황 둔화 우려 (예시)', impact: 'down', related_stock_ids: ['S01'] },

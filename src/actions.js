@@ -97,13 +97,14 @@ export function makeAdminActions(getSecret) {
       call('admin_upsert_macro', {
         p_year: m.year,
         p_summary: m.summary ?? '',
+        p_kospi: m.kospi,
+        p_sp500: m.sp500,
+        p_nikkei: m.nikkei,
+        p_europe: m.europe,
         p_rate: m.rate,
-        p_gdp: m.gdp,
-        p_unemployment: m.unemployment,
-        p_fx: m.fx,
         p_cpi: m.cpi,
         p_oil: m.oil,
-        p_sp500: m.sp500,
+        p_gold: m.gold,
       }),
     upsertFinancial: (f) =>
       call('admin_upsert_financial', {

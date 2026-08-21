@@ -79,13 +79,14 @@ function shapeMacro(rows) {
   for (const r of rows ?? []) {
     out[r.year] = {
       summary: r.summary ?? '',
+      kospi: Number(r.kospi),
+      sp500: Number(r.sp500),
+      nikkei: Number(r.nikkei),
+      europe: Number(r.europe),
       rate: Number(r.rate),
-      gdp: Number(r.gdp),
-      unemployment: Number(r.unemployment),
-      fx: Number(r.fx),
       cpi: Number(r.cpi),
       oil: Number(r.oil),
-      sp500: Number(r.sp500),
+      gold: Number(r.gold),
     }
   }
   return out
