@@ -1783,11 +1783,16 @@ td {
   font-weight: 700;
 }
 
-/* 시황판 — 6지표 콤팩트 그리드 (재무 모달과 같은 언어) */
+/* 시황판 — 시황 지표 콤팩트 그리드 (재무 모달과 같은 언어). 지표 7개 = 4열(4+3) */
 .fs-macro {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 10px;
+}
+@media (max-width: 1100px) {
+  .fs-macro {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
 @media (max-width: 820px) {
   .fs-macro {
