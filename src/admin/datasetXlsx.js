@@ -193,11 +193,24 @@ export function parseWorkbook(buf) {
       yearC = colOf(H, '연도')
     const metCols = FIN_INPUTS.map((m) => ({ m, col: colOf(H, ...[].concat(m.xlsx)) }))
     reportUnknown(H, new Set([sidC, yearC, ...metCols.map((x) => x.col)].filter((x) => x >= 0)), '재무제표', fH, INFO)
+    // 캐시 없는 수식 셀: 종목ID 열이 수식인데 계산값(캐시)이 없으면 = 계산 안 된 파일.
+    // (자동 연결 양식을 엑셀/구글시트로 열어 저장 안 하고 올린 경우) → 값이 통째로 비어 들어가는 걸 막는다.
+    const fWs = wb.Sheets['재무제표']
+    if (sidC >= 0)
+      for (let r = fH + 1; r < fRows.length; r++) {
+        const c = fWs[XLSX.utils.encode_cell({ c: sidC, r })]
+        if (c && c.f && c.v == null && !c.w) {
+          E('재무제표', 0, '자동 수식이 계산되지 않았어요 — 엑셀/구글시트에서 열어 한 번 저장한 뒤 다시 업로드하세요')
+          break
+        }
+      }
     for (let i = fH + 1; i < fRows.length; i++) {
       const row = fRows[i],
         ex = i + 1
       const sid = s(row[sidC])
       if (!sid) continue
+      // 입력 7칸이 전부 빈 행 = "데이터 없음"으로 스킵 (자동 격자의 미상장·폐지 연도 행 등)
+      if (metCols.every(({ col }) => col < 0 || s(row[col]) === '')) continue
       if (!stockIds.has(sid)) E('재무제표', ex, `종목ID가 종목 시트에 없어요: ${sid}`)
       if (!isInt(row[yearC])) {
         E('재무제표', ex, `연도가 정수가 아니에요: "${row[yearC]}"`)
