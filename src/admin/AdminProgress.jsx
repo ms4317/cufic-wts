@@ -144,6 +144,9 @@ export default function AdminProgress({
       return
     }
     notify(timerRunning ? `타이머를 다시 시작했어요 (${durMin}분)` : `거래를 열었어요 (${durMin}분)`, 'gold')
+    // R1은 타이머 시작과 함께 힌트를 예약 배분한다 — 마감 직전에 학생에게 공개된다.
+    const scheduled = Number(r.hints?.granted ?? 0)
+    if (scheduled > 0) notify(`R1 힌트 ${scheduled}건 예약됨 — 거래 마감 직전 학생에게 자동 공개돼요`, 'gold')
     await refresh()
   }
 

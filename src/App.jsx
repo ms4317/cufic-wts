@@ -229,6 +229,29 @@ function Student({ theme, onToggleTheme }) {
     }
   }, [remainingMs, tradingOpen, pushToast])
 
+  // R1 힌트 시간차 공개 — 마감 lead초 전에 한 번 refetch해서 예약된 R1 힌트를 띄운다.
+  //   서버 get_my_hints가 reveal_at으로 게이트하므로 이건 "그 순간 다시 물어보는" 트리거일 뿐.
+  //   endsAt(타이머)마다 한 번만 건다. 시계 오차로 서버가 아직 안 열었으면 몇 번 재시도.
+  const r1RevealTimer = useRef(null)
+  useEffect(() => {
+    if ((game?.current_round ?? 0) !== 1 || !endsAt) return
+    const leadMs = (game?.r1_hint_lead_seconds ?? 300) * 1000
+    const fire = async (retriesLeft) => {
+      const before = hintsRef.current.length
+      const fresh = await refetch()
+      if (fresh?.ok && fresh.hints.some((h) => h.round === 1)) {
+        if (fresh.hints.length > before)
+          pushToast('R1 힌트가 공개됐어요!', 'gold', () => setHintsOpen(true))
+      } else if (retriesLeft > 0) {
+        r1RevealTimer.current = setTimeout(() => fire(retriesLeft - 1), 2000)
+      }
+    }
+    const delay = endsAt - leadMs - Date.now()
+    // +800ms: 서버 시계가 클라보다 살짝 뒤일 때 reveal_at을 확실히 넘기려는 여유
+    r1RevealTimer.current = setTimeout(() => fire(3), Math.max(0, delay) + 800)
+    return () => clearTimeout(r1RevealTimer.current)
+  }, [endsAt, game?.current_round, game?.r1_hint_lead_seconds, refetch, pushToast])
+
   // 속보 팝업이 열려 있으면(그리고 목록이 갱신되면) 전부 읽음 처리 → 깜빡임 멈춤
   useEffect(() => {
     if (!bcOpen) return
@@ -284,6 +307,11 @@ function Student({ theme, onToggleTheme }) {
         }
       } else if (sig.kind === 'timer_started') {
         pushToast('거래 시간이 시작됐어요', 'up')
+        // R1은 힌트가 마감 직전에 시간차 공개된다 — 학생에게 미리 알린다.
+        if ((fresh.game?.current_round ?? 0) === 1) {
+          const m = Math.round((fresh.game?.r1_hint_lead_seconds ?? 300) / 60)
+          pushToast(`R1 힌트는 거래 마감 ${m}분 전에 공개돼요`, 'gold')
+        }
       } else if (sig.kind === 'broadcast') {
         // 새 속보 도착 → 재난문자처럼 팝업으로 먼저 띄운다. 회수(deleted) 신호면 조용히 갱신만.
         if (!sig.payload?.deleted && fresh.broadcasts?.length) setAlertBc(fresh.broadcasts[0])
