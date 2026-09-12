@@ -66,6 +66,21 @@ export function parseWorkbook(buf) {
     if (!wb.SheetNames.includes(n)) E(n, 0, '시트가 없어요')
   if (errors.length) return { payload: null, errors, warnings, infos }
 
+  // 자동 수식이 계산 안 된 채(엑셀/구글시트에서 저장 전) 업로드된 파일 감지 — 친절 메시지로 선차단.
+  // 자동연결 양식의 종목 가격헤더·시황 연도는 수식인데, 저장 전이면 캐시가 없어 SheetJS엔 빈 칸으로 보인다
+  //   → 연도열이 통째로 사라져 "연도 없음" 같은 하위 에러가 쏟아진다. 증상(헤더는 있는데 값이 없음)으로 잡는다.
+  const SAVE_MSG = '자동 수식이 계산되지 않았어요 — 엑셀/구글시트에서 열어 한 번 저장한 뒤 다시 업로드하세요'
+  const kRows0 = rowsOf(wb.Sheets['종목'])
+  const kH0 = headerRow(kRows0, 'ID', '종목명')
+  const noPriceCols = kH0 >= 0 && !kRows0[kH0].some((c) => /(\d{4}).*가격/.test(s(c)))
+  const mRows0 = rowsOf(wb.Sheets['시황'])
+  const mH0 = headerRow(mRows0, '연도', '요약')
+  const yc0 = mH0 >= 0 ? colOf(mRows0[mH0], '연도') : -1
+  const noYears = mH0 >= 0 && yc0 >= 0 && !mRows0.slice(mH0 + 1).some((r) => isInt(r[yc0]))
+  if (noPriceCols) E('종목', kH0 + 1, SAVE_MSG)
+  if (noYears) E('시황', mH0 + 1, SAVE_MSG)
+  if (errors.length) return { payload: null, errors, warnings, infos }
+
   // ── ① 게임설정
   const gRows = rowsOf(wb.Sheets['게임설정'])
   const gH = headerRow(gRows, '항목', '값')
@@ -296,6 +311,45 @@ export function parseWorkbook(buf) {
     }
   }
 
+  // ── ⑥ 월별가격(선택) — 있으면 월봉 OHLC. 없으면 monthly_prices=[] (기존 동작 유지).
+  const monthly = []
+  const mpName = wb.SheetNames.find((n) => n.replace(/\s/g, '').startsWith('월별가격'))
+  if (mpName) {
+    const mpRows = rowsOf(wb.Sheets[mpName])
+    const mpH = headerRow(mpRows, '종목ID', '시가')
+    if (mpH < 0) E(mpName, 0, '헤더(종목ID/시가/…/종가)를 못 찾았어요')
+    else {
+      const Hm = mpRows[mpH]
+      const mc = { id: colOf(Hm, '종목ID'), y: colOf(Hm, '연도'), m: colOf(Hm, '월'), o: colOf(Hm, '시가'), h: colOf(Hm, '고가'), l: colOf(Hm, '저가'), c: colOf(Hm, '종가') }
+      reportUnknown(Hm, new Set(Object.values(mc).filter((x) => x >= 0)), mpName, mpH, INFO)
+      for (let i = mpH + 1; i < mpRows.length; i++) {
+        const row = mpRows[i], ex = i + 1
+        const sid = s(row[mc.id])
+        if (!sid) continue
+        if (!stockIds.has(sid)) { E(mpName, ex, `종목ID가 종목 시트에 없어요: ${sid}`); continue }
+        if (!isInt(row[mc.y]) || !isInt(row[mc.m])) { E(mpName, ex, `연도·월이 정수가 아니에요 (${sid})`); continue }
+        const o = Number(row[mc.o]), h = Number(row[mc.h]), l = Number(row[mc.l]), c = Number(row[mc.c])
+        if ([o, h, l, c].some((v) => !Number.isFinite(v))) { E(mpName, ex, `시/고/저/종이 숫자가 아니에요 (${sid} ${row[mc.y]}/${row[mc.m]})`); continue }
+        if (!(l <= o && l <= c && h >= o && h >= c && l <= h)) E(mpName, ex, `OHLC 관계 오류 (${sid} ${row[mc.y]}/${row[mc.m]}): 저 ≤ 시·종 ≤ 고 여야 해요`)
+        monthly.push({ stock_id: sid, year: Number(row[mc.y]), month: Number(row[mc.m]), open: Math.round(o), high: Math.round(h), low: Math.round(l), close: Math.round(c) })
+      }
+      // 12월 종가 = ②종목의 그 연도 가격 (12월 봉이 있는 종목·연도만; 폐지 연도는 12월 봉이 없어 스킵)
+      const groups = new Map()
+      for (const b of monthly) {
+        const k = b.stock_id + '#' + b.year
+        if (!groups.has(k)) groups.set(k, [])
+        groups.get(k).push(b)
+      }
+      for (const bars of groups.values()) {
+        const dec = bars.find((b) => b.month === 12)
+        if (!dec) continue
+        const yp = stocks.find((x) => x.id === bars[0].stock_id)?.prices[bars[0].year]
+        if (yp != null && dec.close !== yp)
+          E(mpName, 0, `${bars[0].stock_id} ${bars[0].year}년 12월 종가(${won(dec.close)})가 ②종목 시트 가격(${won(yp)})과 달라요`)
+      }
+    }
+  }
+
   // ── 교차 검증(에러 없을 때만)
   if (!errors.length) {
     const priceOf = (id, y) => stocks.find((x) => x.id === id)?.prices[y]
@@ -336,13 +390,14 @@ export function parseWorkbook(buf) {
         financials,
         macro,
         hints,
+        monthly_prices: monthly,
       }
   return { payload, errors, warnings, infos }
 }
 
 /** payload → 같은 양식(v3)의 .xlsx (Uint8Array). 가격은 절대값(원)으로 내보낸다. */
 export function buildWorkbook(payload) {
-  const { game, stocks, financials, macro, hints } = payload
+  const { game, stocks, financials, macro, hints, monthly_prices } = payload
   const years = [...new Set([...Object.values(game.round_year_map || {}).map(Number), Number(game.final_year)])]
     .filter(Number.isFinite)
     .sort((a, b) => a - b)
@@ -445,6 +500,21 @@ export function buildWorkbook(payload) {
   ]
   macro.forEach((m) => mRows.push([m.year, m.summary, ...MACRO_METRICS.map((mm) => m[mm.key])]))
   XLSX.utils.book_append_sheet(wb, aoa(mRows), '시황')
+
+  // ⑥ 월별가격(선택) — 월봉 OHLC가 있으면 동봉(엑셀 전용, 화면 편집 대상 아님)
+  if (Array.isArray(monthly_prices) && monthly_prices.length) {
+    const mpHead = ['종목ID', '연도', '월', '시가', '고가', '저가', '종가']
+    const mpRows = [
+      ['⑥ 월별가격 (월봉 · 엑셀 전용 — 화면 편집 대상 아님)', ...Array(mpHead.length - 1).fill('')],
+      ['한 행 = 한 종목의 한 달 봉(시/고/저/종). 각 연도 12월 종가는 ②종목의 그 연도 가격과 같아야 하고, 폐지 연도는 마지막 봉(종가 0)까지만 넣어요.', ...Array(mpHead.length - 1).fill('')],
+      mpHead,
+    ]
+    monthly_prices
+      .slice()
+      .sort((a, b) => a.stock_id.localeCompare(b.stock_id) || a.year - b.year || a.month - b.month)
+      .forEach((b) => mpRows.push([b.stock_id, b.year, b.month, b.open, b.high, b.low, b.close]))
+    XLSX.utils.book_append_sheet(wb, aoa(mpRows), '월별가격(선택)')
+  }
 
   return XLSX.write(wb, { bookType: 'xlsx', type: 'array' })
 }
