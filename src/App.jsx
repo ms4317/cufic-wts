@@ -247,12 +247,15 @@ function Student({ theme, onToggleTheme }) {
         r1RevealTimer.current = setTimeout(() => fire(retriesLeft - 1), 2000)
       }
     }
-    // 공개 시각 = 타이머 시작 + lead(기본 5분). 관리자 [지금 공개] 버튼은 hints_changed 신호로 즉시 반영.
-    const delay = startAt + leadMs - Date.now()
+    // 공개 시각 = 타이머 시작 + lead(기본 5분), 단 마감(endsAt)을 넘지 않게 — 타이머를 줄이면 공개도 당겨진다.
+    // (서버 reveal_at도 least(시작+lead, 마감)이라 일치). 관리자 [지금 공개] 버튼은 hints_changed 신호로 즉시 반영.
+    let revealAt = startAt + leadMs
+    if (endsAt) revealAt = Math.min(revealAt, endsAt)
+    const delay = revealAt - Date.now()
     // +800ms: 서버 시계가 클라보다 살짝 뒤일 때 reveal_at을 확실히 넘기려는 여유
     r1RevealTimer.current = setTimeout(() => fire(3), Math.max(0, delay) + 800)
     return () => clearTimeout(r1RevealTimer.current)
-  }, [startAt, game?.current_round, game?.r1_hint_lead_seconds, refetch, pushToast])
+  }, [startAt, endsAt, game?.current_round, game?.r1_hint_lead_seconds, refetch, pushToast])
 
   // 속보 팝업이 열려 있으면(그리고 목록이 갱신되면) 전부 읽음 처리 → 깜빡임 멈춤
   useEffect(() => {

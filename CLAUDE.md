@@ -57,7 +57,8 @@ select private.set_admin_secret('원하는_비밀');
   **하위권 우대(꼴찌=S)**. 강사 수동 지급은 보조로 남는다. 지급 안 된 힌트는 어떤 경로로도 안 보인다.
   - **R1은 시간차 공개(2026-09-03 도입, 09-12 개정, 옛 "R1 무지급" 폐기).** R1도 힌트를 주되,
     [타이머 시작]이 미리 배분하고 **타이머 시작 후 `game_state.r1_hint_lead_seconds`(기본 300초=5분)에**
-    공개한다(=`round_start_at + lead`, 시작 기준 — 라운드 길이·조기 넘김과 무관하게 안정적. 옛 "마감 전"은 폐기).
+    공개한다 — `reveal_at = least(round_start_at + lead, round_ends_at)`(시작 기준, 단 마감을 넘지 않게. 옛 "마감 전"은 폐기).
+    `adjust_round_timer`(±조정)가 마감을 바꾸면 R1 `reveal_at`도 같이 재계산(줄이면 공개도 당겨짐, 이미 공개된 건 유지).
     구현은 `hint_grants.reveal_at`(null=즉시)이고 `get_my_hints`가 `reveal_at<=now()`만 돌려준다 —
     늦게 접속한 학생도 시각이 지나면 서버 게이트로 바로 보인다. `start_round_timer`가 R1일 때
     `distribute_round_hints(1, 시작+lead)`를 호출. 클라는 그 시각에 refetch(App.jsx).
