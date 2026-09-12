@@ -431,7 +431,7 @@ export function buildWorkbook(payload) {
   const hHead = ['라운드', '등급(S~D)', '힌트 문구', '방향(up/down/flat) (선택)', '관련 종목ID (선택)']
   const hRows = [
     ['④ 힌트 (라운드 × 등급)', '', '', '', ''],
-    ['R1은 지급 없음. 방향·관련종목은 선택(채우면 자동 검증·종목 링크 작동, 학생에겐 방향 안 보임). 관련종목은 쉼표로.', '', '', '', ''],
+    ['R1도 힌트를 넣을 수 있어요(거래 마감 5분 전 시간차 공개). 방향·관련종목은 선택(채우면 자동 검증·종목 링크 작동, 학생에겐 방향 안 보임). 관련종목은 쉼표로.', '', '', '', ''],
     hHead,
   ]
   hints.forEach((h) => hRows.push([h.round, h.grade, h.headline, h.impact === 'flat' ? '' : h.impact, (h.related_stock_ids || []).join(',')]))
