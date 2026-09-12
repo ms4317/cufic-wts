@@ -55,12 +55,15 @@ select private.set_admin_secret('원하는_비밀');
 - **힌트는 조별로 다르다 — 자동 차등 지급.** S/A/B/C/D 등급 힌트를 조별로 다르게 준다.
   R2~R5는 [연도 넘기기]가 **새 순위(가격 공개 후) 기준으로 자동 배분**한다 —
   **하위권 우대(꼴찌=S)**. 강사 수동 지급은 보조로 남는다. 지급 안 된 힌트는 어떤 경로로도 안 보인다.
-  - **R1은 시간차 공개(2026-09-03 확정, 옛 "R1 무지급" 폐기).** R1도 힌트를 주되, [타이머 시작]이
-    미리 배분하고 **거래 마감 `game_state.r1_hint_lead_seconds`(기본 300초=5분) 전에** 공개한다. 구현은
-    `hint_grants.reveal_at`(null=즉시)이고 `get_my_hints`가 `reveal_at<=now()`만 돌려준다 —
+  - **R1은 시간차 공개(2026-09-03 도입, 09-12 개정, 옛 "R1 무지급" 폐기).** R1도 힌트를 주되,
+    [타이머 시작]이 미리 배분하고 **타이머 시작 후 `game_state.r1_hint_lead_seconds`(기본 300초=5분)에**
+    공개한다(=`round_start_at + lead`, 시작 기준 — 라운드 길이·조기 넘김과 무관하게 안정적. 옛 "마감 전"은 폐기).
+    구현은 `hint_grants.reveal_at`(null=즉시)이고 `get_my_hints`가 `reveal_at<=now()`만 돌려준다 —
     늦게 접속한 학생도 시각이 지나면 서버 게이트로 바로 보인다. `start_round_timer`가 R1일 때
-    `distribute_round_hints(1, 마감-lead)`를 호출. 클라는 그 시각에 refetch(App.jsx). R1은 전 조 동률이라
-    라운드로빈이 생성순(id)으로 갈린다. **lead 상수를 하드코딩하지 말 것**(설정값).
+    `distribute_round_hints(1, 시작+lead)`를 호출. 클라는 그 시각에 refetch(App.jsx).
+    - **관리자 [R1 힌트 지금 공개] 버튼**(`admin_reveal_r1_hints`, AdminProgress) — 5분을 안 기다리고 즉시 공개.
+      미배분이면 지금 배분(즉시 공개), 예약분은 `reveal_at`을 now로 당기고 `hints_changed` 신호로 학생 화면 갱신.
+    - R1은 전 조 동률이라 라운드로빈이 생성순(id)으로 갈린다. **lead 상수를 하드코딩하지 말 것**(설정값).
   - **배분 = 등급순 × 순위 라운드로빈(2026-07-28 확정, floor 공식 폐기).** 힌트 풀을 등급 좋은 순(S→D)·
     같은 등급은 작성순(id)으로 세우고, 팀을 꼴찌부터(평가금액 오름차순, 동률은 생성순→id) 세워 **꼴찌→1위
     방향으로 한 장씩** 소진될 때까지 배정(`hn % 조수`). 로직은 `distribute_round_hints()`(=`src/distribute.js`),

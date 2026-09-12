@@ -150,6 +150,17 @@ export default function AdminProgress({
     await refresh()
   }
 
+  // R1 힌트 즉시 공개 — 타이머 5분(자동)을 기다리지 않고 강사가 원하는 순간 바로 띄운다.
+  const revealR1Now = async () => {
+    setBusy(true)
+    const r = await actions.revealR1Hints()
+    setBusy(false)
+    if (!r.ok) return notify(errorText(r.error), 'down')
+    const n = Number(r.revealed ?? 0) + Number(r.granted ?? 0)
+    notify(n > 0 ? `R1 힌트를 지금 공개했어요 (${n}건)` : '공개할 R1 힌트가 없어요', 'gold')
+    await refresh()
+  }
+
   // 진행 중인 타이머를 ±1분 조정
   const adjustTimer = async (deltaMin) => {
     setBusy(true)
@@ -440,6 +451,15 @@ export default function AdminProgress({
               {timerRunning ? `타이머 다시 시작 (${durMin}분)` : `타이머 시작 (${durMin}분)`}
             </button>
           </div>
+          {/* R1 전용: 힌트는 타이머 시작 5분 뒤 자동 공개 — 이 버튼으로 지금 바로 공개할 수도 있다 */}
+          {cur === 1 && (
+            <div className="arow">
+              <button className="act-btn" disabled={busy} onClick={revealR1Now}>
+                R1 힌트 지금 공개
+              </button>
+              <span className="adj-hint">기본은 타이머 시작 5분 뒤 자동 공개</span>
+            </div>
+          )}
         </section>
       )}
 

@@ -124,6 +124,7 @@ function Student({ theme, onToggleTheme }) {
   // 라운드 타이머. 서버 round_ends_at이 유일한 기준이다(place_order도 서버 시각으로 검사).
   // 클라이언트 시계가 어긋나도 표시만 틀릴 뿐, 마감 이후 거래는 서버가 거부한다.
   const endsAt = game?.round_ends_at ? new Date(game.round_ends_at).getTime() : null
+  const startAt = game?.round_start_at ? new Date(game.round_start_at).getTime() : null
   const remainingMs = endsAt ? Math.max(0, endsAt - nowTs) : 0
   const tradingOpen = started && !locked && remainingMs > 0
   // 타이머 표시 상태: live(카운트다운) / closed(마감) / waiting(대기) / null(숨김)
@@ -234,7 +235,7 @@ function Student({ theme, onToggleTheme }) {
   //   endsAt(타이머)마다 한 번만 건다. 시계 오차로 서버가 아직 안 열었으면 몇 번 재시도.
   const r1RevealTimer = useRef(null)
   useEffect(() => {
-    if ((game?.current_round ?? 0) !== 1 || !endsAt) return
+    if ((game?.current_round ?? 0) !== 1 || !startAt) return
     const leadMs = (game?.r1_hint_lead_seconds ?? 300) * 1000
     const fire = async (retriesLeft) => {
       const before = hintsRef.current.length
@@ -246,11 +247,12 @@ function Student({ theme, onToggleTheme }) {
         r1RevealTimer.current = setTimeout(() => fire(retriesLeft - 1), 2000)
       }
     }
-    const delay = endsAt - leadMs - Date.now()
+    // 공개 시각 = 타이머 시작 + lead(기본 5분). 관리자 [지금 공개] 버튼은 hints_changed 신호로 즉시 반영.
+    const delay = startAt + leadMs - Date.now()
     // +800ms: 서버 시계가 클라보다 살짝 뒤일 때 reveal_at을 확실히 넘기려는 여유
     r1RevealTimer.current = setTimeout(() => fire(3), Math.max(0, delay) + 800)
     return () => clearTimeout(r1RevealTimer.current)
-  }, [endsAt, game?.current_round, game?.r1_hint_lead_seconds, refetch, pushToast])
+  }, [startAt, game?.current_round, game?.r1_hint_lead_seconds, refetch, pushToast])
 
   // 속보 팝업이 열려 있으면(그리고 목록이 갱신되면) 전부 읽음 처리 → 깜빡임 멈춤
   useEffect(() => {
