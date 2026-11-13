@@ -65,6 +65,7 @@ function Student({ theme, onToggleTheme }) {
   const [marketOpen, setMarketOpen] = useState(false) // 시황판(거시경제)
   const [financials, setFinancials] = useState({}) // 재무제표 (DB)
   const [macro, setMacro] = useState({}) // 시황 (DB)
+  const [monthly, setMonthly] = useState({}) // 월봉 OHLC { [code]: [bars] } (DB, 공개 연도까지)
   const [seed, setSeed] = useState(0) // 내 조의 원금. 조마다 다를 수 있다.
 
   const [placing, setPlacing] = useState(false) // 즉시 체결 요청 중
@@ -181,6 +182,7 @@ function Student({ theme, onToggleTheme }) {
     setBroadcasts(r.broadcasts)
     setFinancials(r.financials)
     setMacro(r.macro)
+    setMonthly(r.monthly)
     setSeed(r.seed)
     setCash(r.cash)
     setSelectedCode((c) => c ?? r.rawStocks[0]?.id ?? null)
@@ -205,6 +207,7 @@ function Student({ theme, onToggleTheme }) {
     setBroadcasts(r.broadcasts)
     setFinancials(r.financials)
     setMacro(r.macro)
+    setMonthly(r.monthly)
     if (r.rawStocks) setRawStocks(r.rawStocks)
     setGame(r.game)
     setCash(r.cash)
@@ -505,6 +508,8 @@ function Student({ theme, onToggleTheme }) {
         />
         <Chart
           stock={selected}
+          bars={monthly[selected.code] ?? []}
+          year={yearOf(game)}
           onOpenFinancial={() => setFinOpen(true)}
           onOpenMarket={started ? () => setMarketOpen(true) : undefined}
           strokes={drawings[selected.code] ?? []}

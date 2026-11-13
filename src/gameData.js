@@ -92,12 +92,26 @@ function shapeMacro(rows) {
   return out
 }
 
+// 월별 OHLC: { [종목코드]: [{year,month,open,high,low,close}] } (연·월 오름차순).
+// get_monthly가 서버에서 공개 연도까지만(미래 봉 차단) 준다. 없는 데이터셋이면 빈 객체.
+function shapeMonthly(rows) {
+  const out = {}
+  for (const r of rows ?? []) {
+    ;(out[r.stock_id] ??= []).push({
+      year: Number(r.year), month: Number(r.month),
+      open: Number(r.open), high: Number(r.high), low: Number(r.low), close: Number(r.close),
+    })
+  }
+  for (const k of Object.keys(out)) out[k].sort((a, b) => a.year - b.year || a.month - b.month)
+  return out
+}
+
 /**
  * 로그인 후 한 번에 가져오는 초기 데이터. 병렬로 요청한다.
  * 실패하면 화면이 통째로 죽는 대신 {ok:false}를 돌려준다.
  */
 export async function loadAll(teamCode, teamId) {
-  const [game, stocks, positions, trades, hints, snaps, board, me, cash, bcast, fin, macro] =
+  const [game, stocks, positions, trades, hints, snaps, board, me, cash, bcast, fin, macro, mp] =
     await Promise.all([
       select('game_state', '*'),
       select('stocks', '*'),
@@ -111,9 +125,10 @@ export async function loadAll(teamCode, teamId) {
       select('broadcasts', '*', (q) => q.order('id', { ascending: false })),
       rpc('get_financials'), // 현재 라운드 연도까지만 (서버가 미래 연도 차단)
       rpc('get_macro'),
+      rpc('get_monthly'), // 월봉 — 공개 연도까지만 (없는 데이터셋이면 빈 배열)
     ])
 
-  const failed = [game, stocks, positions, trades, hints, snaps, board, me, bcast, fin, macro].find(
+  const failed = [game, stocks, positions, trades, hints, snaps, board, me, bcast, fin, macro, mp].find(
     (r) => !r.ok,
   )
   if (failed) return { ok: false, error: failed.error ?? 'network' }
@@ -130,6 +145,7 @@ export async function loadAll(teamCode, teamId) {
     broadcasts: bcast.rows ?? [],
     financials: shapeFinancials(fin.rows),
     macro: shapeMacro(macro.rows),
+    monthly: shapeMonthly(mp.rows),
     seed: Number(me.rows[0]?.seed ?? 0), // 원금 — 조마다 다를 수 있다
     cash: Number(cash.value ?? 0),
   }
@@ -137,7 +153,7 @@ export async function loadAll(teamCode, teamId) {
 
 /** 신호를 받았을 때 다시 가져오는 것들 (내 조 데이터 + 공개 데이터) */
 export async function refetchMine(teamCode, teamId) {
-  const [positions, trades, hints, snaps, board, game, cash, bcast, fin, macro, stocks] =
+  const [positions, trades, hints, snaps, board, game, cash, bcast, fin, macro, mp, stocks] =
     await Promise.all([
       select('positions', '*', (q) => q.eq('team_id', teamId)),
       select('trades', '*', (q) => q.eq('team_id', teamId).order('created_at', { ascending: false })),
@@ -149,9 +165,10 @@ export async function refetchMine(teamCode, teamId) {
       select('broadcasts', '*', (q) => q.order('id', { ascending: false })),
       rpc('get_financials'),
       rpc('get_macro'),
+      rpc('get_monthly'),
       select('stocks', '*'), // 팩 전환으로 종목이 통째로 바뀔 수 있어 함께 갱신
     ])
-  const failed = [positions, trades, hints, snaps, board, game, bcast, fin, macro, stocks].find(
+  const failed = [positions, trades, hints, snaps, board, game, bcast, fin, macro, mp, stocks].find(
     (r) => !r.ok,
   )
   if (failed) return { ok: false, error: failed.error ?? 'network' }
@@ -165,6 +182,7 @@ export async function refetchMine(teamCode, teamId) {
     broadcasts: bcast.rows ?? [],
     financials: shapeFinancials(fin.rows),
     macro: shapeMacro(macro.rows),
+    monthly: shapeMonthly(mp.rows),
     rawStocks: stocks.rows,
     game: game.rows[0] ?? null,
     cash: Number(cash.value ?? 0),
